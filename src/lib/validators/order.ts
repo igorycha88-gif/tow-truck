@@ -22,7 +22,7 @@ export const orderSchema = z.object({
     .min(3, { message: 'Укажите адрес или район подачи' })
     .max(200, { message: 'Слишком длинный адрес' }),
   serviceType: z.enum(
-    ['light_vehicle', 'moto', 'commercial', 'offroad', 'accident', 'fuel'],
+    ['light_vehicle', 'moto', 'commercial', 'offroad', 'accident'],
     { message: 'Выберите тип услуги' },
   ),
   consent: z.literal(true, {

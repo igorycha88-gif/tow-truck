@@ -77,7 +77,7 @@ describe('notifyService.notifyNewOrder', () => {
       name: 'Иван',
       phone: '+79991234567',
       location: 'МКАД',
-      serviceType: 'fuel',
+      serviceType: 'offroad',
       consent: true,
     });
     expect(loggerMock.info).toHaveBeenCalledWith(

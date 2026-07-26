@@ -44,14 +44,6 @@ export const services: ServiceCatalogItem[] = [
     priceFrom: 4000,
     icon: 'Siren',
   },
-  {
-    slug: 'fuel',
-    title: 'Подвоз топлива и запуск',
-    description:
-      'Подвоз топлива, запуск двигателя («прикуривание»), подвоз инструментов и помощь на дороге.',
-    priceFrom: 2000,
-    icon: 'Fuel',
-  },
 ];
 
 export const getServiceBySlug = (slug: string) =>

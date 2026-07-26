@@ -37,6 +37,6 @@ export const advantages: AdvantageItem[] = [
     id: 'any-situation',
     icon: 'LifeBuoy',
     title: 'Помощь в любой ситуации',
-    text: 'ДТП, поломка, бездорожье, подвоз топлива, запуск — решаем всё под ключ.',
+    text: 'ДТП, поломка, бездорожье — решаем всё под ключ.',
   },
 ];

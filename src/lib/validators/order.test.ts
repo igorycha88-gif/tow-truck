@@ -41,6 +41,11 @@ describe('orderSchema', () => {
     expect(r.success).toBe(false);
   });
 
+  it('отвергает удалённый serviceType «fuel» (регрессия)', () => {
+    const r = orderSchema.safeParse({ ...valid, serviceType: 'fuel' });
+    expect(r.success).toBe(false);
+  });
+
   it('отвергает отсутствие согласия (152-ФЗ)', () => {
     const r = orderSchema.safeParse({ ...valid, consent: false });
     expect(r.success).toBe(false);

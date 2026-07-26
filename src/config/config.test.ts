@@ -9,9 +9,15 @@ import { SERVICE_TYPES } from '@/types';
 // Тесты на консистентность каталогов контента (см. ARCHITECTURE.md §4).
 
 describe('config.services', () => {
-  it('содержит все 6 типов услуг из SERVICE_TYPES', () => {
+  it('содержит все 5 типов услуг из SERVICE_TYPES', () => {
     const slugs = services.map((s) => s.slug);
     SERVICE_TYPES.forEach((t) => expect(slugs).toContain(t));
+  });
+
+  it('не содержит удалённую услугу «fuel» (регрессия)', () => {
+    const slugs = services.map((s) => s.slug);
+    expect(slugs).not.toContain('fuel');
+    expect(getServiceBySlug('fuel')).toBeUndefined();
   });
 
   it('каждая услуга имеет непустые поля и положительную цену', () => {

@@ -5,8 +5,7 @@ export type ServiceType =
   | 'moto'
   | 'commercial'
   | 'offroad'
-  | 'accident'
-  | 'fuel';
+  | 'accident';
 
 export type OrderStatus = 'NEW' | 'CALLED' | 'DONE' | 'CANCELLED';
 
@@ -16,7 +15,6 @@ export const SERVICE_TYPES: readonly ServiceType[] = [
   'commercial',
   'offroad',
   'accident',
-  'fuel',
 ] as const;
 
 export type ServiceCatalogItem = {
