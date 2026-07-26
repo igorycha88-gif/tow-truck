@@ -1,0 +1,84 @@
+# Dev-окружение: полная пересборка (см. AGENTS.md ПРАВИЛО 6, SKILL_DEVOPS.md).
+# Запуск: docker compose -f docker-compose.dev.yml build --no-cache && up -d --force-recreate
+
+name: evakuaciya-dev
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: evakuaciya-postgres-dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: tow_truck
+    ports:
+      - '5434:5432'
+    volumes:
+      - postgres-dev-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d tow_truck']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: evakuaciya-redis-dev
+    restart: unless-stopped
+    command: redis-server --save 60 1 --loglevel warning
+    ports:
+      - '6381:6379'
+    volumes:
+      - redis-dev-data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: dev
+    container_name: evakuaciya-app-dev
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      NODE_ENV: development
+      PORT: '3000'
+      LOG_LEVEL: info
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/tow_truck?schema=public
+      REDIS_URL: redis://redis:6379
+      RATE_LIMIT_ORDERS_PER_HOUR: '3'
+      NEXT_PUBLIC_SITE_URL: http://localhost:3000
+      NEXT_PUBLIC_SITE_NAME: 'Эвакуация Москва и МО'
+      NEXT_PUBLIC_PHONE: '+7 (495) 000-00-00'
+      NEXT_PUBLIC_METRIKA_ID: ''
+      TELEGRAM_BOT_TOKEN: ''
+      TELEGRAM_CHAT_ID: ''
+    ports:
+      - '3010:3000'
+    volumes:
+      - ./src:/app/src
+      - ./public:/app/public
+      - ./prisma:/app/prisma
+      - /app/node_modules
+      - /app/.next
+    healthcheck:
+      # Liveness app-процесса: главная страница должна отвечать 200
+      # (статус БД проверяется через /api/health отдельно — он может быть degraded).
+      test: ['CMD-SHELL', 'wget -qO- http://localhost:3000/ || exit 1']
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+
+volumes:
+  postgres-dev-data:
+  redis-dev-data:

@@ -39,34 +39,38 @@ Production-ready сайт для предоставления услуг эва�
 
 ---
 
-## 🚀 Быстрый старт (после инициализации проекта)
+## 🚀 Быстрый старт
+
+### Вариант A: Docker (рекомендуется — поднимает app + PostgreSQL + Redis)
 
 ```bash
-# Установка зависимостей
-npm install
-
-# Копирование env-шаблона
 cp .env.example .env
-
-# БД (Prisma)
-npx prisma generate
-npx prisma migrate dev
-npm run db:seed
-
-# Запуск dev-сервера
-npm run dev          # http://localhost:3000
-
-# Docker (опционально, полная среда)
 docker compose -f docker-compose.dev.yml up -d --build
+# http://localhost:3000  (health: /api/health)
 ```
+
+### Вариант B: Локально (нужны запущенные PostgreSQL и Redis)
+
+```bash
+npm install
+cp .env.example .env           # заполнить DATABASE_URL, REDIS_URL
+npx prisma generate
+npx prisma db push             # создать схему (без миграций для dev)
+npm run db:seed                # тестовые данные
+npm run dev                    # http://localhost:3000
+```
+
+> Без БД/Redis приложение запускается: форма и health работают в режиме
+> graceful fallback (заявки логируются, но не сохраняются; rate-limit отключён).
 
 ### Команды качества
 
 ```bash
 npm run lint            # ESLint
-npx tsc --noEmit        # Проверка типов
-npm run test            # Vitest
-npm run test:e2e        # Playwright
+npm run typecheck       # TypeScript (tsc --noEmit)
+npm run test            # Vitest (unit/integration)
+npm run test:coverage   # Vitest + покрытие
+npm run test:e2e        # Playwright (нужен запущенный dev/build-сервер)
 npm run build           # Production-сборка
 ```
 
