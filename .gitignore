@@ -1,0 +1,69 @@
+# ── Зависимости ──
+/node_modules
+/.pnp
+.pnp.js
+.yarn/install-state.gz
+
+# ── Тестирование ──
+/coverage
+/test-results
+/playwright-report
+/blob-report
+/playwright/.cache
+
+# ── Next.js ──
+/.next/
+/out/
+next-env.d.ts
+
+# ── Production ──
+/build
+
+# ── Prisma ──
+/prisma/*.db
+/prisma/*.db-journal
+
+# ── Окружение и секреты (НИКОГДА не коммитить) ──
+.env
+.env*.local
+.env.production
+.env.production.local
+.env.*.local
+!.env.example
+
+# ── Логи ──
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+logs/
+deploy-*.log
+
+# ── IDE / ОС ──
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+.DS_Store
+*.swp
+*.swo
+*~
+
+# ── Vercel ──
+.vercel
+
+# ── TypeScript ──
+*.tsbuildinfo
+
+# ── Бэкапы БД (локальные) ──
+/backups/
+*.sql.gz
+
+# ── Кэш ──
+.cache/
+.eslintcache
+.turbo/
+
+# ── Сгенерированные артефакты ──
+/public/sitemap*.xml
+/public/robots.txt
