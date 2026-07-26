@@ -8,11 +8,11 @@ deploy (Blue-Green на VPS). Формальная спецификация: `PI
 | Воркфлоу | Файл | Триггер | Что делает |
 |----------|------|---------|------------|
 | **ci** | `.github/workflows/ci.yml` | push (main/dev), PR→main | lint + typecheck + vitest + build |
-| **docker-publish** | `.github/workflows/docker-publish.yml` | push main, теги `v*` | собирает `runner`-образ, пушит в GHCR |
-| **deploy** | `.github/workflows/deploy.yml` | workflow_dispatch + после docker-publish | Blue-Green деплой на VPS по SSH |
+| **docker-publish** | `.github/workflows/docker-publish.yml` | push main, теги `v*` | собирает `runner`-образ, пушит в GHCR; затем (при `ENABLE_PROD_DEPLOY=true`) авто-деплой на VPS |
+| **deploy** | `.github/workflows/deploy.yml` | workflow_dispatch (ручной) | Blue-Green деплой указанного тега образа на VPS по SSH |
 
 **Маршрут:** `push main` → ci ✅ → docker-publish (образ `sha-<short>` + `latest`) →
-deploy (auto, если заданы VPS-secrets).
+deploy-джоба (только если `ENABLE_PROD_DEPLOY=true` и заданы VPS-secrets).
 
 ---
 
@@ -24,9 +24,9 @@ deploy (auto, если заданы VPS-secrets).
 
 ---
 
-## 🔑 Необходимые GitHub-secrets
+## 🔑 Необходимые GitHub-secrets и переменные
 
-Settings → Secrets and variables → Actions → New repository secret:
+**Secrets** (Settings → Secrets and variables → Actions → Secrets):
 
 | Secret | Назначение | Пример |
 |--------|-----------|--------|
@@ -36,11 +36,21 @@ Settings → Secrets and variables → Actions → New repository secret:
 | `VPS_PORT` *(опц.)* | SSH-порт | `22` |
 | `VPS_PROJECT_DIR` *(опц.)* | путь к проекту на VPS | `/root/tow-truck` |
 
+**Variables** (Settings → Secrets and variables → Actions → Variables):
+
+| Variable | Назначение |
+|----------|-----------|
+| `ENABLE_PROD_DEPLOY` | `true` — включить авто-деплой на VPS после сборки образа на `main`. Пока не задана/не `true` — образ собирается, но на прод не выкатывается. |
+
 > `docker-publish` использует встроенный `GITHUB_TOKEN` (доп. секреты не нужны).
 > Для пулла образа на VPS выполните **один раз** на сервере вход в GHCR:
 > ```bash
 > echo "<PAT с read:packages>" | docker login ghcr.io -u igorycha88-gif --password-stdin
 > ```
+
+> ⚠️ **Дефолтная ветка репозитория — `dev`**, а деплой идёт с `main`. Поэтому
+> авто-деплой реализован как job внутри `docker-publish.yml` (а не через `workflow_run`).
+> Для ручного ре-деплоя конкретного тега используйте воркфлоу `deploy`.
 
 ---
 
@@ -68,10 +78,11 @@ Settings → Secrets and variables → Actions → New repository secret:
 
 ## 🚀 Запуск деплоя
 
-**Автоматически:** любой push в `main` (после успешного `docker-publish`) запустит
-`deploy` сам — если заданы VPS-secrets.
+**Автоматически:** push в `main` → сборка образа → (если `ENABLE_PROD_DEPLOY=true` и
+заданы VPS-secrets) авто-деплой job-ой в `docker-publish.yml`.
 
-**Вручную:** GitHub → Actions → `deploy` → Run workflow → (тег образа, по умолчанию `latest`).
+**Вручную** (ре-деплой конкретного тега): GitHub → Actions → `deploy` → Run workflow →
+тег образа (по умолчанию `latest`). Работает независимо от дефолтной ветки.
 
 Что делает `deploy/blue-green-deploy.sh`:
 1. Бэкап БД (`pg_dump` через `tow-truck-db`) → `backups/db_*.sql.gz`.

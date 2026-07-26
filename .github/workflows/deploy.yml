@@ -1,8 +1,10 @@
-# deploy — Blue-Green деплой «Эвакуация» на VPS (PIPELINE_PROD.js).
-# Триггеры:
-#   - workflow_dispatch: ручной запуск (можно указать image_tag, по умолчанию latest)
-#   - workflow_run: автоматический после успешного docker-publish на main
-# Деплой идемпотентен и безопасен: авто-откат при провале critical-шага.
+# deploy — ручной Blue-Green деплой «Эвакуация» на VPS (PIPELINE_PROD.js).
+#
+# Авто-деплой после сборки реализован ВНУТРИ docker-publish.yml (job deploy),
+# т.к. дефолтная ветка репозитория — dev, и workflow_run здесь не регистрируется.
+# Этот воркфлоу — для ручного ре-деплоя конкретного тега образа.
+#
+# Запуск: Actions → deploy → Run workflow → тег образа (по умолчанию latest).
 name: deploy
 
 on:
@@ -12,12 +14,7 @@ on:
         description: 'Тег образа (по умолчанию latest)'
         required: false
         default: 'latest'
-  workflow_run:
-    workflows: ['docker-publish']
-    types: [completed]
-    branches: [main]
 
-# Не запускать два деплоя одновременно.
 concurrency:
   group: deploy-prod
   cancel-in-progress: false
@@ -27,19 +24,16 @@ permissions:
 
 jobs:
   deploy:
-    # Только ручной запуск ИЛИ успешное завершение docker-publish.
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     env:
-      IMAGE: ghcr.io/igorycha88-gif/tow-truck/app:${{ github.event.inputs.image_tag || 'latest' }}
+      IMAGE: ghcr.io/igorycha88-gif/tow-truck/app:${{ github.event.inputs.image_tag }}
       PROJECT_DIR: ${{ secrets.VPS_PROJECT_DIR || '/root/tow-truck' }}
-
     steps:
-      - name: Preflight — наличие секретов
+      - name: Preflight — VPS-secrets
         run: |
+          echo "Image: ${IMAGE}"
           [ -n "${{ secrets.VPS_HOST }}" ] && echo "VPS_HOST: set" || { echo "❌ Secret VPS_HOST не задан"; exit 1; }
           [ -n "${{ secrets.VPS_SSH_KEY }}" ] && echo "VPS_SSH_KEY: set" || { echo "❌ Secret VPS_SSH_KEY не задан"; exit 1; }
-          echo "Deploy image: ${IMAGE}"
 
       - uses: actions/checkout@v4
 
@@ -52,7 +46,6 @@ jobs:
           port: ${{ secrets.VPS_PORT || 22 }}
           command_timeout: 30m
           script_stop: true
-          # На VPS: обновляем код → прогоняем blue-green скрипт.
           script: |
             set -euo pipefail
             cd "${PROJECT_DIR}"

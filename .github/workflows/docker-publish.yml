@@ -1,6 +1,9 @@
-# docker-publish — сборка production-образа и пуш в GHCR.
+# docker-publish — сборка production-образа и (опционально) авто-деплой на прод.
 # Триггеры: push в main, теги v*, ручной запуск.
+#
 # Образ (target=runner) — неделимый артефакт для Blue-Green деплоя (PIPELINE_PROD PR5).
+# После успешной сборки на main, если включена переменная репозитория
+# ENABLE_PROD_DEPLOY=true, запускается Blue-Green деплой на VPS по SSH.
 name: docker-publish
 
 on:
@@ -63,5 +66,59 @@ jobs:
           echo "## 🐳 Опубликован образ" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
-          echo "${{ steps.meta.outputs.tags }}" | tr '\n' '\n' >> "$GITHUB_STEP_SUMMARY"
+          echo "${{ steps.meta.outputs.tags }}" >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+  # ─── Авто-деплой на прод (opt-in) ───
+  # Срабатывает ТОЛЬКО на push в main И когда в настройках репозитория задана
+  # переменная ENABLE_PROD_DEPLOY=true (Settings → Secrets and variables → Actions → Variables).
+  # Пока переменная не задана — образ собирается, но на VPS не деплоится.
+  deploy:
+    name: Blue-Green deploy (VPS)
+    needs: build-and-push
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.ENABLE_PROD_DEPLOY == 'true' }}
+    runs-on: ubuntu-latest
+    env:
+      IMAGE: ghcr.io/igorycha88-gif/tow-truck/app:latest
+      PROJECT_DIR: ${{ secrets.VPS_PROJECT_DIR || '/root/tow-truck' }}
+    steps:
+      - name: Preflight — VPS-secrets
+        run: |
+          echo "Image: ${IMAGE}"
+          [ -n "${{ secrets.VPS_HOST }}" ] && echo "VPS_HOST: set" || { echo "❌ Secret VPS_HOST не задан"; exit 1; }
+          [ -n "${{ secrets.VPS_SSH_KEY }}" ] && echo "VPS_SSH_KEY: set" || { echo "❌ Secret VPS_SSH_KEY не задан"; exit 1; }
+
+      - uses: actions/checkout@v4
+
+      - name: Deploy over SSH (Blue-Green)
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER || 'root' }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          command_timeout: 30m
+          script_stop: true
+          script: |
+            set -euo pipefail
+            cd "${PROJECT_DIR}"
+            echo "→ Синхронизация кода с origin/main..."
+            git fetch --prune origin
+            git checkout main
+            git reset --hard origin/main
+            echo "→ Запуск Blue-Green деплоя: ${IMAGE}"
+            ./deploy/blue-green-deploy.sh "${IMAGE}"
+
+      - name: Verify production health
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER || 'root' }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          script: |
+            set -e
+            echo "→ /api/health (prod 3001):"
+            curl -sf --max-time 10 http://127.0.0.1:3001/api/health && echo
+            echo "→ Контейнер:"
+            docker ps --filter "name=tow-truck-app" --format "table {{.Names}}\t{{.Status}}\t{{.Image}}"
