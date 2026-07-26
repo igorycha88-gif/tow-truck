@@ -40,6 +40,9 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/prisma ./prisma
+# Production entrypoint: prisma migrate deploy → next start (PIPELINE_PROD.js → DP4)
+COPY --from=builder /app/deploy/docker-entrypoint.sh /app/docker-entrypoint.sh
+RUN chmod +x /app/docker-entrypoint.sh
 USER nextjs
 EXPOSE 3000
-CMD ["npm", "run", "start"]
+ENTRYPOINT ["/app/docker-entrypoint.sh"]

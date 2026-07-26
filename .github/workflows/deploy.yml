@@ -1,0 +1,85 @@
+# deploy — Blue-Green деплой «Эвакуация» на VPS (PIPELINE_PROD.js).
+# Триггеры:
+#   - workflow_dispatch: ручной запуск (можно указать image_tag, по умолчанию latest)
+#   - workflow_run: автоматический после успешного docker-publish на main
+# Деплой идемпотентен и безопасен: авто-откат при провале critical-шага.
+name: deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Тег образа (по умолчанию latest)'
+        required: false
+        default: 'latest'
+  workflow_run:
+    workflows: ['docker-publish']
+    types: [completed]
+    branches: [main]
+
+# Не запускать два деплоя одновременно.
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    # Только ручной запуск ИЛИ успешное завершение docker-publish.
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    env:
+      IMAGE: ghcr.io/igorycha88-gif/tow-truck/app:${{ github.event.inputs.image_tag || 'latest' }}
+      PROJECT_DIR: ${{ secrets.VPS_PROJECT_DIR || '/root/tow-truck' }}
+
+    steps:
+      - name: Preflight — наличие секретов
+        run: |
+          [ -n "${{ secrets.VPS_HOST }}" ] && echo "VPS_HOST: set" || { echo "❌ Secret VPS_HOST не задан"; exit 1; }
+          [ -n "${{ secrets.VPS_SSH_KEY }}" ] && echo "VPS_SSH_KEY: set" || { echo "❌ Secret VPS_SSH_KEY не задан"; exit 1; }
+          echo "Deploy image: ${IMAGE}"
+
+      - uses: actions/checkout@v4
+
+      - name: Deploy over SSH (Blue-Green)
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER || 'root' }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          command_timeout: 30m
+          script_stop: true
+          # На VPS: обновляем код → прогоняем blue-green скрипт.
+          script: |
+            set -euo pipefail
+            cd "${PROJECT_DIR}"
+            echo "→ Синхронизация кода с origin/main..."
+            git fetch --prune origin
+            git checkout main
+            git reset --hard origin/main
+            echo "→ Запуск Blue-Green деплоя: ${IMAGE}"
+            ./deploy/blue-green-deploy.sh "${IMAGE}"
+
+      - name: Verify production health
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER || 'root' }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          script: |
+            set -e
+            echo "→ /api/health (prod 3001):"
+            curl -sf --max-time 10 http://127.0.0.1:3001/api/health && echo
+            echo "→ Контейнер:"
+            docker ps --filter "name=tow-truck-app" --format "table {{.Names}}\t{{.Status}}\t{{.Image}}"
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## 🚀 Прод-деплой" >> "$GITHUB_STEP_SUMMARY"
+          echo "Image: \`${IMAGE}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "Результат: ${{ job.status }}" >> "$GITHUB_STEP_SUMMARY"

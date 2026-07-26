@@ -25,6 +25,9 @@ describe('GET /api/health', () => {
     expect(body.status).toBe('ok');
     expect(body.db).toBe('up');
     expect(body.redis).toBe('up');
+    expect(body.version).toBeDefined();
+    expect(typeof body.version).toBe('string');
+    expect(body.version).toMatch(/^\d+\.\d+\.\d+/);
     expect(body.timestamp).toBeDefined();
   });
 
