@@ -71,6 +71,11 @@ describe('seo.localBusinessLd', () => {
     expect(ld.openingHoursSpecification.opens).toBe('00:00');
     expect(ld.openingHoursSpecification.closes).toBe('23:59');
   });
+
+  it('priceRange обновлён до минимальной подачи «от 5000 ₽»', () => {
+    const ld = localBusinessLd() as { priceRange: string };
+    expect(ld.priceRange).toBe('от 5000 ₽');
+  });
 });
 
 describe('seo email (env-driven)', () => {

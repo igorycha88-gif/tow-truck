@@ -20,13 +20,31 @@ describe('config.services', () => {
     expect(getServiceBySlug('fuel')).toBeUndefined();
   });
 
-  it('каждая услуга имеет непустые поля и положительную цену', () => {
+  it('каждая услуга имеет непустые поля и валидную модель цены', () => {
     services.forEach((s) => {
       expect(s.title.length).toBeGreaterThan(0);
       expect(s.description.length).toBeGreaterThan(0);
-      expect(s.priceFrom).toBeGreaterThan(0);
       expect(s.icon.length).toBeGreaterThan(0);
+      if (s.pricing.kind === 'tariff') {
+        expect(s.pricing.baseFee).toBeGreaterThan(0);
+        expect(s.pricing.perKm).toBeGreaterThan(0);
+      } else {
+        expect(s.pricing.kind).toBe('onRequest');
+      }
     });
+  });
+
+  it('тарифные услуги содержат утверждённые подачу и ₽/км (контроль значений)', () => {
+    const bySlug = Object.fromEntries(services.map((s) => [s.slug, s]));
+    expect(bySlug.light_vehicle.pricing).toEqual({ kind: 'tariff', baseFee: 5000, perKm: 100 });
+    expect(bySlug.moto.pricing).toEqual({ kind: 'tariff', baseFee: 5000, perKm: 100 });
+    expect(bySlug.offroad.pricing).toEqual({ kind: 'tariff', baseFee: 6000, perKm: 100 });
+  });
+
+  it('услуги «по запросу» не содержат числовых тарифов (accident, commercial)', () => {
+    const bySlug = Object.fromEntries(services.map((s) => [s.slug, s]));
+    expect(bySlug.accident.pricing.kind).toBe('onRequest');
+    expect(bySlug.commercial.pricing.kind).toBe('onRequest');
   });
 
   it('getServiceBySlug находит услугу (happy path)', () => {

@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   cn,
   formatPrice,
+  formatPricing,
   isValidRuPhone,
   normalizePhone,
   formatPhone,
@@ -26,6 +27,35 @@ describe('utils.formatPrice', () => {
 
   it('не показывает копейки для целых чисел', () => {
     expect(formatPrice(2500)).not.toMatch(/\d,\d{2}/);
+  });
+});
+
+describe('utils.formatPricing', () => {
+  it('тариф: «Подача ... ₽ • ... ₽/км» (happy path)', () => {
+    const out = formatPricing({ kind: 'tariff', baseFee: 5000, perKm: 100 });
+    expect(out).toContain('Подача');
+    expect(out).toContain('5');
+    expect(out).toContain('000');
+    expect(out).toContain('100');
+    expect(out).toContain('/км');
+  });
+
+  it('точное значение для тарифа легковых', () => {
+    expect(formatPricing({ kind: 'tariff', baseFee: 5000, perKm: 100 })).toBe(
+      `Подача ${formatPrice(5000)} • ${formatPrice(100)}/км`,
+    );
+  });
+
+  it('«по запросу»: фиксированная строка (happy path)', () => {
+    expect(formatPricing({ kind: 'onRequest' })).toBe('Цена по запросу');
+  });
+
+  it('tariff и onRequest дают разные результаты (edge/regression)', () => {
+    const tariff = formatPricing({ kind: 'tariff', baseFee: 6000, perKm: 100 });
+    const onRequest = formatPricing({ kind: 'onRequest' });
+    expect(tariff).not.toBe(onRequest);
+    expect(tariff).toContain('Подача');
+    expect(onRequest).not.toContain('Подача');
   });
 });
 

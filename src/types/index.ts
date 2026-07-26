@@ -17,11 +17,16 @@ export const SERVICE_TYPES: readonly ServiceType[] = [
   'accident',
 ] as const;
 
+// Модель цены услуги: фиксированный тариф (подача + ₽/км) либо «по запросу».
+export type ServicePricing =
+  | { kind: 'tariff'; baseFee: number; perKm: number }
+  | { kind: 'onRequest' };
+
 export type ServiceCatalogItem = {
   slug: ServiceType;
   title: string;
   description: string;
-  priceFrom: number;
+  pricing: ServicePricing;
   icon: string; // имя иконки lucide-react
 };
 

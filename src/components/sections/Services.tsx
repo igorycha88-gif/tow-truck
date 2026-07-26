@@ -3,7 +3,7 @@ import { ArrowRight } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { DynamicIcon } from '@/components/ui/DynamicIcon';
 import { services } from '@/config/services';
-import { formatPrice } from '@/lib/utils';
+import { formatPricing } from '@/lib/utils';
 
 // Секции услуг. Server Component. Карточки → ссылка на форму с предзаполнением serviceType.
 export function Services() {
@@ -46,7 +46,7 @@ export function Services() {
                   <h3 className="mt-4 text-lg font-semibold">{service.title}</h3>
                   <p className="mt-2 text-sm text-muted-foreground">{service.description}</p>
                   <p className="mt-4 text-base font-bold text-foreground">
-                    от {formatPrice(service.priceFrom)}
+                    {formatPricing(service.pricing)}
                   </p>
                 </Card>
               </Link>

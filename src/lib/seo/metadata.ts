@@ -65,6 +65,6 @@ export function localBusinessLd() {
       opens: '00:00',
       closes: '23:59',
     },
-    priceRange: 'от 2000 ₽',
+    priceRange: 'от 5000 ₽',
   };
 }

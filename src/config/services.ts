@@ -1,7 +1,7 @@
 import type { ServiceCatalogItem } from '@/types';
 
 // Каталог услуг (контент из config, без админки — см. ARCHITECTURE.md §4).
-// priceFrom — «от», в рублях. Заглушки, заменить на реальные тарифы.
+// pricing: тариф (подача + ₽/км) или «по запросу» (см. ServicePricing).
 
 export const services: ServiceCatalogItem[] = [
   {
@@ -9,7 +9,7 @@ export const services: ServiceCatalogItem[] = [
     title: 'Эвакуация легковых авто',
     description:
       'Эвакуатор для легковых автомобилей любых марок. Аккуратная погрузка, аккуратный транспорт.',
-    priceFrom: 3000,
+    pricing: { kind: 'tariff', baseFee: 5000, perKm: 100 },
     icon: 'Car',
   },
   {
@@ -17,7 +17,7 @@ export const services: ServiceCatalogItem[] = [
     title: 'Эвакуация мотоциклов',
     description:
       'Перевозка мотоциклов, скутеров, квадроциклов с креплением и мягкими ремнями.',
-    priceFrom: 2500,
+    pricing: { kind: 'tariff', baseFee: 5000, perKm: 100 },
     icon: 'Bike',
   },
   {
@@ -25,7 +25,7 @@ export const services: ServiceCatalogItem[] = [
     title: 'Эвакуация спецтехники',
     description:
       'Эвакуатор для грузовиков, автобусов и коммерческого транспорта. Усиленная платформа.',
-    priceFrom: 6000,
+    pricing: { kind: 'onRequest' },
     icon: 'Truck',
   },
   {
@@ -33,7 +33,7 @@ export const services: ServiceCatalogItem[] = [
     title: 'Внедорожники и кроссоверы',
     description:
       'Эвакуация внедорожников и авто с низким клиренсом — лебёдка и сдвижная платформа.',
-    priceFrom: 3500,
+    pricing: { kind: 'tariff', baseFee: 6000, perKm: 100 },
     icon: 'CarFront',
   },
   {
@@ -41,7 +41,7 @@ export const services: ServiceCatalogItem[] = [
     title: 'После ДТП',
     description:
       'Эвакуация авто после аварии. Аккуратная работа с повреждённым транспортом, помощь с погрузкой.',
-    priceFrom: 4000,
+    pricing: { kind: 'onRequest' },
     icon: 'Siren',
   },
 ];

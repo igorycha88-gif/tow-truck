@@ -2,6 +2,7 @@ import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { parsePhoneNumber } from 'libphonenumber-js';
 import type { NextRequest } from 'next/server';
+import type { ServicePricing } from '@/types';
 
 // Объединение Tailwind-классов без конфликтов (shadcn pattern).
 export function cn(...inputs: ClassValue[]) {
@@ -15,6 +16,16 @@ export function formatPrice(value: number): string {
     currency: 'RUB',
     maximumFractionDigits: 0,
   }).format(value);
+}
+
+// Человекочитаемый формат модели цены услуги.
+// tariff  → "Подача 5 000 ₽ • 100 ₽/км"
+// onRequest → "Цена по запросу"
+export function formatPricing(pricing: ServicePricing): string {
+  if (pricing.kind === 'onRequest') {
+    return 'Цена по запросу';
+  }
+  return `Подача ${formatPrice(pricing.baseFee)} • ${formatPrice(pricing.perKm)}/км`;
 }
 
 // Валидный ли российский телефон.
