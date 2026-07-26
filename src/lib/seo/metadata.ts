@@ -56,7 +56,7 @@ export function localBusinessLd() {
     name: siteConfig.name,
     description: siteConfig.description,
     telephone: company.phoneHref.replace('tel:', ''),
-    email: company.email,
+    ...(company.email ? { email: company.email } : {}),
     url: siteConfig.url,
     areaServed: ['Москва', 'Московская область'],
     openingHoursSpecification: {

@@ -49,8 +49,8 @@ export type CompanyInfo = {
   phoneHref: string; // tel:+74950000000
   whatsapp?: string;
   telegram?: string;
-  email?: string; // человекочитаемый
-  emailHref?: string; // mailto:boronind1m@yandex.ru
+  email?: string; // человекочитаемый (необязательный — задавать через NEXT_PUBLIC_EMAIL)
+  emailHref?: string; // mailto:...
   address: string;
   workingHours: string;
   domain: string;

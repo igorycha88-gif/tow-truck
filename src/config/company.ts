@@ -5,8 +5,10 @@ import type { CompanyInfo } from '@/types';
 
 const phoneDigits = (process.env.NEXT_PUBLIC_PHONE || '+7 (901) 705-45-40');
 const phoneHref = `tel:${phoneDigits.replace(/[^+\d]/g, '')}`;
-const email = (process.env.NEXT_PUBLIC_EMAIL || 'boronind1m@yandex.ru');
-const emailHref = `mailto:${email}`;
+// Email необязателен: личная почта не должна светиться на сайте по умолчанию.
+// Публичный email задаётся через NEXT_PUBLIC_EMAIL (см. .env.example).
+const email = process.env.NEXT_PUBLIC_EMAIL || undefined;
+const emailHref = email ? `mailto:${email}` : undefined;
 
 export const company: CompanyInfo = {
   name: 'Эвакуация Москва и МО',

@@ -58,13 +58,15 @@ export function Hero() {
             </Link>
           </div>
 
-          <a
-            href={company.emailHref}
-            className="mt-3 inline-flex items-center gap-1.5 text-sm text-primary-foreground/80 transition-colors hover:text-accent"
-          >
-            <Mail className="h-4 w-4" />
-            {company.email}
-          </a>
+          {company.email && (
+            <a
+              href={company.emailHref}
+              className="mt-3 inline-flex items-center gap-1.5 text-sm text-primary-foreground/80 transition-colors hover:text-accent"
+            >
+              <Mail className="h-4 w-4" />
+              {company.email}
+            </a>
+          )}
 
           <dl className="mx-auto mt-12 grid max-w-2xl grid-cols-3 gap-4 text-center">
             <div className="space-y-1">

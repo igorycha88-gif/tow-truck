@@ -37,12 +37,14 @@ export function Contacts() {
           </a>
 
           <div className="grid gap-3 sm:grid-cols-2">
-            <a
-              href={company.emailHref}
-              className={cn(buttonVariants({ variant: 'secondary', size: 'lg' }), 'gap-3')}
-            >
-              <Mail className="h-5 w-5" /> {company.email}
-            </a>
+            {company.email && (
+              <a
+                href={company.emailHref}
+                className={cn(buttonVariants({ variant: 'secondary', size: 'lg' }), 'gap-3')}
+              >
+                <Mail className="h-5 w-5" /> {company.email}
+              </a>
+            )}
             {company.whatsapp && (
               <a
                 href={`https://wa.me/${company.whatsapp.replace(/[^0-9]/g, '')}`}

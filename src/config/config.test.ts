@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { services, getServiceBySlug } from '@/config/services';
 import { advantages } from '@/config/advantages';
 import { processSteps } from '@/config/process-steps';
@@ -67,15 +67,34 @@ describe('config.company', () => {
     expect(company.phoneHref).toBe('tel:+79017054540');
     expect(company.phone.replace(/\D/g, '')).toBe('79017054540');
   });
-  it('содержит актуальный email boronind1m@yandex.ru', () => {
-    expect(company.email).toBe('boronind1m@yandex.ru');
+  it('email по умолчанию undefined — личная почта скрыта', () => {
+    expect(company.email).toBeUndefined();
   });
   it('domain равен продакшн-домену эвакуация.online', () => {
     expect(company.domain).toBe('эвакуация.online');
   });
-  it('emailHref начинается с mailto: и содержит email', () => {
-    expect(company.emailHref).toMatch(/^mailto:/);
-    expect(company.emailHref).toBe(`mailto:${company.email}`);
+  it('emailHref undefined, когда email не задан', () => {
+    expect(company.emailHref).toBeUndefined();
+  });
+});
+
+describe('config.company email (env-driven)', () => {
+  it('показывает публичный email, когда NEXT_PUBLIC_EMAIL задан (happy path)', async () => {
+    vi.resetModules();
+    vi.stubEnv('NEXT_PUBLIC_EMAIL', 'info@example.com');
+    const { company: withEmail } = await import('@/config/company');
+    expect(withEmail.email).toBe('info@example.com');
+    expect(withEmail.emailHref).toBe('mailto:info@example.com');
+    vi.unstubAllEnvs();
+  });
+
+  it('email отсутствует, когда NEXT_PUBLIC_EMAIL пустой (edge case)', async () => {
+    vi.resetModules();
+    vi.stubEnv('NEXT_PUBLIC_EMAIL', '');
+    const { company: empty } = await import('@/config/company');
+    expect(empty.email).toBeUndefined();
+    expect(empty.emailHref).toBeUndefined();
+    vi.unstubAllEnvs();
   });
 });
 

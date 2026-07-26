@@ -46,9 +46,11 @@ export function Footer() {
             <a href={company.phoneHref} className="flex items-center gap-2 text-sm font-medium text-foreground hover:text-accent">
               <Phone className="h-4 w-4" /> {company.phone}
             </a>
-            <a href={company.emailHref} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
-              <Mail className="h-4 w-4" /> {company.email}
-            </a>
+            {company.email && (
+              <a href={company.emailHref} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
+                <Mail className="h-4 w-4" /> {company.email}
+              </a>
+            )}
             {company.whatsapp && (
               <a
                 href={`https://wa.me/${company.whatsapp.replace(/[^0-9]/g, '')}`}

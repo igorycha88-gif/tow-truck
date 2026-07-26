@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { buildMetadata, localBusinessLd } from '@/lib/seo/metadata';
 
 describe('seo.buildMetadata', () => {
@@ -34,11 +34,16 @@ describe('seo.buildMetadata', () => {
     expect(m.twitter).toBeDefined();
   });
 
-  it('содержит og:phone_number и og:email в other', () => {
+  it('содержит og:phone_number в other', () => {
     const m = buildMetadata();
     const other = m.other as Record<string, string>;
     expect(other['og:phone_number']).toBe('+7 (901) 705-45-40');
-    expect(other['og:email']).toBe('boronind1m@yandex.ru');
+  });
+
+  it('не добавляет og:email, когда email не задан (edge case)', () => {
+    const m = buildMetadata();
+    const other = m.other as Record<string, string>;
+    expect(other['og:email']).toBeUndefined();
   });
 });
 
@@ -55,15 +60,27 @@ describe('seo.localBusinessLd', () => {
     expect(ld.areaServed).toContain('Москва');
   });
 
-  it('содержит email и телефон в E.164-подобном формате', () => {
+  it('содержит телефон в E.164-подобном формате; email опускается, если не задан', () => {
     const ld = localBusinessLd();
-    expect(ld.email).toBe('boronind1m@yandex.ru');
     expect(ld.telephone).toBe('+79017054540');
+    expect(ld.email).toBeUndefined();
   });
 
   it('круглосуточный режим работы', () => {
     const ld = localBusinessLd() as { openingHoursSpecification: { opens: string; closes: string } };
     expect(ld.openingHoursSpecification.opens).toBe('00:00');
     expect(ld.openingHoursSpecification.closes).toBe('23:59');
+  });
+});
+
+describe('seo email (env-driven)', () => {
+  it('добавляет og:email и JSON-LD email, когда NEXT_PUBLIC_EMAIL задан (happy path)', async () => {
+    vi.resetModules();
+    vi.stubEnv('NEXT_PUBLIC_EMAIL', 'info@example.com');
+    const { buildMetadata: bm, localBusinessLd: ld } = await import('@/lib/seo/metadata');
+    const other = bm().other as Record<string, string>;
+    expect(other['og:email']).toBe('info@example.com');
+    expect(ld().email).toBe('info@example.com');
+    vi.unstubAllEnvs();
   });
 });
