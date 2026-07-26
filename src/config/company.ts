@@ -1,10 +1,12 @@
 import type { CompanyInfo } from '@/types';
 
-// Контактные данные компании. ЗАГЛУШКИ — заменить на реальные одной правкой.
-// См. .env.example (NEXT_PUBLIC_PHONE, NEXT_PUBLIC_WHATSAPP, NEXT_PUBLIC_TELEGRAM).
+// Контактные данные компании. Значения по умолчанию — реальные.
+// См. .env.example (NEXT_PUBLIC_PHONE, NEXT_PUBLIC_EMAIL, NEXT_PUBLIC_WHATSAPP, NEXT_PUBLIC_TELEGRAM).
 
-const phoneDigits = (process.env.NEXT_PUBLIC_PHONE || '+7 (495) 000-00-00');
+const phoneDigits = (process.env.NEXT_PUBLIC_PHONE || '+7 (901) 705-45-40');
 const phoneHref = `tel:${phoneDigits.replace(/[^+\d]/g, '')}`;
+const email = (process.env.NEXT_PUBLIC_EMAIL || 'boronind1m@yandex.ru');
+const emailHref = `mailto:${email}`;
 
 export const company: CompanyInfo = {
   name: 'Эвакуация Москва и МО',
@@ -14,7 +16,8 @@ export const company: CompanyInfo = {
   phoneHref,
   whatsapp: process.env.NEXT_PUBLIC_WHATSAPP || undefined,
   telegram: process.env.NEXT_PUBLIC_TELEGRAM || undefined,
-  email: process.env.NOTIFY_EMAIL || undefined,
+  email,
+  emailHref,
   address: 'Москва и Московская область',
   workingHours: 'Круглосуточно, 24/7 без выходных',
   domain: 'example.ru', // заглушка

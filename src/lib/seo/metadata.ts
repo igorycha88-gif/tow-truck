@@ -18,6 +18,8 @@ export function buildMetadata({
   const fullTitle = title ? `${title} — ${siteConfig.name}` : `${siteConfig.name} — эвакуатор 24/7`;
   const desc = description || siteConfig.description;
   const url = `${siteConfig.url}${path}`;
+  const other: Record<string, string> = { 'og:phone_number': company.phone };
+  if (company.email) other['og:email'] = company.email;
 
   return {
     metadataBase: new URL(siteConfig.url),
@@ -42,9 +44,7 @@ export function buildMetadata({
     robots: noIndex
       ? { index: false, follow: false }
       : { index: true, follow: true },
-    other: {
-      'og:phone_number': company.phone,
-    },
+    other,
   };
 }
 
@@ -56,6 +56,7 @@ export function localBusinessLd() {
     name: siteConfig.name,
     description: siteConfig.description,
     telephone: company.phoneHref.replace('tel:', ''),
+    email: company.email,
     url: siteConfig.url,
     areaServed: ['Москва', 'Московская область'],
     openingHoursSpecification: {

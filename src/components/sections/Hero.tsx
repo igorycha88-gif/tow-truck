@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Phone, Timer, ShieldCheck, Star } from 'lucide-react';
+import { Phone, Mail, Timer, ShieldCheck, Star } from 'lucide-react';
 import { company, trustStats } from '@/config/company';
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -57,6 +57,14 @@ export function Hero() {
               Заказать эвакуатор
             </Link>
           </div>
+
+          <a
+            href={company.emailHref}
+            className="mt-3 inline-flex items-center gap-1.5 text-sm text-primary-foreground/80 transition-colors hover:text-accent"
+          >
+            <Mail className="h-4 w-4" />
+            {company.email}
+          </a>
 
           <dl className="mx-auto mt-12 grid max-w-2xl grid-cols-3 gap-4 text-center">
             <div className="space-y-1">

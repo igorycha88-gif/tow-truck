@@ -33,6 +33,13 @@ describe('seo.buildMetadata', () => {
     expect(m.openGraph).toBeDefined();
     expect(m.twitter).toBeDefined();
   });
+
+  it('содержит og:phone_number и og:email в other', () => {
+    const m = buildMetadata();
+    const other = m.other as Record<string, string>;
+    expect(other['og:phone_number']).toBe('+7 (901) 705-45-40');
+    expect(other['og:email']).toBe('boronind1m@yandex.ru');
+  });
 });
 
 describe('seo.localBusinessLd', () => {
@@ -46,6 +53,12 @@ describe('seo.localBusinessLd', () => {
     const ld = localBusinessLd();
     expect(ld.telephone).toBeTruthy();
     expect(ld.areaServed).toContain('Москва');
+  });
+
+  it('содержит email и телефон в E.164-подобном формате', () => {
+    const ld = localBusinessLd();
+    expect(ld.email).toBe('boronind1m@yandex.ru');
+    expect(ld.telephone).toBe('+79017054540');
   });
 
   it('круглосуточный режим работы', () => {

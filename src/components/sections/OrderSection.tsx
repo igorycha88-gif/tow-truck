@@ -30,6 +30,13 @@ export function OrderSection() {
               {company.phone}
             </a>
 
+            <a
+              href={company.emailHref}
+              className="mt-2 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-accent"
+            >
+              {company.email}
+            </a>
+
             <ul className="mt-8 space-y-2 text-sm text-muted-foreground">
               <li>✓ Подача 15–30 минут по Москве и МО</li>
               <li>✓ Фиксированная цена, без скрытых платежей</li>

@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { Phone, Menu, X, Truck } from 'lucide-react';
+import { Phone, Mail, Menu, X, Truck } from 'lucide-react';
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { navigation } from '@/config/site';
@@ -37,6 +37,13 @@ export function Header() {
         </nav>
 
         <div className="flex items-center gap-2">
+          <a
+            href={company.emailHref}
+            className="hidden items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground xl:flex"
+          >
+            <Mail className="h-4 w-4" />
+            <span>{company.email}</span>
+          </a>
           <a
             href={company.phoneHref}
             className={cn(buttonVariants({ variant: 'default', size: 'sm' }), 'gap-2')}

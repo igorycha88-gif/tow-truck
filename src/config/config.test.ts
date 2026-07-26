@@ -63,6 +63,17 @@ describe('config.company', () => {
   it('phoneHref начинается с tel:', () => {
     expect(company.phoneHref).toMatch(/^tel:/);
   });
+  it('телефон соответствует актуальному номеру +79017054540', () => {
+    expect(company.phoneHref).toBe('tel:+79017054540');
+    expect(company.phone.replace(/\D/g, '')).toBe('79017054540');
+  });
+  it('содержит актуальный email boronind1m@yandex.ru', () => {
+    expect(company.email).toBe('boronind1m@yandex.ru');
+  });
+  it('emailHref начинается с mailto: и содержит email', () => {
+    expect(company.emailHref).toMatch(/^mailto:/);
+    expect(company.emailHref).toBe(`mailto:${company.email}`);
+  });
 });
 
 describe('config.trustStats', () => {

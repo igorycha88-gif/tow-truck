@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Phone, MessageCircle, Send, Truck, Clock } from 'lucide-react';
+import { Phone, Mail, MessageCircle, Send, Truck, Clock } from 'lucide-react';
 import { company } from '@/config/company';
 import { navigation } from '@/config/site';
 
@@ -45,6 +45,9 @@ export function Footer() {
             <h2 className="text-sm font-semibold uppercase tracking-wide text-foreground">Контакты</h2>
             <a href={company.phoneHref} className="flex items-center gap-2 text-sm font-medium text-foreground hover:text-accent">
               <Phone className="h-4 w-4" /> {company.phone}
+            </a>
+            <a href={company.emailHref} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
+              <Mail className="h-4 w-4" /> {company.email}
             </a>
             {company.whatsapp && (
               <a
