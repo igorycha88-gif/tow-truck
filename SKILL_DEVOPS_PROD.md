@@ -40,7 +40,7 @@
 | VPS_HOST | `<VPS_IP>` |
 | VPS_USER | `root` |
 | PROJECT_DIR | `/root/tow-truck` |
-| DOMAIN | `<domain>` (напр. evakuator-msk.ru) |
+| DOMAIN | `эвакуация.online` |
 | GHCR_IMAGE | `ghcr.io/igorycha88-gif/tow-truck/app` |
 | PROD_BRANCH | `main` |
 | BLUE_PORT | `3001` |

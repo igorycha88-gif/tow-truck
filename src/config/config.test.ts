@@ -70,6 +70,9 @@ describe('config.company', () => {
   it('содержит актуальный email boronind1m@yandex.ru', () => {
     expect(company.email).toBe('boronind1m@yandex.ru');
   });
+  it('domain равен продакшн-домену эвакуация.online', () => {
+    expect(company.domain).toBe('эвакуация.online');
+  });
   it('emailHref начинается с mailto: и содержит email', () => {
     expect(company.emailHref).toMatch(/^mailto:/);
     expect(company.emailHref).toBe(`mailto:${company.email}`);

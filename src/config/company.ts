@@ -20,7 +20,7 @@ export const company: CompanyInfo = {
   emailHref,
   address: 'Москва и Московская область',
   workingHours: 'Круглосуточно, 24/7 без выходных',
-  domain: 'example.ru', // заглушка
+  domain: 'эвакуация.online',
 };
 
 // Маркетинговые метрики доверия (заглушки — обновить при реальных данных)
