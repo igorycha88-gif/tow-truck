@@ -1,0 +1,4 @@
+# Заглушка, чтобы git трекал пустую директорию public/.
+# Dockerfile (runner) копирует /app/public; без этого файла папка отсутствует
+# в CI-контексте после `actions/checkout` → сборка падает на COPY.
+# Сюда можно складывать статику (favicon, og-картинки); sitemap/robots генерируются Next.js.
