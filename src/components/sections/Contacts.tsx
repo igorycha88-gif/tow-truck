@@ -67,15 +67,12 @@ export function Contacts() {
             )}
           </div>
 
-          <dl className="grid gap-4 pt-6 text-sm sm:grid-cols-3">
+          <dl className="grid gap-4 pt-6 text-sm sm:grid-cols-2">
             <div className="flex items-center justify-center gap-2 text-primary-foreground/80">
               <Clock className="h-4 w-4 text-accent" /> 24/7 без выходных
             </div>
             <div className="flex items-center justify-center gap-2 text-primary-foreground/80">
               <MapPin className="h-4 w-4 text-accent" /> {company.address}
-            </div>
-            <div className="flex items-center justify-center gap-2 text-primary-foreground/80">
-              ИНН: {company.inn}
             </div>
           </dl>
         </div>

@@ -40,7 +40,7 @@ export default function PolitikaPage() {
 
         <h2 className="mt-8 text-xl font-semibold">4. Контакты</h2>
         <p className="mt-2 text-muted-foreground">
-          По вопросам обработки персональных данных: {company.legalName}, ИНН {company.inn},
+          По вопросам обработки персональных данных: {company.name},
           тел. {company.phone}.
         </p>
 

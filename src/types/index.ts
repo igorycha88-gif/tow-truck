@@ -46,8 +46,6 @@ export type ProcessStep = {
 
 export type CompanyInfo = {
   name: string;
-  legalName: string;
-  inn: string;
   phone: string; // человекочитаемый
   phoneHref: string; // tel:+74950000000
   whatsapp?: string;

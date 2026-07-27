@@ -80,9 +80,13 @@ describe('config.processSteps', () => {
 });
 
 describe('config.company', () => {
-  it('содержит телефон и ИНН', () => {
+  it('содержит телефон и бренд', () => {
     expect(company.phone).toBeTruthy();
-    expect(company.inn).toBeTruthy();
+    expect(company.name).toBeTruthy();
+  });
+  it('не содержит реквизиты (legalName, inn) — убраны с сайта', () => {
+    expect(company).not.toHaveProperty('legalName');
+    expect(company).not.toHaveProperty('inn');
   });
   it('phoneHref начинается с tel:', () => {
     expect(company.phoneHref).toMatch(/^tel:/);

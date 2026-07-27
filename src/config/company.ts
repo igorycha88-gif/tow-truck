@@ -12,8 +12,6 @@ const emailHref = email ? `mailto:${email}` : undefined;
 
 export const company: CompanyInfo = {
   name: 'Эвакуация Москва и МО',
-  legalName: 'ИП Иванов И. И.', // заглушка
-  inn: '770000000000', // заглушка
   phone: phoneDigits,
   phoneHref,
   whatsapp: process.env.NEXT_PUBLIC_WHATSAPP || undefined,

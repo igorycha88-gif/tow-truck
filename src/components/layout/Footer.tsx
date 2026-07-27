@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Phone, Mail, MessageCircle, Send, Truck, Clock } from 'lucide-react';
+import { Phone, Mail, MessageCircle, Send, Truck, Clock, MapPin } from 'lucide-react';
 import { company } from '@/config/company';
 import { navigation } from '@/config/site';
 
@@ -10,7 +10,7 @@ export function Footer() {
   return (
     <footer className="border-t border-border bg-secondary/30">
       <div className="container py-12">
-        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
           <div className="space-y-3">
             <div className="flex items-center gap-2 font-bold">
               <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent text-accent-foreground">
@@ -20,6 +20,9 @@ export function Footer() {
             </div>
             <p className="flex items-center gap-2 text-sm text-muted-foreground">
               <Clock className="h-4 w-4" /> {company.workingHours}
+            </p>
+            <p className="flex items-center gap-2 text-sm text-muted-foreground">
+              <MapPin className="h-4 w-4" /> {company.address}
             </p>
           </div>
 
@@ -72,18 +75,11 @@ export function Footer() {
               </a>
             )}
           </div>
-
-          <div className="space-y-2">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-foreground">Реквизиты</h2>
-            <p className="text-sm text-muted-foreground">{company.legalName}</p>
-            <p className="text-sm text-muted-foreground">ИНН: {company.inn}</p>
-            <p className="text-sm text-muted-foreground">{company.address}</p>
-          </div>
         </div>
 
         <div className="mt-8 border-t border-border pt-6">
           <p className="text-xs text-muted-foreground">
-            © {year} {company.legalName}. Все права защищены. Информация на сайте не является публичной офертой.
+            © {year} {company.name}. Все права защищены. Информация на сайте не является публичной офертой.
           </p>
         </div>
       </div>
