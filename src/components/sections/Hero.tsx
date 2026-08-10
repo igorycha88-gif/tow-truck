@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { Phone, Mail, Timer, ShieldCheck, Star } from 'lucide-react';
 import { company, trustStats } from '@/config/company';
 import { buttonVariants } from '@/components/ui/button';
+import { PhoneClickTracker } from '@/components/phone-link/PhoneClickTracker';
 import { cn } from '@/lib/utils';
 
 // Hero — Server Component. H1 + УТП + CTA + бейджи доверия.
@@ -40,13 +41,15 @@ export function Hero() {
           </p>
 
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <a
-              href={company.phoneHref}
-              className={cn(buttonVariants({ variant: 'default', size: 'lg' }), 'w-full sm:w-auto')}
-            >
-              <Phone className="h-5 w-5" />
-              {company.phone}
-            </a>
+            <PhoneClickTracker page="home">
+              <a
+                href={company.phoneHref}
+                className={cn(buttonVariants({ variant: 'default', size: 'lg' }), 'w-full sm:w-auto')}
+              >
+                <Phone className="h-5 w-5" />
+                {company.phone}
+              </a>
+            </PhoneClickTracker>
             <Link
               href="/#order"
               className={cn(

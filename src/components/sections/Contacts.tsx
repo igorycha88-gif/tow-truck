@@ -1,6 +1,7 @@
 import { Phone, Mail, MessageCircle, Send, MapPin, Clock } from 'lucide-react';
 import { company } from '@/config/company';
 import { buttonVariants } from '@/components/ui/button';
+import { PhoneClickTracker } from '@/components/phone-link/PhoneClickTracker';
 import { cn } from '@/lib/utils';
 
 // Контакты. Server Component.
@@ -26,15 +27,17 @@ export function Contacts() {
         </div>
 
         <div className="mx-auto mt-12 max-w-3xl space-y-4">
-          <a
-            href={company.phoneHref}
-            className={cn(
-              buttonVariants({ variant: 'default', size: 'lg' }),
-              'w-full gap-3 text-lg',
-            )}
-          >
-            <Phone className="h-5 w-5" /> {company.phone}
-          </a>
+          <PhoneClickTracker page="contacts">
+            <a
+              href={company.phoneHref}
+              className={cn(
+                buttonVariants({ variant: 'default', size: 'lg' }),
+                'w-full gap-3 text-lg',
+              )}
+            >
+              <Phone className="h-5 w-5" /> {company.phone}
+            </a>
+          </PhoneClickTracker>
 
           <div className="grid gap-3 sm:grid-cols-2">
             {company.email && (

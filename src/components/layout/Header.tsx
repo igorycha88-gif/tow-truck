@@ -4,6 +4,7 @@ import * as React from 'react';
 import Link from 'next/link';
 import { Phone, Mail, Menu, X, Truck } from 'lucide-react';
 import { buttonVariants } from '@/components/ui/button';
+import { PhoneClickTracker } from '@/components/phone-link/PhoneClickTracker';
 import { cn } from '@/lib/utils';
 import { navigation } from '@/config/site';
 import { company } from '@/config/company';
@@ -46,14 +47,16 @@ export function Header() {
               <span>{company.email}</span>
             </a>
           )}
-          <a
-            href={company.phoneHref}
-            className={cn(buttonVariants({ variant: 'default', size: 'sm' }), 'gap-2')}
-          >
-            <Phone className="h-4 w-4" />
-            <span className="hidden sm:inline">{company.phone}</span>
-            <span className="sm:hidden">Позвонить</span>
-          </a>
+          <PhoneClickTracker page="header">
+            <a
+              href={company.phoneHref}
+              className={cn(buttonVariants({ variant: 'default', size: 'sm' }), 'gap-2')}
+            >
+              <Phone className="h-4 w-4" />
+              <span className="hidden sm:inline">{company.phone}</span>
+              <span className="sm:hidden">Позвонить</span>
+            </a>
+          </PhoneClickTracker>
 
           <button
             type="button"

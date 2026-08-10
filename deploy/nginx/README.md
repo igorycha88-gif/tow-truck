@@ -19,6 +19,8 @@ Production reverse-proxy и HTTPS (Let's Encrypt) для домена
 - **SSL**: Let's Encrypt, общий сертификат на apex + www, авто-редирект, HSTS preload.
 - **Reverse proxy**: `proxy_pass http://app;` на Blue-Green upstream (3001 prod / 3003 green),
   проброс `Host`/`X-Real-IP`/`X-Forwarded-*`, WebSocket upgrade (для Next.js).
+- **Grafana подпуть**: `location /grafana/` → `127.0.0.1:3030` (Grafana контейнер, ADR-001).
+- **Защита API метрик**: `location = /api/metrics` закрыт basic-auth (`/etc/nginx/.htpasswd-metrics`).
 - **Security headers**: HSTS, `X-Content-Type-Options`, `X-Frame-Options SAMEORIGIN`, `Referrer-Policy`.
 - **gzip**: text/css/js/json/xml/svg.
 - **Логи**: `/var/log/nginx/evakuaciya-online.{access,error}.log`.
@@ -97,6 +99,20 @@ sudo nginx -t && sudo systemctl reload nginx
 # 6. Timer реновации.
 sudo systemctl enable --now certbot.timer
 ```
+
+### Grafana и защита /api/metrics (ADR-001)
+
+Установить `apache2-utils` и создать htpasswd для `/api/metrics`:
+
+```bash
+sudo apt-get install -y apache2-utils
+sudo htpasswd -cb /etc/nginx/.htpasswd-metrics metrics '<ПАРОЛЬ>'
+sudo nginx -t && sudo nginx -s reload
+```
+
+Grafana доступна: `https://эвакуация.online/grafana` (базовая аутентификация
+`GRAFANA_ADMIN_USER` / `GRAFANA_ADMIN_PASSWORD`, задаётся в `.env` prod).
+Grafana контейнер публикует `127.0.0.1:3030` (см. `docker-compose.yml`).
 
 ---
 

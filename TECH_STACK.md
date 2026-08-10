@@ -132,7 +132,7 @@
 | Reverse proxy | **Nginx** | SSL, балансировка, Blue-Green upstream switch |
 | Деплой | **VPS + Blue-Green** | Zero-downtime, мгновенный откат |
 | Реестр образов | **GHCR** (GitHub Container Registry) | Приватный, интеграция с GH Actions |
-| Мониторинг | Uptime-чек + Telegram-алёрт | Минимальный, расширяется позже |
+| Мониторинг | **Grafana** (бизнес-метрики) + Uptime-чек + Telegram-алёрт | Дашборды бизнес-метрик на `https://эвакуация.online/grafana` (ADR-001) |
 
 ### SEO и аналитика
 

@@ -59,6 +59,42 @@ services:
       driver: json-file
       options: { max-size: '10m', max-file: '3' }
 
+  # Бизнес-метрики: Grafana за Nginx подпутем /grafana (см. ADR-001).
+  # Nginx проксирует https://эвакуация.online/grafana → 127.0.0.1:3030.
+  grafana:
+    image: grafana/grafana:11.2.0
+    container_name: tow-truck-grafana
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      GF_SERVER_ROOT_URL: https://эвакуация.online/grafana/
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD is required}
+      GRAFANA_PG_HOST: postgres
+      GRAFANA_PG_PORT: '5432'
+      GRAFANA_PG_DB: ${POSTGRES_DB:-tow_truck}
+      GRAFANA_PG_USER: ${POSTGRES_USER:-postgres}
+      GRAFANA_PG_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    ports:
+      - '127.0.0.1:3030:3000'
+    volumes:
+      - ./grafana/grafana.ini:/etc/grafana/grafana.ini:ro
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://localhost:3000/api/health || exit 1']
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    logging:
+      driver: json-file
+      options: { max-size: '10m', max-file: '3' }
+
 volumes:
   postgres-data:
   redis-data:
+  grafana-data:

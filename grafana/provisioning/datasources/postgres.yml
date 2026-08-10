@@ -1,0 +1,23 @@
+# Provisioning datasource: PostgreSQL (прямой доступ Grafana к БД, ADR-001).
+# Подстановка ${VAR} из environment контейнера (docker-compose задаёт GRAFANA_PG_*).
+# ВАЖНО: Grafana provisioning не поддерживает ${VAR:-default} синтаксис —
+# используются только ${VAR}. Значения по умолчанию заданы в docker-compose.dev.yml.
+
+apiVersion: 1
+
+datasources:
+  - name: PostgreSQL
+    type: postgres
+    access: proxy
+    uid: postgres-metrics
+    url: ${GRAFANA_PG_HOST}:${GRAFANA_PG_PORT}
+    database: ${GRAFANA_PG_DB}
+    user: ${GRAFANA_PG_USER}
+    secureJsonData:
+      password: ${GRAFANA_PG_PASSWORD}
+    jsonData:
+      sslmode: disable
+      postgresVersion: 1600
+      timescaledb: false
+    isDefault: true
+    editable: true

@@ -411,6 +411,7 @@ npm run build           # Production-сборка
 | 🧪 Тестировщик | `SKILL_TESTER.md` | Тестирование, глубокая проверка кода, баг-репорты |
 | 🚀 DevOps (dev) | `SKILL_DEVOPS.md` | Локальный деплой, Docker, healthcheck, откаты |
 | 🚀 DevOps (prod) | `SKILL_DEVOPS_PROD.md` | Продакшн-деплой, Blue-Green, версионирование, откаты на VPS |
+| 🗂️ Все роли | `SKILL_PROJECT_MAP.md` | Карта проекта: где что лежит (структура, навигация по задачам, команды) |
 
 ---
 

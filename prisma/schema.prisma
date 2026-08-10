@@ -29,3 +29,16 @@ model Order {
   @@index([status])
   @@index([createdAt])
 }
+
+// Логирование кликов по номеру телефона (бизнес-метрики, см. ADR-001).
+// Уникальные IP из Order + ClickEvent дают метрику «посетители».
+model ClickEvent {
+  id        String   @id @default(cuid())
+  ip        String?
+  userAgent String?
+  page      String   @default("home") // home, contacts, floating_call, header
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([page])
+}

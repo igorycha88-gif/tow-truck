@@ -25,22 +25,31 @@ Production-ready сайт услуг эвакуатора в Москве и М�
                          │ HTTPS
 ┌────────────────────────▼─────────────────────────────────┐
 │  NGINX (reverse proxy, SSL, Blue-Green upstream switch)  │
+│  └─ /grafana → Grafana (reverse proxy)                   │
 └────────────────────────┬─────────────────────────────────┘
                          │ :3001 (prod) / :3003 (green)
 ┌────────────────────────▼─────────────────────────────────┐
 │  NEXT.JS APP (App Router, RSC)                           │
 │  ├─ (public)/   — страницы (SSR/SSG)                     │
-│  ├─ api/        — Route Handlers (orders, health)        │
+│  ├─ api/        — Route Handlers (orders, health, metrics)│
 │  ├─ components/ — UI (Server/Client Components)          │
 │  ├─ lib/        — prisma, redis, logger, telegram, utils │
-│  ├─ services/   — бизнес-логика (orders, notify)         │
+│  ├─ services/   — бизнес-логика (orders, notify, metrics)│
 │  └─ config/     — каталог услуг/цен/отзывов/зон (TS)     │
 └───┬──────────────┬──────────────┬──────────────┬─────────┘
     │              │              │              │
 ┌───▼────┐   ┌────▼────┐   ┌─────▼─────┐  ┌─────▼──────┐
 │Postgres│   │  Redis  │   │ Telegram  │  │ Yandex     │
-│ (заявки)│   │(rate-lim│   │ Bot API   │  │ Maps/Метр. │
+│(заявки,│   │(rate-lim│   │ Bot API   │  │ Maps/Метр. │
+│метрики)│   │         │   │           │  │            │
 └────────┘   └─────────┘   └───────────┘  └────────────┘
+    ▲
+    │ SQL queries
+┌───┴─────────────┐
+│  GRAFANA        │
+│  (порт 3000)    │
+│  Business dash  │
+└─────────────────┘
 ```
 
 ---
@@ -142,11 +151,48 @@ CI: GitHub Actions → lint, test, build → push образа в GHCR.
 
 ---
 
-## 10. Журнал архитектурных решений (ADR)
+## 10. Мониторинг и метрики
+
+### 10.1 Grafana Dashboard
+- **Доступ:** `https://эвакуация.online/grafana` (reverse proxy через Nginx)
+- **Аутентификация:** Базовая (admin/кастомный пароль)
+- **Данные:** PostgreSQL datasource plugin (прямой доступ к БД)
+
+### 10.2 Бизнес-метрики
+| Метрика | Источник | Описание |
+|---------|----------|----------|
+| Посетители | `Order.ip` (уникальные) | Уникальные IP за период |
+| Заявки | `Order.status` | Количество по статусам (NEW, CALLED, DONE, CANCELLED) |
+| Клики по номеру | `ClickEvent` (новая таблица) | Логирование кликов на CTA |
+
+### 10.3 Архитектура мониторинга
+```
+┌─────────────┐    ┌─────────────┐    ┌─────────────┐
+│   Grafana   │───▶│ PostgreSQL  │    │ Next.js App │
+│  (порт 3000)│    │  (порт 5432)│◀───│   (API)     │
+└─────────────┘    └─────────────┘    └─────────────┘
+       ▲
+       │ HTTPS
+┌─────────────┐
+│   Nginx     │
+│ /grafana    │
+└─────────────┘
+```
+
+### 10.4 Новые компоненты
+- **ClickEvent** — таблица для логирования кликов по номеру
+- **PhoneClickTracker** — Client Component для отслеживания кликов
+- **metricsService** — агрегация метрик (для API /api/metrics)
+
+> Подробности: ADR-001, ЧТЗ_Графана_Бизнес_метрики.md
+
+---
+
+## 11. Журнал архитектурных решений (ADR)
 
 > Раздел заполняется Архитектором при принятии решений.
 
-- *Пока пусто. Первый ADR будет создан при первой сложной задаче.*
+- **ADR-001:** Интеграция Grafana для бизнес-метрик (2026-08-10)
 
 ---
 
@@ -157,7 +203,10 @@ CI: GitHub Actions → lint, test, build → push образа в GHCR.
 - **Реализовано:** инициализация Next.js 15 проекта, Prisma `Order`, API
   `/api/orders` (валидация Zod + rate-limit Redis + Telegram/email-нотификация
   с graceful fallback), `/api/health`, SEO (metadata, LocalBusiness JSON-LD,
-  sitemap, robots), Docker dev-окружение, 48 автотестов (Vitest) + E2E (Playwright)
-- **Следующий шаг:** деплой dev-окружения (полная пересборка контейнеров) →
-  затем отдельные ЧТЗ: онлайн-калькулятор, карта зоны покрытия, отзывы, FAQ, цены
-- **Версия:** `0.1.0` (MVP главной)
+  sitemap, robots), Docker dev-окружение, автотесты (Vitest) + E2E (Playwright)
+- **Бизнес-метрики (ADR-001):** **Grafana** (docker-compose, ПУТЬ `/grafana`,
+  PostgreSQL datasource, базовая аутентификация), модель `ClickEvent`, API
+  `POST /api/click-event` + `GET /api/metrics`, `PhoneClickTracker` в Hero/
+  Contacts/FloatingCallBtn/Header (посетители, заявки, клики)
+- **Следующий шаг:** деплой dev-окружения (полная пересборка контейнеров)
+- **Версия:** `0.3.4`
