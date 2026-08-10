@@ -44,6 +44,16 @@ export type ProcessStep = {
   icon: string;
 };
 
+export type FaqItem = {
+  question: string;
+  answer: string;
+};
+
+export type BreadcrumbItem = {
+  name: string;
+  url: string;
+};
+
 export type CompanyInfo = {
   name: string;
   phone: string; // человекочитаемый

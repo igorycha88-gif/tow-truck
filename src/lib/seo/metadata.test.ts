@@ -1,5 +1,5 @@
-import { describe, it, expect, vi } from 'vitest';
-import { buildMetadata, localBusinessLd } from '@/lib/seo/metadata';
+import { describe, it, expect } from 'vitest';
+import { buildMetadata } from '@/lib/seo/metadata';
 
 describe('seo.buildMetadata', () => {
   it('формирует title с именем сайта (happy path)', () => {
@@ -44,48 +44,5 @@ describe('seo.buildMetadata', () => {
     const m = buildMetadata();
     const other = m.other as Record<string, string>;
     expect(other['og:email']).toBeUndefined();
-  });
-});
-
-describe('seo.localBusinessLd', () => {
-  it('возвращает schema.org объект типа AutoWrecker', () => {
-    const ld = localBusinessLd();
-    expect(ld['@context']).toBe('https://schema.org');
-    expect(ld['@type']).toBe('AutoWrecker');
-  });
-
-  it('содержит телефон и регион', () => {
-    const ld = localBusinessLd();
-    expect(ld.telephone).toBeTruthy();
-    expect(ld.areaServed).toContain('Москва');
-  });
-
-  it('содержит телефон в E.164-подобном формате; email опускается, если не задан', () => {
-    const ld = localBusinessLd();
-    expect(ld.telephone).toBe('+79017054540');
-    expect(ld.email).toBeUndefined();
-  });
-
-  it('круглосуточный режим работы', () => {
-    const ld = localBusinessLd() as { openingHoursSpecification: { opens: string; closes: string } };
-    expect(ld.openingHoursSpecification.opens).toBe('00:00');
-    expect(ld.openingHoursSpecification.closes).toBe('23:59');
-  });
-
-  it('priceRange обновлён до минимальной подачи «от 5000 ₽»', () => {
-    const ld = localBusinessLd() as { priceRange: string };
-    expect(ld.priceRange).toBe('от 5000 ₽');
-  });
-});
-
-describe('seo email (env-driven)', () => {
-  it('добавляет og:email и JSON-LD email, когда NEXT_PUBLIC_EMAIL задан (happy path)', async () => {
-    vi.resetModules();
-    vi.stubEnv('NEXT_PUBLIC_EMAIL', 'info@example.com');
-    const { buildMetadata: bm, localBusinessLd: ld } = await import('@/lib/seo/metadata');
-    const other = bm().other as Record<string, string>;
-    expect(other['og:email']).toBe('info@example.com');
-    expect(ld().email).toBe('info@example.com');
-    vi.unstubAllEnvs();
   });
 });

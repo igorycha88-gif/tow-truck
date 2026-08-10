@@ -2,7 +2,8 @@ import type { Metadata } from 'next';
 import { siteConfig } from '@/config/site';
 import { company } from '@/config/company';
 
-// Хелперы для metadata (см. SKILL_DEVELOPER.md §7 SEO).
+// Хелпер metadata (см. SKILL_DEVELOPER.md §7 SEO, ЧТЗ_SEO_Яндекс_Google.md §3.2).
+// Генераторы JSON-LD вынесены в ./json-ld.ts.
 
 export function buildMetadata({
   title,
@@ -15,7 +16,9 @@ export function buildMetadata({
   path?: string;
   noIndex?: boolean;
 } = {}): Metadata {
-  const fullTitle = title ? `${title} — ${siteConfig.name}` : `${siteConfig.name} — эвакуатор 24/7`;
+  const fullTitle = title
+    ? `${title} — ${siteConfig.name}`
+    : `${siteConfig.name} — эвакуатор 24/7`;
   const desc = description || siteConfig.description;
   const url = `${siteConfig.url}${path}`;
   const other: Record<string, string> = { 'og:phone_number': company.phone };
@@ -45,26 +48,5 @@ export function buildMetadata({
       ? { index: false, follow: false }
       : { index: true, follow: true },
     other,
-  };
-}
-
-// LocalBusiness JSON-LD (главная страница) — см. TECH_STACK.md §2.2.
-export function localBusinessLd() {
-  return {
-    '@context': 'https://schema.org',
-    '@type': 'AutoWrecker',
-    name: siteConfig.name,
-    description: siteConfig.description,
-    telephone: company.phoneHref.replace('tel:', ''),
-    ...(company.email ? { email: company.email } : {}),
-    url: siteConfig.url,
-    areaServed: ['Москва', 'Московская область'],
-    openingHoursSpecification: {
-      '@type': 'OpeningHoursSpecification',
-      dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
-      opens: '00:00',
-      closes: '23:59',
-    },
-    priceRange: 'от 5000 ₽',
   };
 }
