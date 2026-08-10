@@ -1,5 +1,5 @@
 import { siteConfig } from '@/config/site';
-import { company, trustStats } from '@/config/company';
+import { company } from '@/config/company';
 import { services } from '@/config/services';
 import { faq } from '@/config/faq';
 import type { BreadcrumbItem, FaqItem, ServiceCatalogItem } from '@/types';
@@ -98,13 +98,10 @@ export function localBusinessLd() {
       opens: '00:00',
       closes: '23:59',
     },
-    aggregateRating: {
-      '@type': 'AggregateRating',
-      ratingValue: trustStats.rating,
-      bestRating: 5,
-      worstRating: 1,
-      reviewCount: trustStats.ordersDone,
-    },
+    // aggregateRating намеренно ОПУЩЕН: Google Review Snippet policy запрещает
+    // self-serving rating на собственном сайте без реальных отзывов с независимых
+    // площадок (Яндекс.Карты, 2GIS, Google). Вернуть, когда будут реальные отзывы
+    // с external Review-объектами и sameAs-ссылками на источник (см. SEO_SETUP.md).
     sameAs: sameAs(),
     parentOrganization: { '@id': ORG_ID },
   };

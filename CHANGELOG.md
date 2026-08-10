@@ -7,6 +7,11 @@
 
 ## [Unreleased]
 
+## [0.3.3] — 2026-08-10
+
+### Исправлено
+- **Убран `aggregateRating` из `AutoWrecker` JSON-LD.** Google Rich Results Test помечал его как невалидный Review snippet (нарушение [self-serving review policy](https://developers.google.com/search/docs/appearance/structured-data/review-snippet) — aggregateRating на собственном сайте без реальных отзывов с независимых площадок). LocalBusiness и Organization валидны. Рейтинг 4.9 остаётся в Hero визуально. Когда появятся реальные отзывы с Яндекс.Карт/2GIS — вернуть с proper `Review`-объектами и `sameAs`-ссылками.
+
 ## [0.3.2] — 2026-08-10
 
 ### Исправлено

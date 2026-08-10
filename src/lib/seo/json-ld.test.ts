@@ -71,12 +71,9 @@ describe('json-ld.localBusinessLd', () => {
     expect(lb.address.addressCountry).toBe('RU');
   });
 
-  it('aggregateRating от 0 до 5', () => {
-    const lb = localBusinessLd() as {
-      aggregateRating: { ratingValue: number; bestRating: number };
-    };
-    expect(lb.aggregateRating.ratingValue).toBeGreaterThan(0);
-    expect(lb.aggregateRating.ratingValue).toBeLessThanOrEqual(lb.aggregateRating.bestRating);
+  it('aggregateRating отсутствует (Google self-serving review policy)', () => {
+    const lb = localBusinessLd() as { aggregateRating?: unknown };
+    expect(lb.aggregateRating).toBeUndefined();
   });
 });
 
