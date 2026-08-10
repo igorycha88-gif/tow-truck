@@ -41,13 +41,14 @@ jobs:
         uses: appleboy/ssh-action@v1
         env:
           PROJECT_DIR: ${{ secrets.VPS_PROJECT_DIR || '/root/tow-truck' }}
+          IMAGE: ${{ env.IMAGE }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER || 'root' }}
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_PORT || 22 }}
           command_timeout: 30m
-          envs: PROJECT_DIR
+          envs: PROJECT_DIR,IMAGE
           script_stop: true
           script: |
             set -euo pipefail

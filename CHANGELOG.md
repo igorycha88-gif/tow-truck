@@ -7,6 +7,11 @@
 
 ## [Unreleased]
 
+## [0.3.2] — 2026-08-10
+
+### Исправлено
+- **`appleboy/ssh-action`: переменная `IMAGE` не передавалась** в remote-скрипт → авто-деплой падал с `IMAGE: unbound variable`. Теперь `IMAGE` пробрасывается через `env`/`envs` вместе с `PROJECT_DIR` (в `docker-publish.yml` и `deploy.yml`).
+
 ## [0.3.1] — 2026-08-10
 
 ### Исправлено
