@@ -37,7 +37,7 @@
 
 | Параметр | Значение |
 |----------|----------|
-| VPS_HOST | `<VPS_IP>` |
+| VPS_HOST | `178.57.218.204` |
 | VPS_USER | `root` |
 | PROJECT_DIR | `/root/tow-truck` |
 | DOMAIN | `эвакуация.online` |

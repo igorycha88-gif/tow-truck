@@ -7,6 +7,20 @@
 
 ## [Unreleased]
 
+## [0.4.0] — 2026-08-10
+
+### Добавлено
+- **Grafana бизнес-метрики** — дашборд с 6 панелями (заявки, клики, посетители по дням и статусам). Доступ: `https://эвакуация.online/grafana/` (basic auth). PostgreSQL datasource, автообновление 1 мин (ADR-001).
+- **Трекинг кликов по номеру телефона** — `PhoneClickTracker` компонент на 4 страницах (home/contacts/floating_call/header). `POST /api/click-event` (Zod, rate-limit, логирование). `ClickEvent` model + migration.
+- **`GET /api/metrics`** — агрегированные метрики (заявки по статусам, клики, уникальные посетители по IP). Защищён nginx basic auth.
+- **Яндекс.Метрика** — `metrika.ts` (отправка pageview + reach goal), интегрирован в layout.
+- **Grafana контейнер** в docker-compose (dev:3030, prod:3030). PostgreSQL datasource provisioning, dashboard provisioning.
+- **Nginx**: `/grafana/` reverse proxy + `/api/metrics` basic auth (htpasswd).
+
+### Изменено
+- `ARCHITECTURE.md`: добавлен раздел 10 (Monitoring), ADR-001.
+- `TECH_STACK.md`: обновлена строка monitoring (Grafana).
+
 ## [0.3.4] — 2026-08-10
 
 ### Добавлено
