@@ -26,6 +26,10 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
+# NEXT_PUBLIC_* переменные инлайнятся в код при `next build` (недоступны в рантайме).
+# Пробрасываем URL сайта как build-arg (см. docker-publish.yml). Дефолт — для локальной сборки.
+ARG NEXT_PUBLIC_SITE_URL=http://localhost:3000
+ENV NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
 RUN npx prisma generate && npm run build
 
 # ─── runner (production-образ) ───

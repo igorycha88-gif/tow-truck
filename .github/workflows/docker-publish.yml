@@ -58,6 +58,9 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          # NEXT_PUBLIC_* инлайнятся при next build — передаём боевой URL в образ.
+          build-args: |
+            NEXT_PUBLIC_SITE_URL=https://эвакуация.online
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -92,12 +95,15 @@ jobs:
 
       - name: Deploy over SSH (Blue-Green)
         uses: appleboy/ssh-action@v1
+        env:
+          PROJECT_DIR: ${{ secrets.VPS_PROJECT_DIR || '/root/tow-truck' }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER || 'root' }}
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_PORT || 22 }}
           command_timeout: 30m
+          envs: PROJECT_DIR
           script_stop: true
           script: |
             set -euo pipefail

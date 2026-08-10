@@ -7,6 +7,12 @@
 
 ## [Unreleased]
 
+## [0.3.1] — 2026-08-10
+
+### Исправлено
+- **`NEXT_PUBLIC_SITE_URL` не пробрасывался в Docker-сборку** → canonical, `og:url`, `sitemap.xml`, JSON-LD `@id` указывали на `http://localhost:3000`. Теперь в `Dockerfile` (builder stage) добавлен `ARG NEXT_PUBLIC_SITE_URL`, а `docker-publish.yml` передаёт `build-args: NEXT_PUBLIC_SITE_URL=https://эвакуация.online`.
+- **Авто-деплой из GitHub Actions падал** с `PROJECT_DIR: unbound variable`. В `appleboy/ssh-action` переменные окружения нужно передавать через `env:`/`envs:` — поправлено в `docker-publish.yml` и `deploy.yml`.
+
 ## [0.3.0] — 2026-08-10
 
 ### Добавлено
