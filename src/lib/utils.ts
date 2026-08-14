@@ -62,7 +62,13 @@ export function formatPhone(phone: string): string {
 }
 
 // Извлечение IP клиента из запроса (учитывая прокси: X-Forwarded-For, X-Real-IP).
+// IPv6-mapped IPv4 (::ffff:1.2.3.4) нормализуется в чистый IPv4 (ADR-002).
 export function getClientIp(req: NextRequest): string {
+  const raw = readClientIp(req);
+  return normalizeIp(raw);
+}
+
+function readClientIp(req: NextRequest): string {
   const xff = req.headers.get('x-forwarded-for');
   if (xff) {
     return xff.split(',')[0]?.trim() || 'unknown';
@@ -70,6 +76,14 @@ export function getClientIp(req: NextRequest): string {
   const xReal = req.headers.get('x-real-ip');
   if (xReal) return xReal.trim();
   return 'unknown';
+}
+
+// Нормализация IP: убирает IPv6-mapped префикс (::ffff:1.2.3.4 → 1.2.3.4).
+export function normalizeIp(ip: string): string {
+  if (ip.startsWith('::ffff:') && ip.includes('.')) {
+    return ip.slice('::ffff:'.length);
+  }
+  return ip;
 }
 
 // Пауза (utility для тестов/фолбэков).

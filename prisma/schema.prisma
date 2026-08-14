@@ -42,3 +42,16 @@ model ClickEvent {
   @@index([createdAt])
   @@index([page])
 }
+
+// Трекинг визитов на сайт (см. ADR-002). Источник истины метрики «посетители»:
+// фиксируется каждый заход (1 раз на страницу за сессию браузера).
+model Visit {
+  id        String   @id @default(cuid())
+  ip        String?
+  userAgent String?
+  page      String   @default("home") // slug страницы: home, politika, ...
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([page])
+}

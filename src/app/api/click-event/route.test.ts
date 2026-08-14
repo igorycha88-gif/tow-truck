@@ -19,6 +19,10 @@ vi.mock('@/lib/prisma', () => ({
       findMany: vi.fn(),
       groupBy: vi.fn(),
     },
+    visit: {
+      create: vi.fn(),
+      findMany: vi.fn(),
+    },
   },
   pingDb: vi.fn(),
 }));
@@ -122,6 +126,7 @@ describe('GET /api/metrics', () => {
   it('возвращает агрегированные метрики с 200 (happy path)', async () => {
     vi.mocked(prisma.order.findMany).mockResolvedValue([]);
     vi.mocked(prisma.clickEvent.findMany).mockResolvedValue([]);
+    vi.mocked(prisma.visit.findMany).mockResolvedValue([{ ip: '1.1.1.1' }] as never);
     vi.mocked(prisma.order.count).mockResolvedValue(3);
     vi.mocked(prisma.clickEvent.count).mockResolvedValue(2);
     vi.mocked(prisma.order.groupBy).mockResolvedValue([
@@ -133,6 +138,7 @@ describe('GET /api/metrics', () => {
     const body = await res.json();
     expect(body.orders.today).toBe(3);
     expect(body.clicks.month).toBe(2);
+    expect(body.visitors.today).toBe(1);
     expect(body.orders.byStatus).toEqual([{ status: 'NEW', count: 3 }]);
   });
 

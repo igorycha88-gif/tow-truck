@@ -7,6 +7,7 @@ import {
   normalizePhone,
   formatPhone,
   getClientIp,
+  normalizeIp,
 } from '@/lib/utils';
 import { NextRequest } from 'next/server';
 
@@ -122,5 +123,30 @@ describe('utils.getClientIp', () => {
   it('возвращает unknown если заголовков нет (edge case)', () => {
     const req = new NextRequest('http://localhost/api');
     expect(getClientIp(req)).toBe('unknown');
+  });
+
+  it('нормализует IPv6-mapped IPv4 из x-forwarded-for (ADR-002)', () => {
+    const req = new NextRequest('http://localhost/api', {
+      headers: { 'x-forwarded-for': '::ffff:1.2.3.4, 10.0.0.1' },
+    });
+    expect(getClientIp(req)).toBe('1.2.3.4');
+  });
+});
+
+describe('utils.normalizeIp', () => {
+  it('убирает ::ffff: префикс у IPv6-mapped IPv4', () => {
+    expect(normalizeIp('::ffff:192.168.1.1')).toBe('192.168.1.1');
+  });
+
+  it('не трогает обычный IPv4', () => {
+    expect(normalizeIp('8.8.8.8')).toBe('8.8.8.8');
+  });
+
+  it('не трогает чистый IPv6 (edge case)', () => {
+    expect(normalizeIp('2001:db8::1')).toBe('2001:db8::1');
+  });
+
+  it('не трогает unknown (edge case)', () => {
+    expect(normalizeIp('unknown')).toBe('unknown');
   });
 });

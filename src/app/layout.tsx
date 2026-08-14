@@ -3,6 +3,7 @@ import './globals.css';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { FloatingCallBtn } from '@/components/layout/FloatingCallBtn';
+import { VisitTracker } from '@/components/visit-tracker/VisitTracker';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { siteGraphLd } from '@/lib/seo/json-ld';
 import { buildMetadata } from '@/lib/seo/metadata';
@@ -47,6 +48,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <main id="main">{children}</main>
         <Footer />
         <FloatingCallBtn />
+        {/* Трекинг визитов для бизнес-метрик (ADR-002), fire-and-forget */}
+        <VisitTracker />
 
         {/* Yandex.Метрика: счётчик рендерится при заданном NEXT_PUBLIC_METRIKA_ID */}
         {process.env.NEXT_PUBLIC_METRIKA_ID && (

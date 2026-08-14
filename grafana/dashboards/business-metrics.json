@@ -209,10 +209,75 @@
           },
           "refId": "A",
           "format": "table",
-          "rawSql": "SELECT COUNT(DISTINCT \"ip\")::int AS \"Посетители\" FROM \"Order\" WHERE \"createdAt\" >= now() - interval '1 day' AND \"ip\" IS NOT NULL AND \"ip\" <> 'unknown';"
+          "rawSql": "SELECT COUNT(DISTINCT \"ip\")::int AS \"Посетители\" FROM \"Visit\" WHERE \"createdAt\" >= now() - interval '1 day' AND \"ip\" IS NOT NULL AND \"ip\" <> 'unknown';"
         }
       ],
-      "title": "Посетители (сегодня, по IP заявок)",
+      "title": "Посетители (сегодня, по IP визитов)",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "postgres-metrics"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 12,
+        "y": 0
+      },
+      "id": 7,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "textMode": "auto"
+      },
+      "pluginVersion": "11.2.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "postgres-metrics"
+          },
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT COUNT(*)::int AS \"Визиты\" FROM \"Visit\" WHERE \"createdAt\" >= now() - interval '1 day';"
+        }
+      ],
+      "title": "Визиты (сегодня)",
       "type": "stat"
     },
     {
@@ -302,7 +367,7 @@
           },
           "refId": "A",
           "format": "time_series",
-          "rawSql": "SELECT date_trunc('day', \"createdAt\") AS \"Time\", COUNT(*)::int AS \"Заявки\" FROM \"Order\" WHERE $__timeFilter(\"createdAt\") GROUP BY 1 ORDER BY 1;"
+          "rawSql": "SELECT date_trunc('day', \"createdAt\") AS time, COUNT(*)::int AS \"Заявки\" FROM \"Order\" WHERE $__timeFilter(\"createdAt\") GROUP BY 1 ORDER BY 1;"
         }
       ],
       "title": "Заявки по дням",
@@ -396,7 +461,7 @@
           },
           "refId": "A",
           "format": "time_series",
-          "rawSql": "SELECT date_trunc('day', \"createdAt\") AS \"Time\", \"status\" AS metric, COUNT(*)::int AS \"value\" FROM \"Order\" WHERE $__timeFilter(\"createdAt\") GROUP BY 1, \"status\" ORDER BY 1, \"status\";"
+          "rawSql": "SELECT date_trunc('day', \"createdAt\") AS time, \"status\" AS metric, COUNT(*)::int AS value FROM \"Order\" WHERE $__timeFilter(\"createdAt\") GROUP BY 1, \"status\" ORDER BY 1, \"status\";"
         }
       ],
       "title": "Заявки по статусам (стек)",
@@ -489,10 +554,104 @@
           },
           "refId": "A",
           "format": "time_series",
-          "rawSql": "SELECT date_trunc('day', \"createdAt\") AS \"Time\", COUNT(*)::int AS \"Клики\" FROM \"ClickEvent\" WHERE $__timeFilter(\"createdAt\") GROUP BY 1 ORDER BY 1;"
+          "rawSql": "SELECT date_trunc('day', \"createdAt\") AS time, COUNT(*)::int AS \"Клики\" FROM \"ClickEvent\" WHERE $__timeFilter(\"createdAt\") GROUP BY 1 ORDER BY 1;"
         }
       ],
       "title": "Клики по номеру по дням",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "postgres-metrics"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "bars",
+            "fillOpacity": 70,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 12
+      },
+      "id": 8,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "11.2.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "postgres-metrics"
+          },
+          "refId": "A",
+          "format": "time_series",
+          "rawSql": "SELECT date_trunc('hour', \"createdAt\") AS time, COUNT(DISTINCT \"ip\")::int AS \"Посетители\", COUNT(*)::int AS \"Визиты\" FROM \"Visit\" WHERE $__timeFilter(\"createdAt\") AND \"ip\" IS NOT NULL AND \"ip\" <> 'unknown' GROUP BY 1 ORDER BY 1;"
+        }
+      ],
+      "timeFrom": "now-48h",
+      "title": "Посетители по часам (48ч, время МСК браузера)",
       "type": "timeseries"
     }
   ],
@@ -513,6 +672,6 @@
   "timezone": "browser",
   "title": "Бизнес-метрики «Эвакуация»",
   "uid": "evakuaciya-business-metrics",
-  "version": 1,
+  "version": 3,
   "weekStart": ""
 }

@@ -1,11 +1,18 @@
 import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
 import type { ClickEventSchemaInput } from '@/lib/validators/click-event';
+import type { VisitSchemaInput } from '@/lib/validators/visit';
 
-// Бизнес-логика бизнес-метрик (см. ADR-001, ЧТЗ_Графана_Бизнес_метрики.md).
-// Prisma только в services (SKILL_DEVELOPER.md §1). Логирование в начале/конце и в catch.
+// Бизнес-логика бизнес-метрик (см. ADR-001, ADR-002,
+// ЧТЗ_Графана_Бизнес_метрики.md, ЧТЗ_Трекинг_посетителей_и_часовой_график.md).
+// Prisma только в services (SKILL_DEVELOPER.md §1). Логирование в начале/конец и в catch.
 
 export type CreateClickEventParams = ClickEventSchemaInput & {
+  ip?: string | null;
+  userAgent?: string | null;
+};
+
+export type CreateVisitParams = VisitSchemaInput & {
   ip?: string | null;
   userAgent?: string | null;
 };
@@ -68,9 +75,46 @@ export const metricsService = {
     }
   },
 
+  // Трекинг визита на страницу (ADR-002). Посетитель = запись в Visit;
+  // дедупликация по IP выполняется в отчётах (COUNT DISTINCT ip).
+  async createVisit(params: CreateVisitParams): Promise<ClickEventSummary> {
+    const { page, ip, userAgent } = params;
+
+    logger.info('Creating visit', {
+      operation: 'metricsService.createVisit',
+      page,
+    });
+
+    try {
+      const visit = await prisma.visit.create({
+        data: {
+          page,
+          ip: ip ?? null,
+          userAgent: userAgent ?? null,
+        },
+        select: { id: true, createdAt: true },
+      });
+
+      logger.info('Visit created', {
+        operation: 'metricsService.createVisit',
+        visitId: visit.id,
+        page,
+      });
+
+      return visit;
+    } catch (err) {
+      logger.error('Failed to create visit', {
+        operation: 'metricsService.createVisit',
+        error: err instanceof Error ? err.message : String(err),
+        page,
+      });
+      throw err;
+    }
+  },
+
   // Агрегация бизнес-метрик за период: сегодня / 7 дней / 30 дней.
-  // Посетители — уникальные IP из Order (посетитель, оставивший заявку)
-  // + уникальные IP из ClickEvent (активность по телефону).
+  // Посетители (ADR-002) — уникальные IP из Visit (реальные визиты на сайт).
+  // Ранее считались из Order+ClickEvent — метрика не показывала трафик без заявок.
   async getMetrics(): Promise<BusinessMetrics> {
     logger.info('Aggregating business metrics', {
       operation: 'metricsService.getMetrics',
@@ -82,24 +126,20 @@ export const metricsService = {
       const weekStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
       const monthStart = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-      // Посетители: уникальные IP за период (Order + ClickEvent).
-      const countVisitors = async (since: Date): Promise<number> => {
-        const [orderIps, clickIps] = await Promise.all([
-          prisma.order.findMany({
+      // Посетители: уникальные IP из Visit за период (ADR-002).
+      const countVisitors = (since: Date): Promise<number> =>
+        prisma.visit
+          .findMany({
             where: { createdAt: { gte: since } },
             select: { ip: true },
-          }),
-          prisma.clickEvent.findMany({
-            where: { createdAt: { gte: since } },
-            select: { ip: true },
-          }),
-        ]);
-        const unique = new Set<string>();
-        for (const row of [...orderIps, ...clickIps]) {
-          if (row.ip && row.ip !== 'unknown') unique.add(row.ip);
-        }
-        return unique.size;
-      };
+          })
+          .then((rows: Array<{ ip: string | null }>) => {
+            const unique = new Set<string>();
+            for (const row of rows) {
+              if (row.ip && row.ip !== 'unknown') unique.add(row.ip);
+            }
+            return unique.size;
+          });
 
       const countOrders = (since: Date): Promise<number> =>
         prisma.order.count({ where: { createdAt: { gte: since } } });
@@ -149,6 +189,7 @@ export const metricsService = {
 
       logger.info('Business metrics aggregated', {
         operation: 'metricsService.getMetrics',
+        visitorsToday,
         ordersToday,
         clicksToday,
       });
