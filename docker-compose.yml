@@ -94,6 +94,34 @@ services:
       driver: json-file
       options: { max-size: '10m', max-file: '3' }
 
+  # Метрики PostgreSQL для централизованного мониторинга (ЧТЗ §4.4,
+  # TASK-INF-002). Слушает ТОЛЬКО 127.0.0.1:9187 (наружу закрыто,
+  # доступ — через nginx /metrics/postgres).
+  # Профиль monitoring: сервис НЕ запускается в обычных flow
+  # (stateful-сервисы не пересобираются при деплое — Правило PR5).
+  # Включение: docker compose --profile monitoring up -d
+  postgres-exporter:
+    profiles: ['monitoring']
+    image: prometheuscommunity/postgres-exporter:v0.15.0
+    container_name: tow-truck-postgres-exporter
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      # DSN readonly-пользователя (pg_monitor) — только в .env (chmod 600).
+      DATA_SOURCE_NAME: ${POSTGRES_EXPORTER_DSN:-}
+    ports:
+      - '127.0.0.1:9187:9187'
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://localhost:9187/metrics || exit 1']
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: json-file
+      options: { max-size: '5m', max-file: '3' }
+
 volumes:
   postgres-data:
   redis-data:

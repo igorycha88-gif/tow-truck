@@ -63,6 +63,8 @@ services:
       NEXT_PUBLIC_METRIKA_ID: '111456265'
       TELEGRAM_BOT_TOKEN: ''
       TELEGRAM_CHAT_ID: ''
+      # Ключ /metrics/* (ЧТЗ мониторинг). Значение — в локальном .env (в git НЕ хранится).
+      MONITORING_KEY: ${MONITORING_KEY:-}
     ports:
       - '3010:3000'
     volumes:
@@ -81,7 +83,8 @@ services:
       start_period: 40s
 
   # Бизнес-метрики: Grafana за Nginx подпутем /grafana (см. ADR-001).
-  # Хост-порт 3030 (dev) — доступ из браузера: http://localhost:3030/grafana.
+  # Хост-порт 3031 (dev) — доступ из браузера: http://localhost:3031/grafana.
+  # (3030 занят Grafana другого проекта на этой машине.)
   grafana:
     image: grafana/grafana:11.2.0
     container_name: evakuaciya-grafana-dev
@@ -90,7 +93,7 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      GF_SERVER_ROOT_URL: http://localhost:3030/grafana/
+      GF_SERVER_ROOT_URL: http://localhost:3031/grafana/
       GF_SECURITY_ADMIN_USER: admin
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
       GRAFANA_PG_HOST: postgres
@@ -99,7 +102,7 @@ services:
       GRAFANA_PG_USER: postgres
       GRAFANA_PG_PASSWORD: postgres
     ports:
-      - '3030:3000'
+      - '3031:3000'
     volumes:
       - ./grafana/grafana.ini:/etc/grafana/grafana.ini:ro
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
