@@ -7,6 +7,18 @@
 
 ## [Unreleased]
 
+## [0.6.0] — 2026-08-19
+
+### Добавлено
+- **`GET /metrics/tracking`** — Prometheus-метрики трекинга (клики по номеру, визиты) для централизованного мониторинга (ЧТЗ «Централизованный мониторинг»).
+- **`GET /metrics/content`** — content_*-метрики приложения: `content_http_requests_total`, `content_http_request_duration_seconds` (патч http.Server через instrumentation.ts, только nodejs-рантайм).
+- **`MONITORING_KEY`** — защита /metrics/* на уровне приложения (defense in depth, дополнительно к nginx).
+- Nginx: location /metrics/* с X-Monitoring-Key, rate-limit 10 r/s, отдельный лог-формат (deploy/nginx/).
+- Инфраструктура мониторинга: node_exporter и postgres_exporter (профиль `monitoring` в docker-compose, setup-скрипты).
+
+### Исправлено
+- `__resetHttpMetricsForTests`: полный сброс патча http-метрик — устранён порядок-зависимый провал CI в `instrumentation.test.ts`.
+
 ## [0.5.0] — 2026-08-14
 
 ### Добавлено
