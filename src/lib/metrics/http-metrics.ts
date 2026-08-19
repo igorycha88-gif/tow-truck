@@ -22,8 +22,14 @@ type HttpMetricsRuntime = {
   requestDuration: client.Histogram;
 };
 
+type HttpMetricsGlobal = {
+  __evakuaciyaHttpMetrics?: HttpMetricsRuntime;
+  __httpMetricsPatched?: boolean;
+  __httpMetricsOriginalEmit?: typeof http.Server.prototype.emit;
+};
+
 function getRuntime(): HttpMetricsRuntime {
-  const g = globalThis as { __evakuaciyaHttpMetrics?: HttpMetricsRuntime };
+  const g = globalThis as HttpMetricsGlobal;
   if (!g.__evakuaciyaHttpMetrics) {
     const registry = new client.Registry();
     g.__evakuaciyaHttpMetrics = {
@@ -82,9 +88,10 @@ export function recordRequest(
 // Патчим http.Server.prototype.emit один раз за процесс (защита от dev
 // hot-reload и повторных вызовов register()).
 export function initHttpMetrics(): void {
-  const g = globalThis as { __httpMetricsPatched?: boolean };
+  const g = globalThis as HttpMetricsGlobal;
   if (g.__httpMetricsPatched) return;
   g.__httpMetricsPatched = true;
+  g.__httpMetricsOriginalEmit = http.Server.prototype.emit;
 
   const originalEmit = http.Server.prototype.emit;
 
@@ -120,7 +127,14 @@ function isMetricsPath(url: string | undefined): boolean {
   return Boolean(url && (url === '/metrics' || url.startsWith('/metrics/')));
 }
 
-// Тестовый хук: сброс реестра (патч http остаётся идемпотентным).
+// Тестовый хук: сброс реестра и полного состояния патча (флаг + restore
+// http.Server.prototype.emit), чтобы тесты не зависели от порядка запуска.
 export function __resetHttpMetricsForTests(): void {
+  const g = globalThis as HttpMetricsGlobal;
   getRuntime().registry.resetMetrics();
+  if (g.__httpMetricsOriginalEmit) {
+    http.Server.prototype.emit = g.__httpMetricsOriginalEmit;
+    delete g.__httpMetricsOriginalEmit;
+  }
+  delete g.__httpMetricsPatched;
 }
