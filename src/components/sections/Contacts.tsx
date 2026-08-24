@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { Phone, Mail, MessageCircle, Send, MapPin, Clock } from 'lucide-react';
 import { company } from '@/config/company';
 import { buttonVariants } from '@/components/ui/button';
@@ -78,6 +79,19 @@ export function Contacts() {
               <MapPin className="h-4 w-4 text-accent" /> {company.address}
             </div>
           </dl>
+
+          {/* Зона покрытия (ЭПИК-5): гео-страницы МО */}
+          <p className="pt-6 text-center text-sm text-primary-foreground/70">
+            Работаем по всей Москве и области: в пределах МКАД, за МКАД, на трассах
+            М-4, М-7, М-9 и М-11 и в городах МО.{' '}
+            <Link
+              href="/evakuator-vidnoe"
+              className="font-medium text-accent underline-offset-2 hover:underline"
+            >
+              Эвакуатор в Видном
+            </Link>{' '}
+            — подача около 20 минут.
+          </p>
         </div>
       </div>
     </section>

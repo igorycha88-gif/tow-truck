@@ -16,7 +16,8 @@ type Status = 'idle' | 'submitting' | 'success' | 'error';
 
 // OrderForm — клиентский компонент формы заявки (RHF + Zod + fetch).
 // 152-ФЗ: обязательный чекбокс согласия на обработку ПД + ссылка на /politika.
-export function OrderForm() {
+// defaultServiceType — предзаполнение с посадочной страницы (приоритетнее ?service=).
+export function OrderForm({ defaultServiceType }: { defaultServiceType?: OrderSchemaInput['serviceType'] } = {}) {
   const [status, setStatus] = React.useState<Status>('idle');
   const [serverMessage, setServerMessage] = React.useState<string | null>(null);
 
@@ -32,20 +33,20 @@ export function OrderForm() {
       name: '',
       phone: '',
       location: '',
-      serviceType: 'light_vehicle',
+      serviceType: defaultServiceType ?? 'light_vehicle',
       consent: false as unknown as true,
     },
   });
 
-  // Предзаполнение услуги из ?service= (карточка услуги)
+  // Предзаполнение услуги из ?service= (карточка услуги), если нет дефолта со страницы
   React.useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined' || defaultServiceType) return;
     const params = new URLSearchParams(window.location.search);
     const slug = params.get('service');
     if (slug && services.some((s) => s.slug === slug)) {
       setValue('serviceType', slug as OrderSchemaInput['serviceType']);
     }
-  }, [setValue]);
+  }, [setValue, defaultServiceType]);
 
   const onSubmit = handleSubmit(async (data) => {
     setStatus('submitting');

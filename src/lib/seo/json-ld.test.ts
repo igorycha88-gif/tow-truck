@@ -5,10 +5,14 @@ import {
   localBusinessLd,
   serviceLd,
   servicesLd,
+  servicePageLd,
   faqPageLd,
   breadcrumbLd,
   siteGraphLd,
 } from '@/lib/seo/json-ld';
+import { servicePages, getServicePage } from '@/config/service-pages';
+import { priceFromLabel } from '@/config/pricing';
+import { formatPrice } from '@/lib/utils';
 
 describe('json-ld.organizationLd', () => {
   it('тип Organization и @id', () => {
@@ -55,9 +59,10 @@ describe('json-ld.localBusinessLd', () => {
     expect(lb.openingHoursSpecification.closes).toBe('23:59');
   });
 
-  it('priceRange = «от 5000 ₽»', () => {
+  it('priceRange синхронизирован с единым источником цен (pricing.ts)', () => {
     const lb = localBusinessLd() as { priceRange: string };
-    expect(lb.priceRange).toBe('от 5000 ₽');
+    expect(lb.priceRange).toBe(priceFromLabel());
+    expect(lb.priceRange).toContain(formatPrice(5000));
   });
 
   it('содержит geo-координаты Москвы по умолчанию', () => {
@@ -121,6 +126,44 @@ describe('json-ld.servicesLd', () => {
     expect(Array.isArray(arr)).toBe(true);
     expect(arr.length).toBeGreaterThanOrEqual(1);
     expect(arr.every((s) => s['@type'] === 'Service')).toBe(true);
+  });
+});
+
+describe('json-ld.servicePageLd (посадочные страницы)', () => {
+  it('для tariff-цены — Offer с price из каталога (единый источник)', () => {
+    const page = getServicePage('evakuator-legkovyh')!;
+    const ld = servicePageLd(page) as Record<
+      string,
+      unknown & { price: number; priceSpecification: { price: number } }
+    >;
+    expect(ld['@type']).toBe('Service');
+    expect(ld.offers.price).toBe(5000);
+    expect(ld.offers.priceSpecification.price).toBe(100);
+  });
+
+  it('для fromMin — Offer с минимальной подачей из pricing.ts', () => {
+    const page = getServicePage('evakuator-24-7')!;
+    const ld = servicePageLd(page) as Record<string, { price: number }>;
+    expect(ld.offers.price).toBe(5000);
+  });
+
+  it('url канонический: siteConfig.url + слаг страницы', () => {
+    const page = getServicePage('evakuator-vidnoe')!;
+    const ld = servicePageLd(page) as { url: string };
+    expect(ld.url).toMatch(/\/evakuator-vidnoe$/);
+  });
+
+  it('все 7 страниц дают валидный Service с Offer', () => {
+    servicePages.forEach((page) => {
+      const ld = servicePageLd(page) as Record<string, unknown>;
+      expect(ld['@type']).toBe('Service');
+      expect(ld.name).toBeTruthy();
+      expect(ld.description).toBeTruthy();
+      const offers = ld.offers as Record<string, unknown>;
+      expect(offers['@type']).toBe('Offer');
+      expect(offers.priceCurrency).toBe('RUB');
+      expect(offers.availability).toBe('https://schema.org/InStock');
+    });
   });
 });
 

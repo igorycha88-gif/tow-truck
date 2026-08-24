@@ -6,7 +6,7 @@ import { FloatingCallBtn } from '@/components/layout/FloatingCallBtn';
 import { VisitTracker } from '@/components/visit-tracker/VisitTracker';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { siteGraphLd } from '@/lib/seo/json-ld';
-import { buildMetadata } from '@/lib/seo/metadata';
+import { homeMetadata } from '@/lib/seo/metadata';
 import { metrikaInitScript, metrikaNoscriptSrc } from '@/lib/seo/metrika';
 import { siteConfig } from '@/config/site';
 
@@ -14,7 +14,7 @@ import { siteConfig } from '@/config/site';
 // чтобы не зависеть от интернета при сборке в Docker.
 
 export const metadata: Metadata = {
-  ...buildMetadata({ path: '/' }),
+  ...homeMetadata(),
   manifest: '/manifest.webmanifest',
   applicationName: siteConfig.name,
   appleWebApp: {

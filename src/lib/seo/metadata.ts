@@ -1,8 +1,9 @@
 import type { Metadata } from 'next';
 import { siteConfig } from '@/config/site';
-import { company } from '@/config/company';
+import { company, trustStats } from '@/config/company';
+import { priceFromLabel } from '@/config/pricing';
 
-// Хелпер metadata (см. SKILL_DEVELOPER.md §7 SEO, ЧТЗ_SEO_Яндекс_Google.md §3.2).
+// Хелпер metadata (см. SKILL_DEVELOPER.md §7 SEO, ЧТЗ_SEO_Рост_позиций_Вебмастер §4 ЭПИК-1).
 // Генераторы JSON-LD вынесены в ./json-ld.ts.
 
 export function buildMetadata({
@@ -10,15 +11,21 @@ export function buildMetadata({
   description,
   path = '/',
   noIndex = false,
+  exactTitle = false,
 }: {
   title?: string;
   description?: string;
   path?: string;
   noIndex?: boolean;
+  /** true → title как есть (SEO-эталоны ≤60 симв., без суффикса имени сайта) */
+  exactTitle?: boolean;
 } = {}): Metadata {
-  const fullTitle = title
-    ? `${title} — ${siteConfig.name}`
-    : `${siteConfig.name} — эвакуатор 24/7`;
+  const defaultTitle = `${siteConfig.name} — эвакуатор 24/7`;
+  const fullTitle = !title
+    ? defaultTitle
+    : exactTitle
+      ? title
+      : `${title} — ${siteConfig.name}`;
   const desc = description || siteConfig.description;
   const url = `${siteConfig.url}${path}`;
   const other: Record<string, string> = { 'og:phone_number': company.phone };
@@ -49,4 +56,16 @@ export function buildMetadata({
       : { index: true, follow: true },
     other,
   };
+}
+
+// Мета главной страницы (ЧТЗ_SEO_Рост_позиций_Вебмастер §4, ЭПИК-1).
+// Title ≤60 симв.: [УТП] + [гео] + [ценовой триггер], ключ «эвакуатор 24/7» — в первых 30.
+// Цена и время подачи — из единых источников (pricing.ts, company.ts), без хардкода.
+export function homeMetadata(): Metadata {
+  return buildMetadata({
+    title: `Эвакуатор 24/7 Москва и МО — подача ${trustStats.responseMinutes} мин, ${priceFromLabel()}`,
+    description: siteConfig.description,
+    path: '/',
+    exactTitle: true,
+  });
 }

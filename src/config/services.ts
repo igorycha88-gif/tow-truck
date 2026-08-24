@@ -1,7 +1,9 @@
 import type { ServiceCatalogItem } from '@/types';
+import { tariffs } from '@/config/pricing';
 
 // Каталог услуг (контент из config, без админки — см. ARCHITECTURE.md §4).
 // pricing: тариф (подача + ₽/км) или «по запросу» (см. ServicePricing).
+// Цифры тарифов — из единого источника src/config/pricing.ts (НЕ хардкодить здесь).
 
 export const services: ServiceCatalogItem[] = [
   {
@@ -9,7 +11,7 @@ export const services: ServiceCatalogItem[] = [
     title: 'Эвакуация легковых авто',
     description:
       'Эвакуатор для легковых автомобилей любых марок. Аккуратная погрузка, аккуратный транспорт.',
-    pricing: { kind: 'tariff', baseFee: 5000, perKm: 100 },
+    pricing: { kind: 'tariff', ...tariffs.lightVehicle },
     icon: 'Car',
   },
   {
@@ -17,7 +19,7 @@ export const services: ServiceCatalogItem[] = [
     title: 'Эвакуация мотоциклов',
     description:
       'Перевозка мотоциклов, скутеров, квадроциклов с креплением и мягкими ремнями.',
-    pricing: { kind: 'tariff', baseFee: 5000, perKm: 100 },
+    pricing: { kind: 'tariff', ...tariffs.moto },
     icon: 'Bike',
   },
   {
@@ -33,7 +35,7 @@ export const services: ServiceCatalogItem[] = [
     title: 'Внедорожники и кроссоверы',
     description:
       'Эвакуация внедорожников и авто с низким клиренсом — лебёдка и сдвижная платформа.',
-    pricing: { kind: 'tariff', baseFee: 6000, perKm: 100 },
+    pricing: { kind: 'tariff', ...tariffs.offroad },
     icon: 'CarFront',
   },
   {

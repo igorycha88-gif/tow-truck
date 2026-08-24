@@ -8,9 +8,13 @@ describe('clickEventSchema', () => {
   });
 
   it('принимает все известные страницы', () => {
-    for (const page of ['home', 'contacts', 'floating_call', 'header']) {
+    for (const page of ['home', 'contacts', 'floating_call', 'header', 'service_page']) {
       expect(clickEventSchema.safeParse({ page }).success).toBe(true);
     }
+  });
+
+  it('принимает страницу посадочных service_page (ЧТЗ SEO, ЭПИК-2)', () => {
+    expect(clickEventSchema.parse({ page: 'service_page' }).page).toBe('service_page');
   });
 
   it('отвергает неизвестную страницу (error case)', () => {

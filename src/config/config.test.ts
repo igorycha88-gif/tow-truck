@@ -144,7 +144,13 @@ describe('config.site', () => {
   it('navigation содержит якоря секций', () => {
     const hrefs = navigation.map((n) => n.href);
     expect(hrefs).toContain('/#services');
+    expect(hrefs).toContain('/#prices');
     expect(hrefs).toContain('/#order');
     expect(hrefs).toContain('/#contacts');
+  });
+
+  it('siteConfig.description — новый SEO-текст ≤160 симв. (ЧТЗ ЭПИК-1)', () => {
+    expect(siteConfig.description.length).toBeLessThanOrEqual(160);
+    expect(siteConfig.description).toContain('Звоните сейчас');
   });
 });

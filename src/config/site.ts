@@ -5,15 +5,15 @@ export const siteConfig = {
   url:
     process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || 'http://localhost:3000',
   description:
-    'Эвакуатор 24/7 в Москве и Московской области. Подача 15–30 минут, своя техника, ' +
-    'фиксированные цены. Эвакуация легковых, мото, спецтехники, внедорожников, после ДТП. ' +
-    'Звоните прямо сейчас.',
+    'Круглосуточная эвакуация 24/7 в Москве и МО: подача 15–30 минут, фиксированная ' +
+    'цена, своя техника. Эвакуатор после ДТП и для мото. Звоните сейчас!',
   locale: 'ru_RU',
   ogImage: '/og.png',
 } as const;
 
 export const navigation = [
   { label: 'Услуги', href: '/#services' },
+  { label: 'Цены', href: '/#prices' },
   { label: 'Преимущества', href: '/#advantages' },
   { label: 'Как мы работаем', href: '/#process' },
   { label: 'Заказать', href: '/#order' },

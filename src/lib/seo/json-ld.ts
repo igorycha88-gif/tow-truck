@@ -1,8 +1,11 @@
 import { siteConfig } from '@/config/site';
 import { company } from '@/config/company';
-import { services } from '@/config/services';
+import { services, getServiceBySlug } from '@/config/services';
 import { faq } from '@/config/faq';
+import { priceRangeLabel, minBaseFee, priceFromLabel } from '@/config/pricing';
+import { formatPrice } from '@/lib/utils';
 import type { BreadcrumbItem, FaqItem, ServiceCatalogItem } from '@/types';
+import type { ServicePageConfig } from '@/types/service-page';
 
 // Генераторы schema.org JSON-LD (см. ЧТЗ_SEO_Яндекс_Google.md §3.1).
 // Все объекты собираются в один @graph — рекомендуемый Google/Яндекс формат.
@@ -71,7 +74,7 @@ export function localBusinessLd() {
     url: SITE_URL,
     image: `${SITE_URL}/opengraph-image`,
     logo: logoUrl(),
-    priceRange: 'от 5000 ₽',
+    priceRange: priceRangeLabel(),
     address: {
       '@type': 'PostalAddress',
       addressCountry: 'RU',
@@ -151,6 +154,54 @@ export function serviceLd(service: ServiceCatalogItem) {
 
 export function servicesLd(): Record<string, unknown>[] {
   return services.map(serviceLd);
+}
+
+// Service + Offer для посадочной SEO-страницы (ЧТЗ_SEO_Рост_позиций, ЭПИК-2).
+// Цена Offer — из единого источника (pricing.ts / каталога), синхронно с контентом.
+export function servicePageLd(page: ServicePageConfig): Record<string, unknown> {
+  const url = `${SITE_URL}/${page.slug}`;
+  const offer: Record<string, unknown> = {
+    '@type': 'Offer',
+    priceCurrency: 'RUB',
+    url,
+    availability: 'https://schema.org/InStock',
+  };
+
+  if (page.price.kind === 'tariff') {
+    const svc = getServiceBySlug(page.price.serviceSlug);
+    if (svc && svc.pricing.kind === 'tariff') {
+      offer.price = svc.pricing.baseFee;
+      offer.priceSpecification = {
+        '@type': 'UnitPriceSpecification',
+        price: svc.pricing.perKm,
+        priceCurrency: 'RUB',
+        unitText: 'за 1 км',
+      };
+      offer.description = `Подача от ${formatPrice(svc.pricing.baseFee)} + ${formatPrice(svc.pricing.perKm)}/км`;
+    } else {
+      offer.price = minBaseFee();
+      offer.description = `Подача ${priceFromLabel()}`;
+    }
+  } else if (page.price.kind === 'fromMin') {
+    offer.price = minBaseFee();
+    offer.description = `Подача ${priceFromLabel()}`;
+  } else {
+    offer.description = 'Цена по запросу';
+  }
+
+  return {
+    '@type': 'Service',
+    name: page.h1,
+    description: page.description,
+    serviceType: page.h1,
+    url,
+    provider: { '@id': LOCAL_ID },
+    areaServed: [
+      { '@type': 'AdministrativeArea', name: 'Москва' },
+      { '@type': 'AdministrativeArea', name: 'Московская область' },
+    ],
+    offers: offer,
+  };
 }
 
 // FAQPage — даёт расширенный сниппет в выдаче Яндекса и Google.

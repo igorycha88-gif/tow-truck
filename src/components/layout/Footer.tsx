@@ -2,6 +2,12 @@ import Link from 'next/link';
 import { Phone, Mail, MessageCircle, Send, Truck, Clock, MapPin } from 'lucide-react';
 import { company } from '@/config/company';
 import { navigation } from '@/config/site';
+import { getServicePage } from '@/config/service-pages';
+
+// Ссылки на главные услуги в подвале (ЭПИК-4): 3–4 посадочные, без переспама.
+const footerServiceLinks = ['evakuator-24-7', 'evakuator-posle-dtp', 'evakuator-legkovyh', 'evakuator-vidnoe']
+  .map((slug) => getServicePage(slug))
+  .filter((p): p is NonNullable<typeof p> => Boolean(p));
 
 // Footer — Server Component (SEO, минимум JS).
 export function Footer() {
@@ -10,7 +16,7 @@ export function Footer() {
   return (
     <footer className="border-t border-border bg-secondary/30">
       <div className="container py-12">
-        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
           <div className="space-y-3">
             <div className="flex items-center gap-2 font-bold">
               <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent text-accent-foreground">
@@ -25,6 +31,19 @@ export function Footer() {
               <MapPin className="h-4 w-4" /> {company.address}
             </p>
           </div>
+
+          <nav className="space-y-2" aria-label="Услуги">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-foreground">Услуги</h2>
+            <ul className="space-y-1">
+              {footerServiceLinks.map((page) => (
+                <li key={page.slug}>
+                  <Link href={`/${page.slug}`} className="text-sm text-muted-foreground hover:text-foreground">
+                    {page.h1}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </nav>
 
           <nav className="space-y-2" aria-label="Навигация в подвале">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-foreground">Разделы</h2>

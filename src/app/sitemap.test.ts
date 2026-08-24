@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import sitemap from '@/app/sitemap';
 import robots from '@/app/robots';
+import { servicePageSlugs } from '@/config/service-pages';
 
 describe('app/sitemap', () => {
   it('возвращает массив с главной страницей', () => {
@@ -14,6 +15,18 @@ describe('app/sitemap', () => {
       expect(r.url).toMatch(/^https?:\/\//);
       expect(r.priority).toBeGreaterThan(0);
     });
+  });
+
+  it('содержит все 7 посадочных SEO-страниц из реестра (ЧТЗ ЭПИК-2)', () => {
+    const urls = sitemap().map((r) => r.url);
+    servicePageSlugs().forEach((slug) => {
+      expect(urls.some((u) => u.endsWith(`/${slug}`)), `sitemap не содержит /${slug}`).toBe(true);
+    });
+  });
+
+  it('URL в sitemap уникальны (нет дублей)', () => {
+    const urls = sitemap().map((r) => r.url);
+    expect(new Set(urls).size).toBe(urls.length);
   });
 });
 
