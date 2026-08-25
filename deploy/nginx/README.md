@@ -1,7 +1,7 @@
 # Nginx + SSL для прода «Эвакуация» (домен эвакуация.online)
 
 Production reverse-proxy и HTTPS (Let's Encrypt) для домена
-**`эвакуация.online`** (IDN, Punycode: `xn--80akhbyknj4f.online`).
+**`эвакуация.online`** (IDN, Punycode: `xn--80aae0ai8cwa4cza.online`).
 
 ## Файлы
 
