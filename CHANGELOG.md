@@ -7,6 +7,17 @@
 
 ## [Unreleased]
 
+## [0.8.0] — 2026-08-25
+
+### Добавлено
+- **74 гео-посадочные SEO-страницы** (ADR-003, ЧТЗ_Гео_посадочные_районы_МО): data-driven гео-модуль `src/config/geo/` поверх шаблона `ServicePage` — 41 район Москвы (ВАО 14, ЮВАО 12, ЮАО 15) + 27 городов МО ≤30 км + 6 хабов. Композер собирает `ServicePageConfig` из данных + общих блоков направления; объединённый реестр `landingPages` (услуги + гео) для роута и sitemap. Хлебные крошки Главная → Хаб → Локация, JSON-LD `areaServed` + `areaName`. Анти-дорвей: уникальные title/desc/H1/лиды/FAQ, ≥350 слов (32 автотеста в `src/config/geo/index.test.ts`, E2E `tests/e2e/geo-pages.spec.ts`).
+
+### Исправлено
+- **Дрейф репо ↔ prod-VPS** (ЧТЗ_Устранение_дрейфа_репо_VPS): nginx `server_name` и SSL-пути переведены на punycode (`xn--80aae0ai8cwa4cza.online`) — nginx 1.24 на VPS не нормализует IDN; `listen 443 ssl http2` вместо раздельных директив. `postgres-exporter` → `network_mode: host` + `--web.listen-address=127.0.0.1:9187` (на VPS postgres запущен вне compose через `docker run`, hostname `postgres:5432` не резолвится); DSN host `127.0.0.1`.
+
+### Документация
+- ЧТЗ: SEO рост позиций (Вебмастер), site-metrics node+postgres, подключение эвакуации к мониторингу, устранение дрейфа репо/VPS.
+
 ## [0.7.0] — 2026-08-24
 
 ### Добавлено
