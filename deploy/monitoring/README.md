@@ -57,11 +57,15 @@ ss -tlnp | grep 9100   # только 127.0.0.1:9100
 EXPORTER_PASSWORD='<пароль>' bash deploy/postgres-exporter/setup-user.sh
 
 # 4.2. DSN в .env (рядом с docker-compose.yml):
-#   POSTGRES_EXPORTER_DSN="postgresql://postgres_exporter:<пароль>@postgres:5432/tow_truck?sslmode=disable"
+#   POSTGRES_EXPORTER_DSN="postgresql://postgres_exporter:<пароль>@127.0.0.1:5432/tow_truck?sslmode=disable"
 chmod 600 .env
 
-# 4.3. запуск (профиль monitoring, stateful-сервисы не трогаем):
-docker compose --profile monitoring up -d
+# 4.3. запуск экспортёра (host-сеть; postgres на VPS запущен ВНЕ compose
+#      через docker run, поэтому compose-сервис неприменим — см. docker-compose.yml):
+docker run -d --name tow-truck-postgres-exporter --network host --restart unless-stopped \
+  -e DATA_SOURCE_NAME="${POSTGRES_EXPORTER_DSN}" \
+  prometheuscommunity/postgres-exporter:v0.15.0 \
+  --web.listen-address=127.0.0.1:9187
 ss -tlnp | grep 9187   # только 127.0.0.1:9187
 ```
 

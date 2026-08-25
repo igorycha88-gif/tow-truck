@@ -97,24 +97,26 @@ services:
   # Метрики PostgreSQL для централизованного мониторинга (ЧТЗ §4.4,
   # TASK-INF-002). Слушает ТОЛЬКО 127.0.0.1:9187 (наружу закрыто,
   # доступ — через nginx /metrics/postgres).
-  # Профиль monitoring: сервис НЕ запускается в обычных flow
-  # (stateful-сервисы не пересобираются при деплое — Правило PR5).
-  # Включение: docker compose --profile monitoring up -d
+  #
+  # ВНИМАНИЕ: на prod-VPS postgres (tow-truck-db) запущен через `docker run`
+  # ВНЕ compose (labels пустые), а приложение — на --network host. Поэтому
+  # сервис запускается на host-сети: DSN-хост 127.0.0.1, порт НЕ публикуется
+  # (бинд задаётся аргументом --web.listen-address=127.0.0.1:9187).
+  # depends_on намеренно отсутствует — postgres внешний.
   postgres-exporter:
     profiles: ['monitoring']
     image: prometheuscommunity/postgres-exporter:v0.15.0
     container_name: tow-truck-postgres-exporter
     restart: unless-stopped
-    depends_on:
-      postgres:
-        condition: service_healthy
+    network_mode: host
+    command:
+      - --web.listen-address=127.0.0.1:9187
     environment:
       # DSN readonly-пользователя (pg_monitor) — только в .env (chmod 600).
+      # Хост 127.0.0.1 (host-сеть, postgres внешний).
       DATA_SOURCE_NAME: ${POSTGRES_EXPORTER_DSN:-}
-    ports:
-      - '127.0.0.1:9187:9187'
     healthcheck:
-      test: ['CMD-SHELL', 'wget -qO- http://localhost:9187/metrics || exit 1']
+      test: ['CMD-SHELL', 'wget -qO- http://127.0.0.1:9187/metrics || exit 1']
       interval: 15s
       timeout: 5s
       retries: 5

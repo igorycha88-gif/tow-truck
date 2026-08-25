@@ -20,4 +20,4 @@ docker exec -i tow-truck-db psql -U postgres -d tow_truck \
 
 echo "OK: роль postgres_exporter создана (pg_monitor, NOSUPERUSER)."
 echo "DSN для .env (POSTGRES_EXPORTER_DSN):"
-echo "  postgresql://postgres_exporter:${EXPORTER_PASSWORD}@postgres:5432/tow_truck?sslmode=disable"
+echo "  postgresql://postgres_exporter:${EXPORTER_PASSWORD}@127.0.0.1:5432/tow_truck?sslmode=disable"

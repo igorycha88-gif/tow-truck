@@ -74,9 +74,9 @@ certbot --nginx \
     -m "${EMAIL}" \
     --non-interactive
 
-log "Сертификат выпущен. Пути:"
-log "  /etc/letsencrypt/live/${DOMAIN}/fullchain.pem"
-log "  /etc/letsencrypt/live/${DOMAIN}/privkey.pem"
+log "Сертификат выпущен. Пути (certbot использует punycode-имя директории):"
+log "  /etc/letsencrypt/live/xn--80aae0ai8cwa4cza.online/fullchain.pem"
+log "  /etc/letsencrypt/live/xn--80aae0ai8cwa4cza.online/privkey.pem"
 
 # ── 5. Применяем финальный production server-блок ──
 log "Применяем финальный server-блок evakuaciya-online.conf..."
