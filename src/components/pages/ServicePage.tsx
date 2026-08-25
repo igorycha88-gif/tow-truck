@@ -7,20 +7,28 @@ import { JsonLd } from '@/components/seo/JsonLd';
 import { OrderForm } from '@/components/forms/OrderForm';
 import { PhoneClickTracker } from '@/components/phone-link/PhoneClickTracker';
 import { servicePageLd, faqPageLd } from '@/lib/seo/json-ld';
-import { getServicePage, servicePagePriceLabel } from '@/config/service-pages';
+import { getLandingPage } from '@/config/geo';
+import { servicePagePriceLabel } from '@/config/service-pages';
 import { company, trustStats } from '@/config/company';
 import { cn } from '@/lib/utils';
+import type { BreadcrumbItem } from '@/types';
 import type { ServicePageConfig } from '@/types/service-page';
 
-// Универсальный шаблон посадочной SEO-страницы (ЧТЗ_SEO_Рост_позиций, ЭПИК-2).
+// Универсальный шаблон посадочной SEO-страницы (ЧТЗ_SEO_Рост_позиций, ЭПИК-2; ADR-003 — гео).
 // Server Component (SSG). Разметка одна, контент — из конфига страницы.
-// Структура: H1 → лид → «Что входит» → цена → шаги → FAQ → CTA → смежные услуги.
+// Структура: H1 → лид → «Что входит» → цена → шаги → FAQ → CTA → перелинковка.
 
 export function ServicePage({ page }: { page: ServicePageConfig }) {
   const relatedPages = page.related
-    .map((slug) => getServicePage(slug))
+    .map((slug) => getLandingPage(slug))
     .filter((p): p is ServicePageConfig => Boolean(p));
   const priceLabel = servicePagePriceLabel(page.price);
+
+  // Хлебные крошки: Главная → [родитель-хаб] → текущая (ADR-003).
+  const breadcrumbItems: BreadcrumbItem[] = [
+    ...(page.parent ? [{ name: page.parent.name, url: `/${page.parent.slug}` }] : []),
+    { name: page.h1, url: `/${page.slug}` },
+  ];
 
   return (
     <article>
@@ -28,7 +36,7 @@ export function ServicePage({ page }: { page: ServicePageConfig }) {
       <JsonLd data={servicePageLd(page)} />
       <JsonLd data={faqPageLd(page.faq)} />
 
-      <Breadcrumbs items={[{ name: page.h1, url: `/${page.slug}` }]} />
+      <Breadcrumbs items={breadcrumbItems} />
 
       {/* H1 + лид-абзацы с УТП */}
       <header className="container pb-4 pt-2">
@@ -199,12 +207,12 @@ export function ServicePage({ page }: { page: ServicePageConfig }) {
         </div>
       </section>
 
-      {/* Перелинковка: смежные услуги */}
+      {/* Перелинковка: смежные услуги / районы и города направления (гео-хабы, ADR-003) */}
       {relatedPages.length > 0 && (
         <section className="py-12 md:py-16" aria-labelledby={`${page.slug}-related`}>
           <div className="container">
             <h2 id={`${page.slug}-related`} className="text-2xl font-bold tracking-tight sm:text-3xl">
-              Смежные услуги
+              {page.relatedTitle ?? 'Смежные услуги'}
             </h2>
             <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {relatedPages.map((rel) => (

@@ -1,8 +1,10 @@
 import type { ServicePageConfig } from '@/types/service-page';
 import { priceFromLabel, perKmLabel } from '@/config/pricing';
+import { moYug } from '@/config/geo/mo-yug';
 
 // Посадочная «Эвакуатор в Видном» (ЧТЗ, табл. 4.1, стр. 6) — гео-пилот.
 // Целевые запросы: «эвакуатор 24/7» видное, «эвакуатор видное».
+// ADR-003: включена в иерархию хаба юга Подмосковья (parent для крошек).
 
 export const vidnoePage: ServicePageConfig = {
   slug: 'evakuator-vidnoe',
@@ -104,4 +106,6 @@ export const vidnoePage: ServicePageConfig = {
   ],
   related: ['evakuator-24-7', 'evakuator-posle-dtp', 'evakuator-legkovyh'],
   orderServiceType: 'light_vehicle',
+  parent: { name: moYug.hubH1, slug: moYug.hubSlug },
+  areaName: 'Видное, Московская область',
 };

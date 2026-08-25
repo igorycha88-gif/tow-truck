@@ -199,6 +199,9 @@ export function servicePageLd(page: ServicePageConfig): Record<string, unknown> 
     areaServed: [
       { '@type': 'AdministrativeArea', name: 'Москва' },
       { '@type': 'AdministrativeArea', name: 'Московская область' },
+      ...(page.areaName
+        ? [{ '@type': 'AdministrativeArea', name: page.areaName }]
+        : []),
     ],
     offers: offer,
   };

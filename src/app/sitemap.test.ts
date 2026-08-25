@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import sitemap from '@/app/sitemap';
 import robots from '@/app/robots';
 import { servicePageSlugs } from '@/config/service-pages';
+import { landingSlugs } from '@/config/geo';
 
 describe('app/sitemap', () => {
   it('возвращает массив с главной страницей', () => {
@@ -20,6 +21,13 @@ describe('app/sitemap', () => {
   it('содержит все 7 посадочных SEO-страниц из реестра (ЧТЗ ЭПИК-2)', () => {
     const urls = sitemap().map((r) => r.url);
     servicePageSlugs().forEach((slug) => {
+      expect(urls.some((u) => u.endsWith(`/${slug}`)), `sitemap не содержит /${slug}`).toBe(true);
+    });
+  });
+
+  it('содержит все гео-посадочные из объединённого реестра (ADR-003)', () => {
+    const urls = sitemap().map((r) => r.url);
+    landingSlugs().forEach((slug) => {
       expect(urls.some((u) => u.endsWith(`/${slug}`)), `sitemap не содержит /${slug}`).toBe(true);
     });
   });

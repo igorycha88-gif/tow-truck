@@ -45,4 +45,16 @@ export type ServicePageConfig = {
   related: string[];
   /** Тип услуги для предзаполнения формы заявки */
   orderServiceType: ServiceType;
+  /** Заголовок блока перелинковки (для гео-хабов), дефолт «Смежные услуги» */
+  relatedTitle?: string;
+  /** Родительская страница (гео-хаб направления) для хлебных крошек */
+  parent?: ServicePageParent;
+  /** Конкретная гео-зона (район/город) для schema.org areaServed */
+  areaName?: string;
+};
+
+/** Родительская страница в хлебных крошках (ADR-003). */
+export type ServicePageParent = {
+  name: string;
+  slug: string;
 };
