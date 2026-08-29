@@ -49,21 +49,28 @@ describe('metricsService.createClickEvent', () => {
     vi.clearAllMocks();
   });
 
-  it('создаёт клик и логирует начало/конец (happy path)', async () => {
+  it('создаёт клик по телефону и логирует начало/конец (happy path)', async () => {
     const fake = { id: 'clk1', createdAt: new Date() };
     clickEventCreate.mockResolvedValue(fake);
 
     const result = await metricsService.createClickEvent({
+      eventType: 'click_phone',
       page: 'home',
+      referrer: 'yandex.ru',
       ip: '1.1.1.1',
       userAgent: 'Mozilla/5.0',
+      city: 'Moscow',
     });
 
     expect(result).toEqual(fake);
     expect(clickEventCreate).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
+          eventType: 'click_phone',
           page: 'home',
+          service: null,
+          referer: 'yandex.ru',
+          city: 'Moscow',
           ip: '1.1.1.1',
           userAgent: 'Mozilla/5.0',
         }),
@@ -79,9 +86,52 @@ describe('metricsService.createClickEvent', () => {
     );
   });
 
+  it('создаёт service_click со slug услуги (ЧТЗ §2.4)', async () => {
+    clickEventCreate.mockResolvedValue({ id: 'clk2', createdAt: new Date() });
+
+    await metricsService.createClickEvent({
+      eventType: 'service_click',
+      page: 'home',
+      service: 'light_vehicle',
+      referrer: '(direct)',
+    });
+
+    expect(clickEventCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          eventType: 'service_click',
+          service: 'light_vehicle',
+          referer: '(direct)',
+        }),
+      }),
+    );
+  });
+
+  it('referrer отсутствует → referer=null; источник-мусор санитизируется в (direct) (edge case)', async () => {
+    clickEventCreate.mockResolvedValue({ id: 'clk3', createdAt: new Date() });
+
+    await metricsService.createClickEvent({ eventType: 'click_phone', page: 'contacts' });
+    expect(clickEventCreate).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ referer: null, city: null, service: null }),
+      }),
+    );
+
+    await metricsService.createClickEvent({
+      eventType: 'click_phone',
+      page: 'home',
+      referrer: 'https://www.GOOGLE.ru/search',
+    });
+    expect(clickEventCreate).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ referer: 'google.ru' }),
+      }),
+    );
+  });
+
   it('подставляет null для ip/userAgent, если их нет (edge case)', async () => {
     clickEventCreate.mockResolvedValue({ id: 'x', createdAt: new Date() });
-    await metricsService.createClickEvent({ page: 'contacts' });
+    await metricsService.createClickEvent({ eventType: 'click_phone', page: 'contacts' });
     expect(clickEventCreate).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({ page: 'contacts', ip: null, userAgent: null }),
@@ -91,7 +141,9 @@ describe('metricsService.createClickEvent', () => {
 
   it('бросает и логирует ошибку при сбое БД (error case)', async () => {
     clickEventCreate.mockRejectedValue(new Error('DB down'));
-    await expect(metricsService.createClickEvent({ page: 'home' })).rejects.toThrow('DB down');
+    await expect(
+      metricsService.createClickEvent({ eventType: 'click_phone', page: 'home' }),
+    ).rejects.toThrow('DB down');
     expect(loggerMock.error).toHaveBeenCalledWith(
       'Failed to create click event',
       expect.objectContaining({ operation: 'metricsService.createClickEvent' }),
@@ -104,14 +156,16 @@ describe('metricsService.createVisit', () => {
     vi.clearAllMocks();
   });
 
-  it('создаёт визит и логирует начало/конец (happy path)', async () => {
+  it('создаёт визит с источником и гео, логирует начало/конец (happy path)', async () => {
     const fake = { id: 'vis1', createdAt: new Date() };
     visitCreate.mockResolvedValue(fake);
 
     const result = await metricsService.createVisit({
       page: 'home',
+      referrer: 'yandex.ru',
       ip: '1.1.1.1',
       userAgent: 'Mozilla/5.0',
+      city: 'Moscow',
     });
 
     expect(result).toEqual(fake);
@@ -119,6 +173,8 @@ describe('metricsService.createVisit', () => {
       expect.objectContaining({
         data: expect.objectContaining({
           page: 'home',
+          referer: 'yandex.ru',
+          city: 'Moscow',
           ip: '1.1.1.1',
           userAgent: 'Mozilla/5.0',
         }),
@@ -134,12 +190,22 @@ describe('metricsService.createVisit', () => {
     );
   });
 
-  it('подставляет null для ip/userAgent, если их нет (edge case)', async () => {
+  it('не-входной визит (без referrer) → referer=null (ЧТЗ §2.2, edge case)', async () => {
     visitCreate.mockResolvedValue({ id: 'x', createdAt: new Date() });
     await metricsService.createVisit({ page: 'politika' });
     expect(visitCreate).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({ page: 'politika', ip: null, userAgent: null }),
+        data: expect.objectContaining({ page: 'politika', referer: null, city: null, ip: null, userAgent: null }),
+      }),
+    );
+  });
+
+  it('входной визит с прямым заходом → referer=(direct)', async () => {
+    visitCreate.mockResolvedValue({ id: 'y', createdAt: new Date() });
+    await metricsService.createVisit({ page: 'home', referrer: '(direct)' });
+    expect(visitCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ referer: '(direct)' }),
       }),
     );
   });

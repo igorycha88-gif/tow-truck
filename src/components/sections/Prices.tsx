@@ -8,6 +8,7 @@ import { formatPricing } from '@/lib/utils';
 // Секция «Цены» на главной (ЧТЗ_SEO_Рост_позиций, ЭПИК-5). Якорь #prices —
 // источник быстрых ссылок Яндекса (ЭПИК-1). Цены — из каталога (единый источник
 // pricing.ts), ссылки — на посадочные страницы (перелинковка).
+// Клик по строке-услуге трекается делегированно (data-service).
 export function Prices() {
   return (
     <section id="prices" className="py-16 md:py-24" aria-labelledby="prices-heading">
@@ -39,7 +40,7 @@ export function Prices() {
                     <tr key={service.slug} className="border-b border-border/60 last:border-0">
                       <th scope="row" className="px-5 py-3.5 font-medium text-foreground">
                         {landing ? (
-                          <Link href={`/${landing}`} className="hover:text-accent hover:underline">
+                          <Link href={`/${landing}`} data-service={service.slug} className="hover:text-accent hover:underline">
                             {service.title}
                           </Link>
                         ) : (

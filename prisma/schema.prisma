@@ -30,26 +30,36 @@ model Order {
   @@index([createdAt])
 }
 
-// Логирование кликов по номеру телефона (бизнес-метрики, см. ADR-001).
+// События трекинга (бизнес-метрики, см. ADR-001, ЧТЗ_Сайт_эвакуация_online_
+// Полные_Бизнес_Метрики.md, ADR-012 мониторинга): клики по телефону и по услугам.
 // Уникальные IP из Order + ClickEvent дают метрику «посетители».
 model ClickEvent {
   id        String   @id @default(cuid())
   ip        String?
   userAgent String?
-  page      String   @default("home") // home, contacts, floating_call, header
+  page      String   @default("home") // home, contacts, floating_call, header, service_page
+  eventType String   @default("click_phone") // click_phone | service_click (ADR-012)
+  service   String? // slug услуги (для service_click)
+  referer   String? // источник сессии: host | (direct)
+  city      String? // город по GeoLite2 (geoip-lite)
   createdAt DateTime @default(now())
 
   @@index([createdAt])
   @@index([page])
+  @@index([eventType, createdAt])
 }
 
 // Трекинг визитов на сайт (см. ADR-002). Источник истины метрики «посетители»:
 // фиксируется каждый заход (1 раз на страницу за сессию браузера).
+// referer — источник захода (host | (direct)); null = не входной визит сессии.
+// city — город по GeoLite2 (geoip-lite).
 model Visit {
   id        String   @id @default(cuid())
   ip        String?
   userAgent String?
   page      String   @default("home") // slug страницы: home, politika, ...
+  referer   String?
+  city      String?
   createdAt DateTime @default(now())
 
   @@index([createdAt])

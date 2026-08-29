@@ -34,6 +34,9 @@ vi.mock('@/lib/redis', () => ({
 
 vi.mock('@/lib/rate-limit', () => ({ rateLimit: rateLimitFn }));
 
+const { lookupCityMock } = vi.hoisted(() => ({ lookupCityMock: vi.fn() }));
+vi.mock('@/lib/geo', () => ({ lookupCity: lookupCityMock }));
+
 const { loggerMock } = vi.hoisted(() => ({
   loggerMock: {
     info: vi.fn(),
@@ -60,6 +63,8 @@ describe('POST /api/visit', () => {
     rateLimitFn.mockReset();
     rateLimitFn.mockResolvedValue({ ok: true, remaining: 119, resetSec: 3600 });
     visitCreate.mockReset();
+    lookupCityMock.mockReset();
+    lookupCityMock.mockReturnValue(null);
   });
 
   it('создаёт визит и возвращает 201 (happy path)', async () => {
@@ -71,7 +76,7 @@ describe('POST /api/visit', () => {
     expect(body.id).toBe('vis1');
     expect(visitCreate).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({ page: 'home' }),
+        data: expect.objectContaining({ page: 'home', referer: null }),
       }),
     );
     expect(loggerMock.info).toHaveBeenCalledWith(
@@ -81,6 +86,48 @@ describe('POST /api/visit', () => {
     expect(loggerMock.info).toHaveBeenCalledWith(
       'API response 201',
       expect.objectContaining({ path: '/api/visit', status: 201 }),
+    );
+  });
+
+  it('входной визит несёт источник и гео (ЧТЗ §2.2/§2.3)', async () => {
+    lookupCityMock.mockReturnValue('Moscow');
+    visitCreate.mockResolvedValue({ id: 'vis3', createdAt: new Date().toISOString() });
+
+    const res = await postVisit(
+      makeRequest(
+        { page: 'home', referrer: 'yandex.ru' },
+        { 'x-forwarded-for': '77.88.8.8' },
+      ),
+    );
+    expect(res.status).toBe(201);
+    expect(visitCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          page: 'home',
+          referer: 'yandex.ru',
+          city: 'Moscow',
+          ip: '77.88.8.8',
+        }),
+      }),
+    );
+    expect(lookupCityMock).toHaveBeenCalledWith('77.88.8.8');
+  });
+
+  it('прямой заход → referer=(direct); мусорный источник санитизируется (edge case)', async () => {
+    visitCreate.mockResolvedValue({ id: 'vis4', createdAt: new Date().toISOString() });
+
+    await postVisit(makeRequest({ page: 'home', referrer: '(direct)' }));
+    expect(visitCreate).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ referer: '(direct)' }),
+      }),
+    );
+
+    await postVisit(makeRequest({ page: 'home', referrer: 'https://www.GOOGLE.ru/' }));
+    expect(visitCreate).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ referer: 'google.ru' }),
+      }),
     );
   });
 

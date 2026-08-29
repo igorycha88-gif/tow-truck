@@ -5,12 +5,15 @@ import { clickEventSchema } from '@/lib/validators/click-event';
 import { metricsService } from '@/services/metricsService';
 import { rateLimit } from '@/lib/rate-limit';
 import { getClientIp } from '@/lib/utils';
+import { lookupCity } from '@/lib/geo';
 import { logger } from '@/lib/logger';
 
-// POST /api/click-event — логирование клика по номеру телефона.
+// POST /api/click-event — события трекинга кликов: click_phone (tel:-ссылки,
+// ADR-012 / ЧТЗ §2.1) и service_click (карточки услуг, ЧТЗ §2.4).
+// Гео по IP (GeoLite2) и источник сессии сохраняются с событием (ЧТЗ §2.2/§2.3).
 // Валидация (Zod) → rate-limit (Redis) → metricsService (Prisma).
 // Статусы: 201 / 400 (VALIDATION_ERROR) / 429 (RATE_LIMIT_EXCEEDED) / 500 (INTERNAL_ERROR).
-// Не влияет на UX: клиент не ждёт ответа, это fire-and-forget (смотрите PhoneClickTracker).
+// Не влияет на UX: клиент не ждёт ответа, это fire-and-forget (смотрите ClickEventsTracker).
 
 export async function POST(req: NextRequest) {
   const startTime = Date.now();
@@ -55,9 +58,13 @@ export async function POST(req: NextRequest) {
     const data = clickEventSchema.parse(body);
 
     const event = await metricsService.createClickEvent({
+      eventType: data.eventType,
       page: data.page,
+      service: data.service,
+      referrer: data.referrer,
       ip,
       userAgent: req.headers.get('user-agent'),
+      city: lookupCity(ip),
     });
 
     logger.info('API response 201', {

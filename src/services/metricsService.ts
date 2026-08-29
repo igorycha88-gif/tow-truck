@@ -1,20 +1,25 @@
 import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
+import { sanitizeSourceLabel } from '@/lib/referer';
 import type { ClickEventSchemaInput } from '@/lib/validators/click-event';
 import type { VisitSchemaInput } from '@/lib/validators/visit';
 
 // Бизнес-логика бизнес-метрик (см. ADR-001, ADR-002,
-// ЧТЗ_Графана_Бизнес_метрики.md, ЧТЗ_Трекинг_посетителей_и_часовой_график.md).
+// ЧТЗ_Сайт_эвакуация_online_Полные_Бизнес_Метрики.md).
 // Prisma только в services (SKILL_DEVELOPER.md §1). Логирование в начале/конец и в catch.
+// referer — источник сессии (sanitized host | (direct)); null = не входное событие.
+// city — город по GeoLite2 (geoip-lite), определяется в роуте по IP.
 
 export type CreateClickEventParams = ClickEventSchemaInput & {
   ip?: string | null;
   userAgent?: string | null;
+  city?: string | null;
 };
 
 export type CreateVisitParams = VisitSchemaInput & {
   ip?: string | null;
   userAgent?: string | null;
+  city?: string | null;
 };
 
 export type ClickEventSummary = {
@@ -40,18 +45,26 @@ export type BusinessMetrics = {
 };
 
 export const metricsService = {
+  // Событие трекинга: click_phone (клик по tel:-ссылке, ADR-012) или
+  // service_click (клик по карточке/пункту услуги, ЧТЗ §2.4).
   async createClickEvent(params: CreateClickEventParams): Promise<ClickEventSummary> {
-    const { page, ip, userAgent } = params;
+    const { eventType, page, service, referrer, ip, userAgent, city } = params;
 
     logger.info('Creating click event', {
       operation: 'metricsService.createClickEvent',
+      eventType,
       page,
+      service: service ?? null,
     });
 
     try {
       const event = await prisma.clickEvent.create({
         data: {
+          eventType,
           page,
+          service: service ?? null,
+          referer: referrer !== undefined ? sanitizeSourceLabel(referrer) : null,
+          city: city ?? null,
           ip: ip ?? null,
           userAgent: userAgent ?? null,
         },
@@ -61,6 +74,7 @@ export const metricsService = {
       logger.info('Click event created', {
         operation: 'metricsService.createClickEvent',
         eventId: event.id,
+        eventType,
         page,
       });
 
@@ -69,6 +83,7 @@ export const metricsService = {
       logger.error('Failed to create click event', {
         operation: 'metricsService.createClickEvent',
         error: err instanceof Error ? err.message : String(err),
+        eventType,
         page,
       });
       throw err;
@@ -77,18 +92,22 @@ export const metricsService = {
 
   // Трекинг визита на страницу (ADR-002). Посетитель = запись в Visit;
   // дедупликация по IP выполняется в отчётах (COUNT DISTINCT ip).
+  // referer присылается только входным визитом сессии (ЧТЗ §2.2).
   async createVisit(params: CreateVisitParams): Promise<ClickEventSummary> {
-    const { page, ip, userAgent } = params;
+    const { page, referrer, ip, userAgent, city } = params;
 
     logger.info('Creating visit', {
       operation: 'metricsService.createVisit',
       page,
+      withSource: referrer !== undefined,
     });
 
     try {
       const visit = await prisma.visit.create({
         data: {
           page,
+          referer: referrer !== undefined ? sanitizeSourceLabel(referrer) : null,
+          city: city ?? null,
           ip: ip ?? null,
           userAgent: userAgent ?? null,
         },

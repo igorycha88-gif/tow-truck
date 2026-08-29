@@ -8,6 +8,7 @@ import { formatPricing } from '@/lib/utils';
 
 // Секции услуг. Server Component. Карточка услуги → посадочная страница (ЭПИК-4),
 // либо форма с предзаполнением serviceType, если посадочной нет.
+// Клик по карточке трекается делегированно (ClickEventsTracker, data-service).
 export function Services() {
   return (
     <section id="services" className="py-16 md:py-24" aria-labelledby="services-heading">
@@ -34,7 +35,7 @@ export function Services() {
             const href = landing ? `/${landing}` : `/?service=${service.slug}#order`;
             return (
               <li key={service.slug}>
-                <Link href={href} className="group block h-full" aria-label={service.title}>
+                <Link href={href} data-service={service.slug} className="group block h-full" aria-label={service.title}>
                   <Card className="h-full p-6">
                     <div className="flex items-start justify-between">
                       <span className="flex h-12 w-12 items-center justify-center rounded-lg bg-accent/10 text-accent">

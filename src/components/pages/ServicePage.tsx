@@ -5,7 +5,6 @@ import { buttonVariants } from '@/components/ui/button';
 import { Breadcrumbs } from '@/components/seo/Breadcrumbs';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { OrderForm } from '@/components/forms/OrderForm';
-import { PhoneClickTracker } from '@/components/phone-link/PhoneClickTracker';
 import { servicePageLd, faqPageLd } from '@/lib/seo/json-ld';
 import { getLandingPage } from '@/config/geo';
 import { servicePagePriceLabel } from '@/config/service-pages';
@@ -17,6 +16,7 @@ import type { ServicePageConfig } from '@/types/service-page';
 // Универсальный шаблон посадочной SEO-страницы (ЧТЗ_SEO_Рост_позиций, ЭПИК-2; ADR-003 — гео).
 // Server Component (SSG). Разметка одна, контент — из конфига страницы.
 // Структура: H1 → лид → «Что входит» → цена → шаги → FAQ → CTA → перелинковка.
+// Клики по телефону/услугам трекаются делегированно (ClickEventsTracker).
 
 export function ServicePage({ page }: { page: ServicePageConfig }) {
   const relatedPages = page.related
@@ -60,14 +60,13 @@ export function ServicePage({ page }: { page: ServicePageConfig }) {
           ))}
         </div>
         <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-          <PhoneClickTracker page="service_page">
-            <a
-              href={company.phoneHref}
-              className={cn(buttonVariants({ size: 'lg' }), 'gap-2')}
-            >
-              <Phone className="h-5 w-5" /> {company.phone}
-            </a>
-          </PhoneClickTracker>
+          <a
+            href={company.phoneHref}
+            data-page="service_page"
+            className={cn(buttonVariants({ size: 'lg' }), 'gap-2')}
+          >
+            <Phone className="h-5 w-5" /> {company.phone}
+          </a>
           <a href="#order-service" className={cn(buttonVariants({ variant: 'secondary', size: 'lg' }))}>
             Оставить заявку
           </a>
@@ -186,14 +185,13 @@ export function ServicePage({ page }: { page: ServicePageConfig }) {
                 Позвоните — оператор назовёт точную стоимость и время подачи.
                 Или оставьте заявку: перезвоним в течение нескольких минут.
               </p>
-              <PhoneClickTracker page="service_page">
-                <a
-                  href={company.phoneHref}
-                  className="mt-6 inline-block text-2xl font-extrabold text-accent hover:underline"
-                >
-                  {company.phone}
-                </a>
-              </PhoneClickTracker>
+              <a
+                href={company.phoneHref}
+                data-page="service_page"
+                className="mt-6 inline-block text-2xl font-extrabold text-accent hover:underline"
+              >
+                {company.phone}
+              </a>
               <ul className="mt-6 space-y-2 text-sm text-muted-foreground">
                 <li>✓ Подача {trustStats.responseMinutes} минут по Москве и МО</li>
                 <li>✓ Фиксированная цена, без скрытых платежей</li>
@@ -219,6 +217,7 @@ export function ServicePage({ page }: { page: ServicePageConfig }) {
                 <li key={rel.slug}>
                   <Link
                     href={`/${rel.slug}`}
+                    data-service={rel.slug}
                     className="group block h-full rounded-xl border border-border bg-card p-5 transition-shadow hover:shadow-md"
                   >
                     <div className="flex items-center justify-between gap-3">

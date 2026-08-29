@@ -34,6 +34,9 @@ vi.mock('@/lib/redis', () => ({
 
 vi.mock('@/lib/rate-limit', () => ({ rateLimit: rateLimitFn }));
 
+const { lookupCityMock } = vi.hoisted(() => ({ lookupCityMock: vi.fn() }));
+vi.mock('@/lib/geo', () => ({ lookupCity: lookupCityMock }));
+
 const { loggerMock } = vi.hoisted(() => ({
   loggerMock: {
     info: vi.fn(),
@@ -47,10 +50,10 @@ vi.mock('@/lib/logger', () => ({ logger: loggerMock }));
 import { POST as postClickEvent } from '@/app/api/click-event/route';
 import { GET as getMetrics } from '@/app/api/metrics/route';
 
-function makeRequest(body: unknown): NextRequest {
+function makeRequest(body: unknown, headers: Record<string, string> = {}): NextRequest {
   const req = new NextRequest('http://localhost/api/click-event', {
     method: 'POST',
-    headers: { 'content-type': 'application/json' },
+    headers: { 'content-type': 'application/json', ...headers },
     body: JSON.stringify(body),
   });
   return req;
@@ -62,27 +65,75 @@ describe('POST /api/click-event', () => {
     rateLimitFn.mockReset();
     rateLimitFn.mockResolvedValue({ ok: true, remaining: 59, resetSec: 3600 });
     clickEventCreate.mockReset();
+    lookupCityMock.mockReset();
+    lookupCityMock.mockReturnValue(null);
   });
 
-  it('создаёт клик и возвращает 201 (happy path)', async () => {
-    rateLimitFn.mockResolvedValue({ ok: true, remaining: 59, resetSec: 3600 });
+  it('создаёт клик по телефону с гео и источником, возвращает 201 (happy path)', async () => {
+    lookupCityMock.mockReturnValue('Moscow');
     clickEventCreate.mockResolvedValue({ id: 'clk1', createdAt: new Date().toISOString() });
 
-    const res = await postClickEvent(makeRequest({ page: 'home' }));
+    const res = await postClickEvent(
+      makeRequest(
+        { eventType: 'click_phone', page: 'home', referrer: 'yandex.ru' },
+        { 'x-forwarded-for': '77.88.8.8' },
+      ),
+    );
     expect(res.status).toBe(201);
     const body = await res.json();
     expect(body.id).toBe('clk1');
+    expect(clickEventCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          eventType: 'click_phone',
+          page: 'home',
+          referer: 'yandex.ru',
+          city: 'Moscow',
+          ip: '77.88.8.8',
+        }),
+      }),
+    );
+    expect(lookupCityMock).toHaveBeenCalledWith('77.88.8.8');
     expect(loggerMock.info).toHaveBeenCalledWith(
       'API request',
       expect.objectContaining({ path: '/api/click-event' }),
     );
   });
 
-  it('возвращает 400 на невалидную страницу', async () => {
-    const res = await postClickEvent(makeRequest({ page: 'unknown_page' }));
+  it('создаёт service_click со slug услуги (ЧТЗ §2.4)', async () => {
+    clickEventCreate.mockResolvedValue({ id: 'clk2', createdAt: new Date().toISOString() });
+
+    const res = await postClickEvent(
+      makeRequest({ eventType: 'service_click', page: 'home', service: 'light_vehicle' }),
+    );
+    expect(res.status).toBe(201);
+    expect(clickEventCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          eventType: 'service_click',
+          service: 'light_vehicle',
+          referer: null,
+          city: null,
+        }),
+      }),
+    );
+  });
+
+  it('возвращает 400 на невалидную страницу (кириллица)', async () => {
+    const res = await postClickEvent(makeRequest({ page: 'Главная' }));
     expect(res.status).toBe(400);
     const body = await res.json();
     expect(body.error).toBe('VALIDATION_ERROR');
+  });
+
+  it('возвращает 400 на невалидный eventType (error case)', async () => {
+    const res = await postClickEvent(makeRequest({ eventType: 'magic_click' }));
+    expect(res.status).toBe(400);
+  });
+
+  it('возвращает 400 на service_click без service (error case)', async () => {
+    const res = await postClickEvent(makeRequest({ eventType: 'service_click' }));
+    expect(res.status).toBe(400);
   });
 
   it('возвращает 429 при превышении rate-limit', async () => {

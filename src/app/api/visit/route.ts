@@ -5,10 +5,12 @@ import { visitSchema } from '@/lib/validators/visit';
 import { metricsService } from '@/services/metricsService';
 import { rateLimit } from '@/lib/rate-limit';
 import { getClientIp } from '@/lib/utils';
+import { lookupCity } from '@/lib/geo';
 import { logger } from '@/lib/logger';
 
 // POST /api/visit — трекинг визита на страницу (см. ADR-002).
-// Валидация (Zod) → rate-limit (Redis) → metricsService (Prisma).
+// Входной визит сессии несёт referrer (источник, ЧТЗ §2.2); гео по IP —
+// GeoLite2 (ЧТЗ §2.3). Валидация (Zod) → rate-limit (Redis) → metricsService (Prisma).
 // Статусы: 201 / 400 (VALIDATION_ERROR) / 429 (RATE_LIMIT_EXCEEDED) / 500 (INTERNAL_ERROR).
 // Fire-and-forget: клиент не ждёт ответа (смотрите VisitTracker).
 
@@ -56,8 +58,10 @@ export async function POST(req: NextRequest) {
 
     const visit = await metricsService.createVisit({
       page: data.page,
+      referrer: data.referrer,
       ip,
       userAgent: req.headers.get('user-agent'),
+      city: lookupCity(ip),
     });
 
     logger.info('API response 201', {

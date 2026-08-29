@@ -4,13 +4,13 @@ import * as React from 'react';
 import Link from 'next/link';
 import { Phone, Mail, Menu, X, Truck } from 'lucide-react';
 import { buttonVariants } from '@/components/ui/button';
-import { PhoneClickTracker } from '@/components/phone-link/PhoneClickTracker';
 import { cn } from '@/lib/utils';
 import { navigation } from '@/config/site';
 import { company } from '@/config/company';
 
 // Sticky-header с телефоном и CTA. Client — из-за мобильного меню.
 // Телефон всегда кликабелен (tel:), независимо от скролла.
+// Клик трекается делегированно (ClickEventsTracker, data-page="header").
 
 export function Header() {
   const [menuOpen, setMenuOpen] = React.useState(false);
@@ -47,16 +47,15 @@ export function Header() {
               <span>{company.email}</span>
             </a>
           )}
-          <PhoneClickTracker page="header">
-            <a
-              href={company.phoneHref}
-              className={cn(buttonVariants({ variant: 'default', size: 'sm' }), 'gap-2')}
-            >
-              <Phone className="h-4 w-4" />
-              <span className="hidden sm:inline">{company.phone}</span>
-              <span className="sm:hidden">Позвонить</span>
-            </a>
-          </PhoneClickTracker>
+          <a
+            href={company.phoneHref}
+            data-page="header"
+            className={cn(buttonVariants({ variant: 'default', size: 'sm' }), 'gap-2')}
+          >
+            <Phone className="h-4 w-4" />
+            <span className="hidden sm:inline">{company.phone}</span>
+            <span className="sm:hidden">Позвонить</span>
+          </a>
 
           <button
             type="button"

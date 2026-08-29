@@ -184,13 +184,23 @@ CI: GitHub Actions → lint, test, build → push образа в GHCR.
 ```
 
 ### 10.4 Новые компоненты
-- **Visit** — таблица трекинга визитов (ADR-002): ip, userAgent, page, createdAt
-- **ClickEvent** — таблица для логирования кликов по номеру
-- **VisitTracker / PhoneClickTracker** — Client Components (beacon-метрики)
+- **Visit** — таблица трекинга визитов (ADR-002): ip, userAgent, page, referer, city, createdAt
+- **ClickEvent** — события трекинга: eventType (`click_phone` | `service_click`), page,
+  service, referer, city, ip, userAgent, createdAt
+- **VisitTracker / ClickEventsTracker** — Client Components (beacon-метрики;
+  клики ловятся делегированно на document: `a[href^="tel:"]` и `[data-service]`,
+  debounce 5 с — ADR-012 мониторинга, ЧТЗ «Полные бизнес-метрики»)
+- **lib/geo.ts** — GeoLite2 (geoip-lite, офлайн) IP → город; **lib/referer.ts** —
+  источник сессии (host | (direct)); **lib/client-tracking.ts** — источник сессии
+  из document.referrer (1 раз за сессию браузера)
 - **metricsService** — агрегация метрик (для API /api/metrics)
+- **promMetricsService** — /metrics/tracking: + business_phone_clicks_12h,
+  business_phone_clicks_event (семпл на клик с unix-мс), business_referral_sources_24h,
+  business_geo_visitors_24h, business_service_clicks_24h
 
 > Подробности: ADR-001, ADR-002, ЧТЗ_Графана_Бизнес_метрики.md,
-> ЧТЗ_Трекинг_посетителей_и_часовой_график.md
+> ЧТЗ_Трекинг_посетителей_и_часовой_график.md,
+> ЧТЗ_Сайт_эвакуация_online_Полные_Бизнес_Метрики.md
 
 ---
 

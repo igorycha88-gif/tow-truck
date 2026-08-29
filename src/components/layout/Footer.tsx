@@ -9,7 +9,8 @@ const footerServiceLinks = ['evakuator-24-7', 'evakuator-posle-dtp', 'evakuator-
   .map((slug) => getServicePage(slug))
   .filter((p): p is NonNullable<typeof p> => Boolean(p));
 
-// Footer — Server Component (SEO, минимум JS).
+// Footer — Server Component (SEO, минимум JS). Ссылки услуг и телефон несут
+// data-service/data-page для делегированного трекинга (ClickEventsTracker).
 export function Footer() {
   const year = new Date().getFullYear();
 
@@ -37,7 +38,7 @@ export function Footer() {
             <ul className="space-y-1">
               {footerServiceLinks.map((page) => (
                 <li key={page.slug}>
-                  <Link href={`/${page.slug}`} className="text-sm text-muted-foreground hover:text-foreground">
+                  <Link href={`/${page.slug}`} data-service={page.slug} className="text-sm text-muted-foreground hover:text-foreground">
                     {page.h1}
                   </Link>
                 </li>
@@ -65,7 +66,7 @@ export function Footer() {
 
           <div className="space-y-2">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-foreground">Контакты</h2>
-            <a href={company.phoneHref} className="flex items-center gap-2 text-sm font-medium text-foreground hover:text-accent">
+            <a href={company.phoneHref} data-page="footer" className="flex items-center gap-2 text-sm font-medium text-foreground hover:text-accent">
               <Phone className="h-4 w-4" /> {company.phone}
             </a>
             {company.email && (

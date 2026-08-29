@@ -3,21 +3,26 @@ import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
 import { normalizeIp } from '@/lib/utils';
 
-// business_*-метрики для централизованного мониторинга (ЧТЗ §4.1, TASK-BCK-001).
-// Гейджи, пересчёт из БД раз в 60 с (кэш в памяти), окна 24ч/1ч.
+// business_*-метрики для централизованного мониторинга (ЧТЗ §4.1,
+// TASK-BCK-001; ЧТЗ_Сайт_эвакуация_online_Полные_Бизнес_Метрики.md §2).
+// Гейджи, пересчёт из БД раз в 60 с (кэш в памяти), окна 24ч/1х/12ч.
 //
 // Источники (все запросы идут по индексу @@index([createdAt])):
-//   Visit      → просмотры/сессии/посетители
-//   ClickEvent → события (клики по номеру, разрез page)
+//   Visit      → просмотры/сессии/посетители/источники/гео
+//   ClickEvent → события (click_phone / service_click, разрезы eventType/service)
 //   Order      → заявки (все статусы)
 //
-// Метрики referer/geo/клики-по-услугам НЕ отдаются вообще: таких разрезов
-// в модели данных сайта нет (ЧТЗ §4.1: «не отдавать нули для несуществующих
-// разрезов»).
+// Метрики телефона (business_phone_clicks_*) и топ-разрезы referral/geo/service
+// рендерятся вручную (не через prom-client): prom-client всегда пишет HELP/TYPE
+// даже для пустых гейджей и не поддерживает timestamp у семплов, а по ЧТЗ
+// «кликов нет — метрики не рендерятся» и нужен unix-мс на каждый семпл события.
 
 const CACHE_TTL_MS = 60_000;
 const SESSION_GAP_MS = 30 * 60 * 1000;
 const MAX_EVENT_TYPE_VALUES = 19; // + other = ≤ 20 значений лейбла (ЧТЗ §4.1)
+const TOP_SLICES = 10; // топ-10 referral/geo/service (ЧТЗ §2.2–2.4)
+const UNKNOWN_CITY = '(unknown)';
+const MAX_PHONE_CLICK_EVENTS = 10_000; // защита текста метрик от разрастания
 
 export const businessRegistry = new client.Registry();
 
@@ -39,7 +44,7 @@ const gauges = {
 
 const eventsGauge = new client.Gauge({
   name: 'business_events_24h',
-  help: 'Tracked events in the last 24 hours, by event_type (click_<page>)',
+  help: 'Tracked events in the last 24 hours, by event_type (click_phone, service_click)',
   labelNames: ['event_type'],
   registers: [businessRegistry],
 });
@@ -50,8 +55,15 @@ function gauge(name: string, help: string): client.Gauge {
 
 // ── Чистые функции расчёта (unit-тестируемые) ─────────────────────────
 
-export type VisitRow = { id: string; ip: string | null; createdAt: Date };
-export type ClickRow = { page: string; count: number };
+export type VisitRow = {
+  id: string;
+  ip: string | null;
+  referer: string | null;
+  city: string | null;
+  createdAt: Date;
+};
+export type EventRow = { eventType: string; count: number };
+export type ServiceRow = { service: string; count: number };
 
 export type SessionSummary = { first: number; last: number; views: number };
 
@@ -67,6 +79,12 @@ export type BusinessSnapshot = {
   leads1h: number;
   conversionRate24h: number;
   events24h: Array<{ eventType: string; count: number }>;
+  // ЧТЗ «Полные бизнес-метрики»:
+  phoneClicks12h: number;
+  phoneClickTimestamps24h: number[]; // unix-мс, по возрастанию (ADR-012)
+  referralSources24h: Array<{ source: string; count: number }>;
+  geoVisitors24h: Array<{ city: string; visitors: number }>;
+  serviceClicks24h: Array<{ service: string; count: number }>;
 };
 
 // Сессия = цепочка визитов одного ip без разрывов > 30 мин (ЧТЗ §4.1).
@@ -121,16 +139,30 @@ export function computeConversionRate(leads: number, sessions: number): number {
   return leads / sessions;
 }
 
+// Топ-N БЕЗ other: сортировка по count (desc), затем по label (asc) —
+// для referral/geo/service топ-10 (ЧТЗ §2.2–2.4).
+export function topSlices(
+  rows: Array<{ label: string; count: number }>,
+  n: number,
+): Array<{ label: string; count: number }> {
+  return [...rows]
+    .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label))
+    .slice(0, n);
+}
+
 export function computeBusinessSnapshot(input: {
   now: number;
   visits: VisitRow[]; // визиты за 24ч + lookback 30 мин
-  clicks24h: ClickRow[];
+  events24h: EventRow[];
   pageViews24h: number;
   pageViews1h: number;
   leads24h: number;
   leads1h: number;
+  phoneClicks12h: number;
+  phoneClickTimestamps24h: number[];
+  serviceClicks24h: ServiceRow[];
 }): BusinessSnapshot {
-  const { now, visits, clicks24h } = input;
+  const { now, visits } = input;
   const since24h = now - 24 * 60 * 60 * 1000;
 
   const allSessions = sessionizeVisits(visits);
@@ -147,11 +179,29 @@ export function computeBusinessSnapshot(input: {
 
   const sessionsActive = allSessions.filter((s) => s.last >= now - SESSION_GAP_MS).length;
 
+  const visits24h = visits.filter((v) => v.createdAt.getTime() >= since24h);
   const uniqueIps = new Set(
-    visits
-      .filter((v) => v.createdAt.getTime() >= since24h && v.ip && v.ip !== 'unknown')
+    visits24h
+      .filter((v) => v.ip && v.ip !== 'unknown')
       .map((v) => normalizeIp(v.ip as string)),
   );
+
+  // Источники: считаем только входные визиты сессий (referer ≠ null, ЧТЗ §2.2).
+  const referralCounts = new Map<string, number>();
+  for (const visit of visits24h) {
+    if (visit.referer === null) continue;
+    referralCounts.set(visit.referer, (referralCounts.get(visit.referer) ?? 0) + 1);
+  }
+
+  // Гео: уникальные посетители (нормализованные IP) по городам (ЧТЗ §2.3).
+  const cityIps = new Map<string, Set<string>>();
+  for (const visit of visits24h) {
+    if (!visit.ip || visit.ip === 'unknown') continue;
+    const city = visit.city ?? UNKNOWN_CITY;
+    const ips = cityIps.get(city) ?? new Set<string>();
+    ips.add(normalizeIp(visit.ip));
+    cityIps.set(city, ips);
+  }
 
   return {
     sessionsActive,
@@ -165,9 +215,23 @@ export function computeBusinessSnapshot(input: {
     leads1h: input.leads1h,
     conversionRate24h: computeConversionRate(input.leads24h, sessions24h),
     events24h: topNWithOther(
-      clicks24h.map((row) => ({ label: `click_${row.page}`, count: row.count })),
+      input.events24h.map((row) => ({ label: row.eventType, count: row.count })),
       MAX_EVENT_TYPE_VALUES,
     ).map((row) => ({ eventType: row.label, count: row.count })),
+    phoneClicks12h: input.phoneClicks12h,
+    phoneClickTimestamps24h: [...input.phoneClickTimestamps24h].sort((a, b) => a - b),
+    referralSources24h: topSlices(
+      [...referralCounts].map(([source, count]) => ({ label: source, count })),
+      TOP_SLICES,
+    ).map((row) => ({ source: row.label, count: row.count })),
+    geoVisitors24h: topSlices(
+      [...cityIps].map(([city, ips]) => ({ label: city, count: ips.size })),
+      TOP_SLICES,
+    ).map((row) => ({ city: row.label, visitors: row.count })),
+    serviceClicks24h: topSlices(
+      input.serviceClicks24h.map((row) => ({ label: row.service, count: row.count })),
+      TOP_SLICES,
+    ).map((row) => ({ service: row.label, count: row.count })),
   };
 }
 
@@ -175,6 +239,7 @@ export function computeBusinessSnapshot(input: {
 
 export async function collectBusinessSnapshot(now = Date.now()): Promise<BusinessSnapshot> {
   const since24h = new Date(now - 24 * 60 * 60 * 1000);
+  const since12h = new Date(now - 12 * 60 * 60 * 1000);
   const since1h = new Date(now - 60 * 60 * 1000);
   // Lookback 30 мин: сессия, начавшаяся до окна 24ч, корректно продолжается.
   const since24hWithLookback = new Date(since24h.getTime() - SESSION_GAP_MS);
@@ -183,35 +248,66 @@ export async function collectBusinessSnapshot(now = Date.now()): Promise<Busines
     operation: 'promMetricsService.collect',
   });
 
-  const [visits, pageViews24h, pageViews1h, clickGroups, leads24h, leads1h] = await Promise.all([
+  const [
+    visits,
+    pageViews24h,
+    pageViews1h,
+    eventGroups,
+    leads24h,
+    leads1h,
+    phoneClicks12h,
+    phoneClickRows,
+    serviceGroups,
+  ] = await Promise.all([
     prisma.visit.findMany({
       where: { createdAt: { gte: since24hWithLookback } },
-      select: { id: true, ip: true, createdAt: true },
+      select: { id: true, ip: true, referer: true, city: true, createdAt: true },
     }),
     prisma.visit.count({ where: { createdAt: { gte: since24h } } }),
     prisma.visit.count({ where: { createdAt: { gte: since1h } } }),
     prisma.clickEvent.groupBy({
-      by: ['page'],
+      by: ['eventType'],
       where: { createdAt: { gte: since24h } },
       _count: { _all: true },
     }),
     prisma.order.count({ where: { createdAt: { gte: since24h } } }),
     prisma.order.count({ where: { createdAt: { gte: since1h } } }),
+    prisma.clickEvent.count({
+      where: { eventType: 'click_phone', createdAt: { gte: since12h } },
+    }),
+    prisma.clickEvent.findMany({
+      where: { eventType: 'click_phone', createdAt: { gte: since24h } },
+      select: { createdAt: true },
+      orderBy: { createdAt: 'asc' },
+      take: MAX_PHONE_CLICK_EVENTS,
+    }),
+    prisma.clickEvent.groupBy({
+      by: ['service'],
+      where: { eventType: 'service_click', createdAt: { gte: since24h }, service: { not: null } },
+      _count: { _all: true },
+    }),
   ]);
 
-  const clicks24h: ClickRow[] = clickGroups.map((row) => ({
-    page: row.page,
+  const events24h: EventRow[] = eventGroups.map((row) => ({
+    eventType: row.eventType,
     count: row._count._all,
   }));
+
+  const serviceClicks24h: ServiceRow[] = serviceGroups
+    .filter((row) => row.service !== null)
+    .map((row) => ({ service: row.service as string, count: row._count._all }));
 
   const snapshot = computeBusinessSnapshot({
     now,
     visits,
-    clicks24h,
+    events24h,
     pageViews24h,
     pageViews1h,
     leads24h,
     leads1h,
+    phoneClicks12h,
+    phoneClickTimestamps24h: phoneClickRows.map((row) => row.createdAt.getTime()),
+    serviceClicks24h,
   });
 
   logger.info('Business metrics collected', {
@@ -219,6 +315,7 @@ export async function collectBusinessSnapshot(now = Date.now()): Promise<Busines
     pageViews24h,
     leads24h,
     sessions24h: snapshot.sessions24h,
+    phoneClicks12h: snapshot.phoneClicks12h,
   });
 
   return snapshot;
@@ -245,6 +342,73 @@ export function renderBusinessMetrics(snapshot: BusinessSnapshot): void {
   }
 }
 
+// Экранирование значения лейбла (спецификация Prometheus text 0.0.4).
+export function escapeLabelValue(value: string): string {
+  return value.replace(/\\/g, '\\\\').replace(/\n/g, '\\n').replace(/"/g, '\\"');
+}
+
+// Ручной рендер метрик, которых нет в реестре (ЧТЗ §2.1–2.4):
+// - клики по телефону: gauge-окно 12ч + один семпл «1 <unix-мс>» на клик за 24ч;
+// - топ-10 referral/geo/service. Нет данных → блок целиком не рендерится.
+// Чистая функция (unit-тестируемая).
+export function renderExtraBusinessMetricsText(snapshot: BusinessSnapshot): string {
+  const blocks: string[] = [];
+
+  if (snapshot.phoneClickTimestamps24h.length > 0) {
+    blocks.push(
+      [
+        '# HELP business_phone_clicks_12h Phone number (tel:) clicks in the last 12 hours',
+        '# TYPE business_phone_clicks_12h gauge',
+        `business_phone_clicks_12h ${snapshot.phoneClicks12h}`,
+      ].join('\n'),
+      [
+        '# HELP business_phone_clicks_event Phone click events (last 24h), one sample per click with exact click timestamp',
+        '# TYPE business_phone_clicks_event gauge',
+        ...snapshot.phoneClickTimestamps24h.map((ts) => `business_phone_clicks_event 1 ${ts}`),
+      ].join('\n'),
+    );
+  }
+
+  if (snapshot.referralSources24h.length > 0) {
+    blocks.push(
+      [
+        '# HELP business_referral_sources_24h Visits by referral source (top 10) in the last 24 hours',
+        '# TYPE business_referral_sources_24h gauge',
+        ...snapshot.referralSources24h.map(
+          (row) => `business_referral_sources_24h{source="${escapeLabelValue(row.source)}"} ${row.count}`,
+        ),
+      ].join('\n'),
+    );
+  }
+
+  if (snapshot.geoVisitors24h.length > 0) {
+    blocks.push(
+      [
+        '# HELP business_geo_visitors_24h Unique visitors by city (top 10) in the last 24 hours',
+        '# TYPE business_geo_visitors_24h gauge',
+        ...snapshot.geoVisitors24h.map(
+          (row) => `business_geo_visitors_24h{city="${escapeLabelValue(row.city)}"} ${row.visitors}`,
+        ),
+      ].join('\n'),
+    );
+  }
+
+  if (snapshot.serviceClicks24h.length > 0) {
+    blocks.push(
+      [
+        '# HELP business_service_clicks_24h Service card clicks (top 10) in the last 24 hours',
+        '# TYPE business_service_clicks_24h gauge',
+        ...snapshot.serviceClicks24h.map(
+          (row) => `business_service_clicks_24h{service="${escapeLabelValue(row.service)}"} ${row.count}`,
+        ),
+      ].join('\n'),
+    );
+  }
+
+  if (blocks.length === 0) return '';
+  return blocks.join('\n\n') + '\n';
+}
+
 // ── Публичный API: текст метрик с кэшем 60 с ──────────────────────────
 
 let metricsCache: { at: number; text: string } | null = null;
@@ -262,7 +426,10 @@ export const promMetricsService = {
     try {
       const snapshot = await collectBusinessSnapshot(now);
       renderBusinessMetrics(snapshot);
-      const text = await businessRegistry.metrics();
+      const registryText = await businessRegistry.metrics();
+      // Доп. метрики (телефон/рефереры/гео/услуги) — вручную, после реестра.
+      const extraText = renderExtraBusinessMetricsText(snapshot);
+      const text = registryText.trimEnd() + (extraText ? '\n' + extraText : '\n');
       metricsCache = { at: now, text };
       return text;
     } catch (err) {
