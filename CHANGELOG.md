@@ -7,6 +7,16 @@
 
 ## [Unreleased]
 
+## [0.9.0] — 2026-08-29
+
+### Добавлено
+- **Полные бизнес-метрики** (ЧТЗ Полные_Бизнес_Метрики): модель `ClickEvent` с `eventType` (`click_phone`|`service_click`), `service`, `referer`, `city`; `Visit` дополнен `referer`/`city` + миграция. Источник сессии из `document.referrer` (1 раз за сессию), гео по GeoLite2 (`geoip-lite`, офлайн, кэш). Новые метрики `/metrics/tracking`: `business_phone_clicks_12h`, `business_phone_clicks_event`, `business_referral_sources_24h`, `business_geo_visitors_24h`, `business_service_clicks_24h`.
+- Тесты: 329 unit + 44 e2e, покрытие новых файлов 93–100%.
+
+### Изменено
+- `PhoneClickTracker` заменён делегированным трекером кликов (`tel:` + `data-service`, debounce 5с).
+- `geoip-lite` добавлен в `serverExternalPackages` (фикс ENOENT `data/*.dat` при бандлинге).
+
 ## [0.8.0] — 2026-08-25
 
 ### Добавлено
