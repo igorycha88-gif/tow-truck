@@ -39,14 +39,14 @@ const allowedPrices = [
 ];
 
 describe('geo: состав реестра (ЧТЗ §2.2)', () => {
-  it('74 гео-страницы: 68 локаций + 6 хабов', () => {
-    expect(geoPages).toHaveLength(74);
+  it('76 гео-страниц: 70 локаций + 6 хабов', () => {
+    expect(geoPages).toHaveLength(76);
     expect(geoHubs).toHaveLength(6);
-    expect(localityPages).toHaveLength(68);
+    expect(localityPages).toHaveLength(70);
   });
 
-  it('81 посадочная в объединённом реестре (7 услуг + 74 гео)', () => {
-    expect(landingPages).toHaveLength(81);
+  it('83 посадочных в объединённом реестре (7 услуг + 76 гео)', () => {
+    expect(landingPages).toHaveLength(83);
     expect(landingPages.length).toBe(servicePages.length + geoPages.length);
   });
 
@@ -71,17 +71,17 @@ describe('geo: состав реестра (ЧТЗ §2.2)', () => {
 });
 
 describe('geo: уникальность мета-данных (анти-дорвей, ЧТЗ §3.2)', () => {
-  it('title уникальны по всем 81 страницам', () => {
+  it('title уникальны по всем 83 страницам', () => {
     const titles = landingPages.map((p) => p.title);
     expect(new Set(titles).size).toBe(titles.length);
   });
 
-  it('description уникальны по всем 81 страницам', () => {
+  it('description уникальны по всем 83 страницам', () => {
     const descriptions = landingPages.map((p) => p.description);
     expect(new Set(descriptions).size).toBe(descriptions.length);
   });
 
-  it('H1 уникальны по всем 81 страницам', () => {
+  it('H1 уникальны по всем 83 страницам', () => {
     const h1s = landingPages.map((p) => p.h1);
     expect(new Set(h1s).size).toBe(h1s.length);
   });
@@ -265,12 +265,12 @@ describe('geo: МО — дистанции и направления (ЧТЗ §2
     });
   });
 
-  it('6 направлений: 14+12+15 районов Москвы + 10+14+3 городов МО', () => {
+  it('6 направлений: 15 районов/трасс ВАО + 12 ЮВАО + 15 ЮАО + 11 МО-восток + 14 ЮВ МО + 3 Ю МО', () => {
     const counts = Object.fromEntries(geoDirections.map((d) => [d.id, d.localities.length]));
-    expect(counts['moscow-vao']).toBe(14);
+    expect(counts['moscow-vao']).toBe(15);
     expect(counts['moscow-yuvao']).toBe(12);
     expect(counts['moscow-yuao']).toBe(15);
-    expect(counts['mo-vostok']).toBe(10);
+    expect(counts['mo-vostok']).toBe(11);
     expect(counts['mo-yugo-vostok']).toBe(14);
     expect(counts['mo-yug']).toBe(3);
   });
@@ -286,5 +286,70 @@ describe('geo: цены из единого источника (рассинхр
         expect(allowed, `${p.slug}: цена «${price}» не из pricing.ts`).toBe(true);
       });
     });
+  });
+});
+
+// ЧТЗ_SEO_Разговорные_запросы_Восток: разговорные поисковые ключи без предлогов
+// + посадочные для трасс Горьковка (М-7) и шоссе Энтузиастов.
+
+describe('geo: разговорные ключи и трассы (ЧТЗ SEO-восток)', () => {
+  it('Балашиха, Реутов, Новогиреево: разговорные title, H1 и description', () => {
+    const bal = getGeoPage('evakuator-balashiha')!;
+    expect(bal.title).toBe('Эвакуатор Балашиха — 24/7, подача ~20 минут');
+    expect(bal.h1).toBe('Эвакуатор Балашиха');
+    expect(bal.description.startsWith('Эвакуатор Балашиха:')).toBe(true);
+
+    const reut = getGeoPage('evakuator-reutov')!;
+    expect(reut.title).toBe('Эвакуатор Реутов — 24/7, подача ~15 минут');
+    expect(reut.h1).toBe('Эвакуатор Реутов');
+    expect(reut.description.startsWith('Эвакуатор Реутов:')).toBe(true);
+
+    const novo = getGeoPage('evakuator-novogireevo')!;
+    expect(novo.title).toBe('Эвакуатор Новогиреево — 24/7, подача ~15 минут');
+    expect(novo.h1).toBe('Эвакуатор Новогиреево');
+    expect(novo.description.startsWith('Эвакуатор Новогиреево')).toBe(true);
+  });
+
+  it('nameIn сохранён: грамматика базовых FAQ не сломана', () => {
+    const bal = getGeoPage('evakuator-balashiha')!;
+    expect(bal.faq.map((f) => f.question)).toContain('Сколько стоит эвакуатор в Балашихе?');
+    expect(bal.priceNote).toContain('Подача эвакуатора в Балашихе');
+  });
+
+  it('трасса Горьковка: страница в реестре, разговорный H1, дистанция задана', () => {
+    const gorkovka = getGeoPage('evakuator-gorkovka')!;
+    expect(gorkovka.title).toBe('Эвакуатор Горьковка — 24/7, подача ~20 минут');
+    expect(gorkovka.h1).toBe('Эвакуатор Горьковка');
+    expect(gorkovka.areaName).toBe('Горьковка, Московская область');
+    expect(gorkovka.parent?.slug).toBe('evakuator-vostok-podmoskovya');
+  });
+
+  it('трасса шоссе Энтузиастов: разговорный H1 и areaServed без «район»', () => {
+    const shosse = getGeoPage('evakuator-shosse-entuziastov')!;
+    expect(shosse.title).toBe('Эвакуатор шоссе Энтузиастов — 24/7, ~15 минут');
+    expect(shosse.h1).toBe('Эвакуатор шоссе Энтузиастов');
+    expect(shosse.areaName).toBe('шоссе Энтузиастов, Москва');
+    expect(shosse.parent?.slug).toBe('evakuator-vao-moskvy');
+  });
+
+  it('новые трассы перелинкованы между собой и с соседями', () => {
+    const gorkovka = getGeoPage('evakuator-gorkovka')!;
+    const shosse = getGeoPage('evakuator-shosse-entuziastov')!;
+    expect(gorkovka.related).toContain('evakuator-shosse-entuziastov');
+    expect(shosse.related).toContain('evakuator-gorkovka');
+
+    const vaoHub = getGeoPage('evakuator-vao-moskvy')!;
+    const vostokHub = getGeoPage('evakuator-vostok-podmoskovya')!;
+    expect(vaoHub.related).toContain('evakuator-shosse-entuziastov');
+    expect(vostokHub.related).toContain('evakuator-gorkovka');
+  });
+
+  it('новые трассы отвечают на разговорные запросы в FAQ (nameIn с «на»)', () => {
+    const gorkovka = getGeoPage('evakuator-gorkovka')!;
+    expect(gorkovka.faq.map((f) => f.question)).toContain('Сколько стоит эвакуатор на Горьковке?');
+    const shosse = getGeoPage('evakuator-shosse-entuziastov')!;
+    expect(shosse.faq.map((f) => f.question)).toContain(
+      'Приедете ли вы на шоссе Энтузиастов ночью?',
+    );
   });
 });

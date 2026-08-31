@@ -31,7 +31,7 @@ const composeGeoPage = (dir: GeoDirection, loc: GeoLocality): ServicePageConfig 
   slug: `evakuator-${loc.slug}`,
   title: loc.title,
   description: loc.description,
-  h1: `Эвакуатор ${loc.nameIn}`,
+  h1: `Эвакуатор ${loc.h1Name ?? loc.nameIn}`,
   lead: loc.lead,
   included: [...loc.localIncluded, ...dir.baseIncluded],
   price: { kind: 'fromMin' },
@@ -47,7 +47,7 @@ const composeGeoPage = (dir: GeoDirection, loc: GeoLocality): ServicePageConfig 
   related: [dir.hubSlug, ...loc.related],
   orderServiceType: 'light_vehicle',
   parent: { name: dir.hubH1, slug: dir.hubSlug },
-  areaName: localityAreaName(dir, loc),
+  areaName: loc.areaNameOverride ?? localityAreaName(dir, loc),
 });
 
 /** Хаб направления: обзор + перелинковка на все локации. */

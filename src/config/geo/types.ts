@@ -22,6 +22,10 @@ export type GeoLocality = {
   name: string;
   /** Название с предлогом: «в Марьино», «в Люберцах» */
   nameIn: string;
+  /** Ключ H1 без предлога (разговорный запрос): «Балашиха» → H1 «Эвакуатор Балашиха»; по умолчанию — nameIn */
+  h1Name?: string;
+  /** Переопределение areaServed для schema.org (трассы: «шоссе Энтузиастов, Москва») */
+  areaNameOverride?: string;
   /** Удалённость от МКАД, км (только города МО) */
   distanceKm?: number;
   /** meta title ≤60 симв., ключ в первых 30 */

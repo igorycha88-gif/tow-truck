@@ -20,6 +20,28 @@ test('гео-город МО: H1 и форма', async ({ page }) => {
   await expect(page.locator('#order-service form')).toBeVisible();
 });
 
+test('разговорные ключи: H1 «Эвакуатор Балашиха» без предлога', async ({ page }) => {
+  await page.goto('/evakuator-balashiha');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Эвакуатор Балашиха');
+});
+
+test('трасса Горьковка: H1, форма, крошки с хабом МО-восток', async ({ page }) => {
+  await page.goto('/evakuator-gorkovka');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Эвакуатор Горьковка');
+  await expect(page.locator('#order-service form')).toBeVisible();
+  const crumbs = page.getByRole('navigation', { name: 'Хлебные крошки' });
+  await expect(crumbs.getByText(/восток Подмосковья/i)).toBeVisible();
+});
+
+test('трасса шоссе Энтузиастов: H1 и JSON-LD areaServed', async ({ page }) => {
+  await page.goto('/evakuator-shosse-entuziastov');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Эвакуатор шоссе Энтузиастов');
+  const ldScripts = await page
+    .locator('script[type="application/ld+json"]')
+    .allTextContents();
+  expect(ldScripts.join('\n')).toContain('шоссе Энтузиастов, Москва');
+});
+
 test('гео-хаб направления: H1 и блок перелинковки с районами', async ({ page }) => {
   await page.goto('/evakuator-yuvao-moskvy');
   await expect(page.getByRole('heading', { level: 1 })).toContainText(/ЮВАО/i);
