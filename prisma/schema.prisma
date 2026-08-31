@@ -15,6 +15,9 @@ datasource db {
 
 model Order {
   id          String   @id @default(cuid())
+  // Читаемый порядковый номер (ADR-013): PG sequence, сквозной с 1.
+  // Отображаемый номер = formatOrderNumber(createdAt, number) → ГГГГММДД-N.
+  number      Int      @unique @default(autoincrement())
   name        String
   phone       String
   location    String

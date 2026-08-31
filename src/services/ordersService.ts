@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
+import { formatOrderNumber } from '@/lib/orderNumber';
 import type { Prisma } from '@prisma/client';
 import type { OrderSchemaInput } from '@/lib/validators/order';
 
@@ -36,6 +37,7 @@ export const ordersService = {
         },
         select: {
           id: true,
+          number: true,
           name: true,
           status: true,
           serviceType: true,
@@ -43,13 +45,16 @@ export const ordersService = {
         },
       });
 
+      const number = formatOrderNumber(order.createdAt, order.number);
+
       logger.info('Order created', {
         operation: 'ordersService.createOrder',
         orderId: order.id,
+        number,
         status: order.status,
       });
 
-      return order;
+      return { ...order, displayNumber: number };
     } catch (err) {
       logger.error('Failed to create order', {
         operation: 'ordersService.createOrder',
