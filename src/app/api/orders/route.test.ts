@@ -46,9 +46,10 @@ describe('POST /api/orders', () => {
     notifyNewOrder.mockResolvedValue({ delivered: true, channel: 'telegram' });
   });
 
-  it('возвращает 201 для валидной заявки (happy path)', async () => {
+  it('возвращает 201 с читаемым номером (happy path)', async () => {
     createOrder.mockResolvedValue({
       id: 'ord-1',
+      displayNumber: '20260831-1',
       status: 'NEW',
       createdAt: new Date('2026-01-01'),
     });
@@ -57,9 +58,12 @@ describe('POST /api/orders', () => {
     expect(res.status).toBe(201);
     const body = await res.json();
     expect(body.id).toBe('ord-1');
+    expect(body.number).toBe('20260831-1');
     expect(body.status).toBe('NEW');
     expect(createOrder).toHaveBeenCalledOnce();
-    expect(notifyNewOrder).toHaveBeenCalled();
+    expect(notifyNewOrder).toHaveBeenCalledWith(
+      expect.objectContaining({ orderId: 'ord-1', number: '20260831-1' }),
+    );
   });
 
   it('возвращает 429 при превышении rate-limit', async () => {

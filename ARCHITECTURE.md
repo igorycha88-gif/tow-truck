@@ -60,8 +60,11 @@ Production-ready сайт услуг эвакуатора в Москве и М�
 1. Клиент заполняет форму (имя, телефон, локация, тип услуги)
 2. React Hook Form + Zod валидируют на клиенте (RU телефон)
 3. POST /api/orders (rate-limited: 3/час с IP через Redis)
-4. ordersService.createOrder() → PostgreSQL (Order, status=NEW)
-5. notifyService.notifyNewOrder() → Telegram оператору (+ email-резерв при сбое)
+4. ordersService.createOrder() → PostgreSQL (Order, status=NEW, number=PG sequence)
+5. notifyService.notifyNewOrder() → параллельно: Telegram + email (Яндекс SMTP,
+   все получатели из NOTIFY_EMAIL, см. src/lib/mailer.ts)
+   Читаемый номер заявки: ГГГГММДД-N по Москве (ADR-013, src/lib/orderNumber.ts) —
+   в теме письма, Telegram, ответе API и UI.
 6. Клиент видит «Заявка принята, перезвоним»
 7. Логирование на каждом шаге (pino, маскирование телефона)
 ```

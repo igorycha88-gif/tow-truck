@@ -26,8 +26,9 @@ describe('ordersService.createOrder', () => {
     vi.clearAllMocks();
   });
 
-  it('создаёт заявку и логирует начало/конец (happy path)', async () => {
-    const fake = { id: 'clx1', name: 'Иван', status: 'NEW', serviceType: 'light_vehicle', createdAt: new Date() };
+  it('создаёт заявку, возвращает displayNumber и логирует (happy path)', async () => {
+    const createdAt = new Date('2026-08-31T10:00:00Z');
+    const fake = { id: 'clx1', number: 5, name: 'Иван', status: 'NEW', serviceType: 'light_vehicle', createdAt };
     create.mockResolvedValue(fake);
 
     const result = await ordersService.createOrder({
@@ -38,7 +39,7 @@ describe('ordersService.createOrder', () => {
       consent: true,
     });
 
-    expect(result).toEqual(fake);
+    expect(result).toEqual({ ...fake, displayNumber: '20260831-5' });
     expect(create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
@@ -56,8 +57,20 @@ describe('ordersService.createOrder', () => {
     );
     expect(loggerMock.info).toHaveBeenCalledWith(
       'Order created',
-      expect.objectContaining({ orderId: 'clx1' }),
+      expect.objectContaining({ orderId: 'clx1', number: '20260831-5' }),
     );
+  });
+
+  it('displayNumber по московскому времени (edge case, 21:00 UTC = след. день)', async () => {
+    create.mockResolvedValue({ id: 'clx2', number: 7, status: 'NEW', createdAt: new Date('2026-08-31T21:00:00Z') });
+    const result = await ordersService.createOrder({
+      name: 'Иван',
+      phone: '+79991234567',
+      location: 'МКАД',
+      serviceType: 'light_vehicle',
+      consent: true,
+    });
+    expect(result.displayNumber).toBe('20260901-7');
   });
 
   it('бросает и логирует ошибку при сбое БД (error case)', async () => {
@@ -78,7 +91,7 @@ describe('ordersService.createOrder', () => {
   });
 
   it('передаёт ip и source (edge case)', async () => {
-    create.mockResolvedValue({ id: 'x', status: 'NEW' });
+    create.mockResolvedValue({ id: 'x', number: 3, status: 'NEW', createdAt: new Date('2026-08-31T10:00:00Z') });
     await ordersService.createOrder({
       name: 'Петр',
       phone: '+79991234567',

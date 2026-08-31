@@ -66,11 +66,12 @@ export async function POST(req: NextRequest) {
 
     // 4. Уведомление оператору (fire-and-forget, не блокирует ответ)
     void notifyService
-      .notifyNewOrder({ ...data, orderId: order.id })
+      .notifyNewOrder({ ...data, orderId: order.id, number: order.displayNumber })
       .then((r) => {
         logger.info('Notify result', {
           operation: 'notifyService.result',
           orderId: order.id,
+          number: order.displayNumber,
           delivered: r.delivered,
           channel: r.channel,
         });
@@ -89,10 +90,16 @@ export async function POST(req: NextRequest) {
       status: 201,
       duration: Date.now() - startTime,
       orderId: order.id,
+      number: order.displayNumber,
     });
 
     return NextResponse.json(
-      { id: order.id, status: order.status, createdAt: order.createdAt },
+      {
+        id: order.id,
+        number: order.displayNumber,
+        status: order.status,
+        createdAt: order.createdAt,
+      },
       { status: 201 },
     );
   } catch (err) {

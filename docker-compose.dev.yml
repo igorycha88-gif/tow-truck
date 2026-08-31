@@ -65,6 +65,14 @@ services:
       TELEGRAM_CHAT_ID: ''
       # Ключ /metrics/* (ЧТЗ мониторинг). Значение — в локальном .env (в git НЕ хранится).
       MONITORING_KEY: ${MONITORING_KEY:-}
+      # SMTP (email-уведомления о заявках, ЧТЗ_Email_уведомления_Яндекс_SMTP.md).
+      # Значения — в локальном .env (секрет в git НЕ хранится).
+      SMTP_HOST: ${SMTP_HOST:-smtp.yandex.ru}
+      SMTP_PORT: ${SMTP_PORT:-465}
+      SMTP_USER: ${SMTP_USER:-boronind1m@yandex.ru}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-boronind1m@yandex.ru}
+      NOTIFY_EMAIL: ${NOTIFY_EMAIL:-boronin87@list.ru,igorycha.s@yandex.ru}
     ports:
       - '3010:3000'
     volumes:

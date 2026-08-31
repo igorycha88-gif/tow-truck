@@ -20,6 +20,7 @@ type Status = 'idle' | 'submitting' | 'success' | 'error';
 export function OrderForm({ defaultServiceType }: { defaultServiceType?: OrderSchemaInput['serviceType'] } = {}) {
   const [status, setStatus] = React.useState<Status>('idle');
   const [serverMessage, setServerMessage] = React.useState<string | null>(null);
+  const [orderNumber, setOrderNumber] = React.useState<string | null>(null);
 
   const {
     register,
@@ -59,6 +60,8 @@ export function OrderForm({ defaultServiceType }: { defaultServiceType?: OrderSc
       });
 
       if (res.status === 201) {
+        const body = await res.json().catch(() => ({}));
+        setOrderNumber(typeof body.number === 'string' ? body.number : null);
         setStatus('success');
         reset();
         return;
@@ -85,7 +88,9 @@ export function OrderForm({ defaultServiceType }: { defaultServiceType?: OrderSc
     return (
       <div className="flex flex-col items-center gap-3 rounded-xl border border-accent/30 bg-accent/5 p-8 text-center">
         <CheckCircle2 className="h-12 w-12 text-accent" />
-        <h3 className="text-xl font-bold">Заявка принята!</h3>
+        <h3 className="text-xl font-bold">
+          {orderNumber ? `Заявка №${orderNumber} принята!` : 'Заявка принята!'}
+        </h3>
         <p className="text-muted-foreground">
           Мы перезвоним вам в течение нескольких минут для уточнения деталей.
         </p>
