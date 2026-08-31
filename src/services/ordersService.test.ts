@@ -34,7 +34,8 @@ describe('ordersService.createOrder', () => {
     const result = await ordersService.createOrder({
       name: 'Иван',
       phone: '+79991234567',
-      location: 'МКАД',
+      addressFrom: 'МКАД',
+      addressTo: 'Москва, ул. Тверская, 1',
       serviceType: 'light_vehicle',
       consent: true,
     });
@@ -45,9 +46,11 @@ describe('ordersService.createOrder', () => {
         data: expect.objectContaining({
           name: 'Иван',
           phone: '+79991234567',
-          location: 'МКАД',
+          addressFrom: 'МКАД',
+          addressTo: 'Москва, ул. Тверская, 1',
           serviceType: 'light_vehicle',
           source: 'website',
+          consentAt: expect.any(Date),
         }),
       }),
     );
@@ -57,8 +60,33 @@ describe('ordersService.createOrder', () => {
     );
     expect(loggerMock.info).toHaveBeenCalledWith(
       'Order created',
-      expect.objectContaining({ orderId: 'clx1', number: '20260831-5' }),
+      expect.objectContaining({
+        orderId: 'clx1',
+        number: '20260831-5',
+        consent: true,
+        consentAt: expect.any(String),
+      }),
     );
+  });
+
+  it('фиксирует согласие (152-ФЗ): consentAt сохраняется и логируется', async () => {
+    const before = new Date();
+    create.mockResolvedValue({ id: 'clx-consent', number: 9, status: 'NEW', createdAt: new Date('2026-08-31T10:00:00Z') });
+    await ordersService.createOrder({
+      name: 'Иван',
+      phone: '+79991234567',
+      addressFrom: 'МКАД',
+      serviceType: 'light_vehicle',
+      consent: true,
+    });
+    const savedData = create.mock.calls[0][0].data;
+    expect(savedData.consentAt).toBeInstanceOf(Date);
+    expect(savedData.consentAt.getTime()).toBeGreaterThanOrEqual(before.getTime());
+    const createdLog = loggerMock.info.mock.calls.find(
+      ([msg]) => msg === 'Order created',
+    )?.[1];
+    expect(createdLog.consent).toBe(true);
+    expect(typeof createdLog.consentAt).toBe('string');
   });
 
   it('displayNumber по московскому времени (edge case, 21:00 UTC = след. день)', async () => {
@@ -66,7 +94,7 @@ describe('ordersService.createOrder', () => {
     const result = await ordersService.createOrder({
       name: 'Иван',
       phone: '+79991234567',
-      location: 'МКАД',
+      addressFrom: 'МКАД',
       serviceType: 'light_vehicle',
       consent: true,
     });
@@ -79,7 +107,7 @@ describe('ordersService.createOrder', () => {
       ordersService.createOrder({
         name: 'Иван',
         phone: '+79991234567',
-        location: 'МКАД',
+        addressFrom: 'МКАД',
         serviceType: 'light_vehicle',
         consent: true,
       }),
@@ -95,7 +123,7 @@ describe('ordersService.createOrder', () => {
     await ordersService.createOrder({
       name: 'Петр',
       phone: '+79991234567',
-      location: 'ул. Пушкина',
+      addressFrom: 'ул. Пушкина',
       serviceType: 'moto',
       consent: true,
       ip: '1.1.1.1',
@@ -104,6 +132,22 @@ describe('ordersService.createOrder', () => {
     expect(create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({ ip: '1.1.1.1', source: 'callback' }),
+      }),
+    );
+  });
+
+  it('сохраняет undefined для addressTo, если адрес доставки не указан (edge case)', async () => {
+    create.mockResolvedValue({ id: 'x2', number: 4, status: 'NEW', createdAt: new Date('2026-08-31T10:00:00Z') });
+    await ordersService.createOrder({
+      name: 'Сергей',
+      phone: '+79991234567',
+      addressFrom: 'Ленинградское шоссе',
+      serviceType: 'accident',
+      consent: true,
+    });
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ addressFrom: 'Ленинградское шоссе', addressTo: undefined }),
       }),
     );
   });

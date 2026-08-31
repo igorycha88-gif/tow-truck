@@ -15,25 +15,30 @@ type CreateOrderParams = OrderSchemaInput & {
 
 export const ordersService = {
   async createOrder(params: CreateOrderParams) {
-    const { name, phone, location, serviceType, ip, source = 'website', utm } = params;
+    const { name, phone, addressFrom, addressTo, serviceType, ip, source = 'website', utm } = params;
 
     logger.info('Creating order', {
       operation: 'ordersService.createOrder',
       name,
       serviceType,
-      location,
+      addressFrom,
     });
 
     try {
+      // 152-ФЗ: фиксируем момент согласия на обработку ПД (валидация consent=true
+      // пройдена в Zod). Логируется здесь + хранится в БД (consentAt).
+      const consentAt = new Date();
       const order = await prisma.order.create({
         data: {
           name,
           phone,
-          location,
+          addressFrom,
+          addressTo,
           serviceType,
           source,
           ip: ip ?? null,
           utm: utm ? (utm as Prisma.InputJsonValue) : undefined,
+          consentAt,
         },
         select: {
           id: true,
@@ -52,6 +57,8 @@ export const ordersService = {
         orderId: order.id,
         number,
         status: order.status,
+        consent: true,
+        consentAt: consentAt.toISOString(),
       });
 
       return { ...order, displayNumber: number };

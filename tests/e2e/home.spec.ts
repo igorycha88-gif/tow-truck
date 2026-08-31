@@ -26,24 +26,28 @@ test('форма: показывает ошибку при невалидном 
 
   await page.fill('#name', 'Иван');
   await page.fill('#phone', '123');
-  await page.fill('#location', 'МКАД');
+  await page.fill('#addressFrom', 'МКАД');
+  await page.check('#consent');
 
   await page.click('button[type="submit"]');
 
   await expect(page.locator('text=/неверный формат|укажите номер/i')).toBeVisible({ timeout: 5000 });
 });
 
-test('форма: требует согласие на обработку ПД (152-ФЗ)', async ({ page }) => {
+test('форма: кнопка отправки неактивна до согласия на обработку ПД (152-ФЗ)', async ({ page }) => {
   await page.goto('/#order');
 
   await page.fill('#name', 'Иван');
   await page.fill('#phone', '+7 (999) 123-45-67');
-  await page.fill('#location', 'МКАД 50 км');
-  // consent не отмечен
+  await page.fill('#addressFrom', 'МКАД 50 км');
 
-  await page.click('button[type="submit"]');
+  // consent не отмечен → кнопка disabled
+  const submit = page.locator('button[type="submit"]');
+  await expect(submit).toBeDisabled();
 
-  await expect(page.locator('text=/согласие/i')).toBeVisible({ timeout: 5000 });
+  // отмечаем согласие → кнопка активна
+  await page.check('#consent');
+  await expect(submit).toBeEnabled();
 });
 
 test('мобильная вьюпорт: floating-call кнопка видна', async ({ page, isMobile }) => {

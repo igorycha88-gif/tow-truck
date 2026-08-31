@@ -5,7 +5,8 @@ describe('orderSchema', () => {
   const valid = {
     name: 'Иван',
     phone: '+7 (999) 123-45-67',
-    location: 'МКАД 50 км',
+    addressFrom: 'МКАД 50 км',
+    addressTo: 'Москва, ул. Тверская, 1',
     serviceType: 'light_vehicle' as const,
     consent: true as const,
   };
@@ -14,6 +15,19 @@ describe('orderSchema', () => {
     const res = orderSchema.parse(valid);
     expect(res.phone).toBe('+79991234567');
     expect(res.consent).toBe(true);
+    expect(res.addressFrom).toBe('МКАД 50 км');
+    expect(res.addressTo).toBe('Москва, ул. Тверская, 1');
+  });
+
+  it('проходит без addressTo — доставка необязательна (happy path)', () => {
+    const { addressTo: _omit, ...withoutTo } = valid;
+    const res = orderSchema.parse(withoutTo);
+    expect(res.addressTo).toBeUndefined();
+  });
+
+  it('пустая строка addressTo превращается в undefined (edge case)', () => {
+    const res = orderSchema.parse({ ...valid, addressTo: '   ' });
+    expect(res.addressTo).toBeUndefined();
   });
 
   it('отвергает короткое имя', () => {
@@ -31,8 +45,18 @@ describe('orderSchema', () => {
     expect(r.success).toBe(false);
   });
 
-  it('отвергает пустую локацию', () => {
-    const r = orderSchema.safeParse({ ...valid, location: '' });
+  it('отвергает пустой адрес «Откуда забрать»', () => {
+    const r = orderSchema.safeParse({ ...valid, addressFrom: '' });
+    expect(r.success).toBe(false);
+  });
+
+  it('отвергает короткий адрес «Откуда забрать» (edge case)', () => {
+    const r = orderSchema.safeParse({ ...valid, addressFrom: 'МК' });
+    expect(r.success).toBe(false);
+  });
+
+  it('отвергает слишком длинный addressTo (edge case)', () => {
+    const r = orderSchema.safeParse({ ...valid, addressTo: 'а'.repeat(201) });
     expect(r.success).toBe(false);
   });
 
@@ -55,10 +79,27 @@ describe('orderSchema', () => {
     const res = orderSchema.parse({
       ...valid,
       name: '  Иван  ',
-      location: '  МКАД  ',
+      addressFrom: '  МКАД  ',
+      addressTo: '  Тверская 1  ',
     });
     expect(res.name).toBe('Иван');
-    expect(res.location).toBe('МКАД');
+    expect(res.addressFrom).toBe('МКАД');
+    expect(res.addressTo).toBe('Тверская 1');
+  });
+
+  it('даёт понятное сообщение для адреса «Откуда забрать»', () => {
+    const r = orderSchema.safeParse({
+      name: 'Иван',
+      phone: '+7 (999) 123-45-67',
+      addressFrom: '',
+      serviceType: 'light_vehicle',
+      consent: true,
+    });
+    expect(r.success).toBe(false);
+    if (!r.success) {
+      const addrIssue = r.error.issues.find((i) => i.path[0] === 'addressFrom');
+      expect(addrIssue?.message).toMatch(/откуда забрать/i);
+    }
   });
 });
 
@@ -68,7 +109,7 @@ describe('orderSchema — сообщения об ошибках', () => {
   });
 
   it('даёт понятное сообщение для имени', () => {
-    const r = orderSchema.safeParse({ name: '', phone: '', location: '', serviceType: 'light_vehicle', consent: true });
+    const r = orderSchema.safeParse({ name: '', phone: '', addressFrom: '', serviceType: 'light_vehicle', consent: true });
     expect(r.success).toBe(false);
     if (!r.success) {
       const nameIssue = r.error.issues.find((i) => i.path[0] === 'name');

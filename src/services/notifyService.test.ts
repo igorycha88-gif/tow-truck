@@ -27,7 +27,8 @@ const order = {
   orderId: 'ord-1',
   name: 'Иван',
   phone: '+79991234567',
-  location: 'МКАД',
+  addressFrom: 'МКАД',
+  addressTo: 'Москва, ул. Тверская, 1',
   serviceType: 'light_vehicle',
   consent: true,
 } as const;
@@ -78,11 +79,30 @@ describe('notifyService.notifyNewOrder', () => {
       ...order,
       orderId: 'ord-3',
       name: '<script>alert(1)</script>',
-      location: '<b>addr</b>',
+      addressFrom: '<b>addr</b>',
     });
     const call = sendTelegramMessage.mock.calls[0][0];
     expect(call.text).not.toContain('<script>alert(1)</script>');
     expect(call.text).toContain('&lt;script&gt;');
+  });
+
+  it('включает оба адреса в Telegram-текст (блок «Адреса»)', async () => {
+    sendTelegramMessage.mockResolvedValue({ ok: true });
+    sendOrderEmail.mockResolvedValue({ ok: true });
+    await notifyService.notifyNewOrder({ ...order });
+    const call = sendTelegramMessage.mock.calls[0][0];
+    expect(call.text).toContain('<b>Откуда забрать:</b> МКАД');
+    expect(call.text).toContain('<b>Куда доставить:</b> Москва, ул. Тверская, 1');
+  });
+
+  it('не показывает «Куда доставить», если адрес доставки не указан (edge case)', async () => {
+    sendTelegramMessage.mockResolvedValue({ ok: true });
+    sendOrderEmail.mockResolvedValue({ ok: true });
+    const { addressTo: _omit, ...withoutTo } = order;
+    await notifyService.notifyNewOrder(withoutTo);
+    const call = sendTelegramMessage.mock.calls[0][0];
+    expect(call.text).toContain('<b>Откуда забрать:</b> МКАД');
+    expect(call.text).not.toContain('Куда доставить');
   });
 
   it('включает читаемый номер в Telegram-текст (номер заявки, ADR-013)', async () => {

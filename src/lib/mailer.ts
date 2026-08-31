@@ -64,7 +64,7 @@ export async function sendOrderEmail(
     return { ok: false, reason: 'NOT_CONFIGURED' };
   }
 
-  const { orderId, number, name, phone, location, serviceType } = order;
+  const { orderId, number, name, phone, addressFrom, addressTo, serviceType } = order;
   const service = services.find((s) => s.slug === serviceType);
   const serviceTitle = service?.title ?? serviceType;
   const numberLine = number ? `Номер: №${number}` : `ID: ${orderId}`;
@@ -77,7 +77,8 @@ export async function sendOrderEmail(
     `${numberLine}\n` +
     `Имя: ${name}\n` +
     `Телефон: ${formatPhone(phone)}\n` +
-    `Адрес: ${location}\n` +
+    `Откуда забрать: ${addressFrom}\n` +
+    (addressTo ? `Куда доставить: ${addressTo}\n` : '') +
     `Услуга: ${serviceTitle}\n` +
     `ID: ${orderId}`;
   const html =
@@ -85,7 +86,8 @@ export async function sendOrderEmail(
     (number ? `<p><b>Номер:</b> №${escapeHtml(number)}</p>` : '') +
     `<p><b>Имя:</b> ${escapeHtml(name)}<br>` +
     `<b>Телефон:</b> ${escapeHtml(formatPhone(phone))}<br>` +
-    `<b>Адрес:</b> ${escapeHtml(location)}<br>` +
+    `<b>Откуда забрать:</b> ${escapeHtml(addressFrom)}<br>` +
+    (addressTo ? `<b>Куда доставить:</b> ${escapeHtml(addressTo)}<br>` : '') +
     `<b>Услуга:</b> ${escapeHtml(serviceTitle)}<br>` +
     `<b>ID:</b> ${escapeHtml(orderId)}</p>`;
 

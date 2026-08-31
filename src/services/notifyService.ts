@@ -14,7 +14,7 @@ type NotifyOrderParams = OrderSchemaInput & { orderId: string; number?: string |
 
 export const notifyService = {
   async notifyNewOrder(order: NotifyOrderParams): Promise<{ delivered: boolean; channel: string | null }> {
-    const { orderId, number, name, phone, location, serviceType } = order;
+    const { orderId, number, name, phone, addressFrom, addressTo, serviceType } = order;
     const service = services.find((s) => s.slug === serviceType);
     const serviceTitle = service?.title ?? serviceType;
 
@@ -23,7 +23,8 @@ export const notifyService = {
       (number ? `<b>Номер:</b> №${escapeHtml(number)}\n` : '') +
       `<b>Имя:</b> ${escapeHtml(name)}\n` +
       `<b>Телефон:</b> ${escapeHtml(formatPhone(phone))}\n` +
-      `<b>Адрес:</b> ${escapeHtml(location)}\n` +
+      `<b>Откуда забрать:</b> ${escapeHtml(addressFrom)}\n` +
+      (addressTo ? `<b>Куда доставить:</b> ${escapeHtml(addressTo)}\n` : '') +
       `<b>Услуга:</b> ${escapeHtml(serviceTitle)}\n` +
       `<b>ID:</b> <code>${orderId}</code>`;
 

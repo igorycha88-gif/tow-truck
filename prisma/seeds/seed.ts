@@ -15,10 +15,12 @@ async function main() {
     data: {
       name: 'Тестовый клиент',
       phone: '+79991234567',
-      location: 'МКАД 50 км',
+      addressFrom: 'МКАД 50 км',
+      addressTo: 'Москва, ул. Тверская, 1',
       serviceType: 'light_vehicle',
       status: 'NEW',
       source: 'seed',
+      consentAt: new Date(),
     },
   });
 

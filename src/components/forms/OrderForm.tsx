@@ -26,6 +26,7 @@ export function OrderForm({ defaultServiceType }: { defaultServiceType?: OrderSc
     register,
     handleSubmit,
     setValue,
+    watch,
     reset,
     formState: { errors },
   } = useForm<OrderSchemaInput>({
@@ -33,7 +34,8 @@ export function OrderForm({ defaultServiceType }: { defaultServiceType?: OrderSc
     defaultValues: {
       name: '',
       phone: '',
-      location: '',
+      addressFrom: '',
+      addressTo: '',
       serviceType: defaultServiceType ?? 'light_vehicle',
       consent: false as unknown as true,
     },
@@ -48,6 +50,10 @@ export function OrderForm({ defaultServiceType }: { defaultServiceType?: OrderSc
       setValue('serviceType', slug as OrderSchemaInput['serviceType']);
     }
   }, [setValue, defaultServiceType]);
+
+  // 152-ФЗ: кнопка отправки неактивна, пока не отмечено согласие на обработку ПД
+  // (ЧТЗ_Неактивная_кнопка_до_согласия.md). Согласие фиксируется в БД (consentAt).
+  const consentChecked = watch('consent');
 
   const onSubmit = handleSubmit(async (data) => {
     setStatus('submitting');
@@ -129,17 +135,32 @@ export function OrderForm({ defaultServiceType }: { defaultServiceType?: OrderSc
         {errors.phone && <FieldError msg={errors.phone.message} />}
       </div>
 
-      <div className="space-y-1.5">
-        <Label htmlFor="location">Адрес или район подачи</Label>
-        <Input
-          id="location"
-          placeholder="Например: МКАД 50 км, внешняя сторона"
-          autoComplete="street-address"
-          aria-invalid={!!errors.location}
-          {...register('location')}
-        />
-        {errors.location && <FieldError msg={errors.location.message} />}
-      </div>
+      <fieldset className="space-y-4" aria-label="Адреса">
+        <legend className="text-sm font-semibold">Адреса</legend>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="addressFrom">Откуда забрать</Label>
+          <Input
+            id="addressFrom"
+            placeholder="Например: МКАД 50 км, внешняя сторона"
+            autoComplete="street-address"
+            aria-invalid={!!errors.addressFrom}
+            {...register('addressFrom')}
+          />
+          {errors.addressFrom && <FieldError msg={errors.addressFrom.message} />}
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="addressTo">Куда доставить</Label>
+          <Input
+            id="addressTo"
+            placeholder="Например: Москва, ул. Тверская, 1 (необязательно)"
+            aria-invalid={!!errors.addressTo}
+            {...register('addressTo')}
+          />
+          {errors.addressTo && <FieldError msg={errors.addressTo.message} />}
+        </div>
+      </fieldset>
 
       <div className="space-y-1.5">
         <Label htmlFor="serviceType">Тип услуги</Label>
@@ -185,7 +206,13 @@ export function OrderForm({ defaultServiceType }: { defaultServiceType?: OrderSc
         </div>
       )}
 
-      <Button type="submit" size="lg" className="w-full gap-2" disabled={status === 'submitting'}>
+      <Button
+        type="submit"
+        size="lg"
+        className="w-full gap-2"
+        disabled={status === 'submitting' || !consentChecked}
+        aria-disabled={status === 'submitting' || !consentChecked}
+      >
         {status === 'submitting' ? (
           <>
             <Loader2 className="h-5 w-5 animate-spin" /> Отправляем…

@@ -70,7 +70,8 @@ export type CompanyInfo = {
 export type OrderInput = {
   name: string;
   phone: string;
-  location: string;
+  addressFrom: string;
+  addressTo?: string;
   serviceType: ServiceType;
   consent: true;
 };
@@ -79,11 +80,13 @@ export type OrderRecord = {
   id: string;
   name: string;
   phone: string;
-  location: string;
+  addressFrom: string;
+  addressTo: string | null;
   serviceType: ServiceType;
   status: OrderStatus;
   source: string;
   ip: string | null;
+  consentAt: Date;
   createdAt: Date;
   updatedAt: Date;
 };

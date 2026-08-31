@@ -34,7 +34,8 @@ function makeReq(body: unknown, headers: Record<string, string> = {}) {
 const validPayload = {
   name: 'Иван',
   phone: '+7 (999) 123-45-67',
-  location: 'МКАД 50 км',
+  addressFrom: 'МКАД 50 км',
+  addressTo: 'Москва, ул. Тверская, 1',
   serviceType: 'light_vehicle',
   consent: true,
 };
@@ -102,6 +103,22 @@ describe('POST /api/orders', () => {
     notifyNewOrder.mockRejectedValue(new Error('tg down'));
 
     const res = await POST(makeReq(validPayload));
+    expect(res.status).toBe(201);
+  });
+
+  it('возвращает 400 при отсутствии адреса «Откуда забрать» (edge case)', async () => {
+    const res = await POST(makeReq({ ...validPayload, addressFrom: '' }));
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toBe('VALIDATION_ERROR');
+    expect(createOrder).not.toHaveBeenCalled();
+  });
+
+  it('принимает заявку без addressTo — доставка необязательна (happy path)', async () => {
+    const { addressTo: _omit, ...withoutTo } = validPayload;
+    createOrder.mockResolvedValue({ id: 'ord-4', status: 'NEW', createdAt: new Date() });
+
+    const res = await POST(makeReq(withoutTo));
     expect(res.status).toBe(201);
   });
 

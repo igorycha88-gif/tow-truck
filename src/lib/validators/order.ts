@@ -16,11 +16,18 @@ export const orderSchema = z.object({
     .min(6, { message: 'Укажите номер телефона' })
     .refine(isValidRuPhone, { message: 'Неверный формат российского номера' })
     .transform(normalizePhone),
-  location: z
+  // Блок «Адреса» (ЧТЗ_Блок_адресов_в_форме_заявки.md): откуда/куда.
+  addressFrom: z
     .string()
     .trim()
-    .min(3, { message: 'Укажите адрес или район подачи' })
+    .min(3, { message: 'Укажите адрес, откуда забрать автомобиль' })
     .max(200, { message: 'Слишком длинный адрес' }),
+  addressTo: z
+    .string()
+    .trim()
+    .max(200, { message: 'Слишком длинный адрес' })
+    .optional()
+    .transform((v) => (v ? v : undefined)),
   serviceType: z.enum(
     ['light_vehicle', 'moto', 'commercial', 'offroad', 'accident'],
     { message: 'Выберите тип услуги' },

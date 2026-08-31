@@ -20,12 +20,17 @@ model Order {
   number      Int      @unique @default(autoincrement())
   name        String
   phone       String
-  location    String
+  // Блок «Адреса» (ЧТЗ_Блок_адресов_в_форме_заявки.md): откуда забрать / куда доставить.
+  addressFrom String // обязательный адрес подачи (бывш. location)
+  addressTo   String? // необязательный адрес доставки (null = доставка не требуется)
   serviceType String // light_vehicle, moto, commercial, offroad, accident, fuel
   status      String   @default("NEW") // NEW, CALLED, DONE, CANCELLED
   source      String   @default("website")
   ip          String?
   utm         Json?
+  // 152-ФЗ: момент получения согласия на обработку ПД (кнопка отправки неактивна
+  // до чекбокса, см. ЧТЗ_Неактивная_кнопка_до_согласия.md). Логируется также в pino.
+  consentAt   DateTime
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

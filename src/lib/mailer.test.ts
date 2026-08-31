@@ -27,7 +27,8 @@ const order = {
   orderId: 'cmd-123',
   name: 'Иван',
   phone: '+79991234567',
-  location: 'МКАД 50 км',
+  addressFrom: 'МКАД 50 км',
+  addressTo: 'Москва, ул. Тверская, 1',
   serviceType: 'light_vehicle',
   consent: true,
 } as const;
@@ -156,8 +157,20 @@ describe('sendOrderEmail', () => {
     await sendOrderEmail({ ...order });
     const call = sendMailMock.mock.calls[0][0];
     expect(call.text).toContain('+7 999 123 45 67');
-    expect(call.text).toContain('МКАД 50 км');
+    expect(call.text).toContain('Откуда забрать: МКАД 50 км');
+    expect(call.text).toContain('Куда доставить: Москва, ул. Тверская, 1');
     expect(call.html).toContain('Иван');
+    expect(call.html).toContain('<b>Откуда забрать:</b> МКАД 50 км');
+    expect(call.html).toContain('<b>Куда доставить:</b> Москва, ул. Тверская, 1');
+  });
+
+  it('не содержит «Куда доставить» если адрес доставки пуст (edge case)', async () => {
+    const { addressTo: _omit, ...withoutTo } = order;
+    await sendOrderEmail(withoutTo);
+    const call = sendMailMock.mock.calls[0][0];
+    expect(call.text).toContain('Откуда забрать: МКАД 50 км');
+    expect(call.text).not.toContain('Куда доставить');
+    expect(call.html).not.toContain('Куда доставить');
   });
 
   it('skip с NOT_CONFIGURED если SMTP не настроен (error case)', async () => {
