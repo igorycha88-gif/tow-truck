@@ -5,7 +5,7 @@
 Формат основан на [Keep a Changelog](https://keepachangelog.com/ru/1.1.0/),
 версионирование — [Semantic Versioning](https://semver.org/lang/ru/).
 
-## [Unreleased]
+## [0.13.0] — 2026-09-08
 
 ### Добавлено
 - **Гео-посадочные ЮЗАО и ЗАО** (ЧТЗ_SEO_Рост_позиций_Вебмастер_v2): 24 района + 2 хаба
