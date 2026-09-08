@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import sitemap from '@/app/sitemap';
 import robots from '@/app/robots';
 import { servicePageSlugs } from '@/config/service-pages';
-import { landingSlugs } from '@/config/geo';
+import { geoHubs, landingSlugs } from '@/config/geo';
 
 describe('app/sitemap', () => {
   it('возвращает массив с главной страницей', () => {
@@ -29,6 +29,18 @@ describe('app/sitemap', () => {
     const urls = sitemap().map((r) => r.url);
     landingSlugs().forEach((slug) => {
       expect(urls.some((u) => u.endsWith(`/${slug}`)), `sitemap не содержит /${slug}`).toBe(true);
+    });
+  });
+
+  it('102 гео-URL: хабы приоритет 0.8, локации 0.7 (ЧТЗ SEO-Вебмастер v2 §7.7)', () => {
+    const entries = sitemap();
+    const geoSlugs = landingSlugs().filter((slug) => !servicePageSlugs().includes(slug));
+    expect(geoSlugs).toHaveLength(102);
+    const hubSlugSet = new Set(geoHubs.map((h) => h.slug));
+    geoSlugs.forEach((slug) => {
+      const entry = entries.find((r) => r.url.endsWith(`/${slug}`))!;
+      const expected = hubSlugSet.has(slug) ? 0.8 : 0.7;
+      expect(entry.priority, `/${slug}: приоритет должен быть ${expected}`).toBe(expected);
     });
   });
 

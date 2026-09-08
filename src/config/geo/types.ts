@@ -10,6 +10,8 @@ export type GeoDirectionId =
   | 'moscow-vao'
   | 'moscow-yuao'
   | 'moscow-yuvao'
+  | 'moscow-yuzao'
+  | 'moscow-zao'
   | 'mo-vostok'
   | 'mo-yugo-vostok'
   | 'mo-yug';

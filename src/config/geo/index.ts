@@ -3,6 +3,8 @@ import { servicePages } from '@/config/service-pages';
 import { moscowVao } from './moscow-vao';
 import { moscowYuvao } from './moscow-yuvao';
 import { moscowYuao } from './moscow-yuao';
+import { moscowYuzao } from './moscow-yuzao';
+import { moscowZao } from './moscow-zao';
 import { moVostok } from './mo-vostok';
 import { moYugoVostok } from './mo-yugo-vostok';
 import { moYug } from './mo-yug';
@@ -15,6 +17,8 @@ export const geoDirections: GeoDirection[] = [
   moscowVao,
   moscowYuvao,
   moscowYuao,
+  moscowYuzao,
+  moscowZao,
   moVostok,
   moYugoVostok,
   moYug,

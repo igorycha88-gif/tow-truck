@@ -266,3 +266,67 @@ NEXT_PUBLIC_TELEGRAM="https://t.me/your_evakuator"
 
 Контрольные точки: **+2 недели** и **+6 недель** после деплоя — сверка с KPI ЧТЗ
 (показы ≥400, клики ≥30, CTR ≥1.5%, топ-10 ≥45 запросов, «24/7» в топ-5).
+
+---
+
+## Переобход: ЮЗАО и ЗАО — 26 новых страниц (ЧТЗ SEO-Вебмастер v2, ЭПИК-3)
+
+После деплоя добавить в Яндекс.Вебмастере на переобход («Индексирование → Переобход
+страниц»). Подавать **порциями 2–3 URL/день** (митигация риска фильтра качества,
+ЧТЗ §9), старт с хабов:
+
+### Хабы (подать первыми)
+
+```
+https://эвакуация.online/evakuator-yuzao-moskvy
+https://эвакуация.online/evakuator-zao-moskvy
+```
+
+### ЮЗАО (12 районов)
+
+```
+https://эвакуация.online/evakuator-akademicheskij
+https://эвакуация.online/evakuator-gagarinskij
+https://эвакуация.online/evakuator-zyuzino
+https://эвакуация.online/evakuator-konkovo
+https://эвакуация.online/evakuator-kotlovka
+https://эвакуация.online/evakuator-lomonosovskij
+https://эвакуация.online/evakuator-obruchevskij
+https://эвакуация.online/evakuator-severnoe-butovo
+https://эвакуация.online/evakuator-teplyj-stan
+https://эвакуация.online/evakuator-cheremushki
+https://эвакуация.online/evakuator-yuzhnoe-butovo
+https://эвакуация.online/evakuator-yasenevo
+```
+
+### ЗАО (12 районов)
+
+```
+https://эвакуация.online/evakuator-dorogomilovo
+https://эвакуация.online/evakuator-krylatskoe
+https://эвакуация.online/evakuator-kuncevo
+https://эвакуация.online/evakuator-mozhajskij
+https://эвакуация.online/evakuator-novo-peredelkino
+https://эвакуация.online/evakuator-ochakovo-matveevskoe
+https://эвакуация.online/evakuator-prospekt-vernadskogo
+https://эвакуация.online/evakuator-ramenki
+https://эвакуация.online/evakuator-solncevo
+https://эвакуация.online/evakuator-troparevo-nikulino
+https://эвакуация.online/evakuator-filevskij-park
+https://эвакуация.online/evakuator-fili-davydkovo
+```
+
+### Яндекс.Бизнес (владельцу, сниппеты и телефон в выдаче)
+
+- [ ] Карточка с реальным телефоном и режимом 24/7 — источник телефона в сниппетах Яндекса
+- [ ] 5+ реальных отзывов за месяц (Яндекс.Карты) — см. также раздел «Отзывы» выше
+
+### Еженедельная сводка KPI (CHANGELOG.md, контроль раздела 2 ЧТЗ v2)
+
+```
+дата | показы/нед | клики/нед | CTR | топ-10 запросов
+```
+
+Цели (замер из БД Вебмастера, проект monitoring): показы ≥400/нед, клики ≥15/нед,
+CTR ≥1.5%, гео-показы запад/юго-запад ≥50/нед, доля word-salad <15%.
+Контрольные точки: **+2 недели** и **+6 недель** после деплоя.

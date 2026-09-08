@@ -1,4 +1,6 @@
 import { describe, it, expect } from 'vitest';
+import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { join, resolve } from 'node:path';
 import {
   geoPages,
   geoHubs,
@@ -9,6 +11,8 @@ import {
   getGeoPage,
 } from '@/config/geo';
 import { servicePages } from '@/config/service-pages';
+import { services } from '@/config/services';
+import { faq as faqItems } from '@/config/faq';
 import { tariffs } from '@/config/pricing';
 import { formatPrice } from '@/lib/utils';
 
@@ -39,14 +43,14 @@ const allowedPrices = [
 ];
 
 describe('geo: состав реестра (ЧТЗ §2.2)', () => {
-  it('76 гео-страниц: 70 локаций + 6 хабов', () => {
-    expect(geoPages).toHaveLength(76);
-    expect(geoHubs).toHaveLength(6);
-    expect(localityPages).toHaveLength(70);
+  it('102 гео-страницы: 94 локации + 8 хабов', () => {
+    expect(geoPages).toHaveLength(102);
+    expect(geoHubs).toHaveLength(8);
+    expect(localityPages).toHaveLength(94);
   });
 
-  it('83 посадочных в объединённом реестре (7 услуг + 76 гео)', () => {
-    expect(landingPages).toHaveLength(83);
+  it('109 посадочных в объединённом реестре (7 услуг + 102 гео)', () => {
+    expect(landingPages).toHaveLength(109);
     expect(landingPages.length).toBe(servicePages.length + geoPages.length);
   });
 
@@ -256,6 +260,8 @@ describe('geo: МО — дистанции и направления (ЧТЗ §2
       'moscow-vao',
       'moscow-yuao',
       'moscow-yuvao',
+      'moscow-yuzao',
+      'moscow-zao',
       'mo-vostok',
       'mo-yugo-vostok',
       'mo-yug',
@@ -265,11 +271,13 @@ describe('geo: МО — дистанции и направления (ЧТЗ §2
     });
   });
 
-  it('6 направлений: 15 районов/трасс ВАО + 12 ЮВАО + 15 ЮАО + 11 МО-восток + 14 ЮВ МО + 3 Ю МО', () => {
+  it('8 направлений: 15 ВАО + 12 ЮВАО + 15 ЮАО + 12 ЮЗАО + 12 ЗАО + 11 МО-восток + 14 ЮВ МО + 3 Ю МО', () => {
     const counts = Object.fromEntries(geoDirections.map((d) => [d.id, d.localities.length]));
     expect(counts['moscow-vao']).toBe(15);
     expect(counts['moscow-yuvao']).toBe(12);
     expect(counts['moscow-yuao']).toBe(15);
+    expect(counts['moscow-yuzao']).toBe(12);
+    expect(counts['moscow-zao']).toBe(12);
     expect(counts['mo-vostok']).toBe(11);
     expect(counts['mo-yugo-vostok']).toBe(14);
     expect(counts['mo-yug']).toBe(3);
@@ -286,6 +294,132 @@ describe('geo: цены из единого источника (рассинхр
         expect(allowed, `${p.slug}: цена «${price}» не из pricing.ts`).toBe(true);
       });
     });
+  });
+});
+
+// ЧТЗ_SEO_Рост_позиций_Вебмастер_v2: ЮЗАО/ЗАО — литературные + разговорные запросы,
+// лимит 15 тонн (запрет грузовой тематики), грамматика nameIn.
+
+describe('geo: обе формы запросов ЮЗАО/ЗАО (ЧТЗ SEO-Вебмастер v2 §3.1, §7.3)', () => {
+  const newDirections = geoDirections.filter((d) => d.id === 'moscow-yuzao' || d.id === 'moscow-zao');
+
+  it('24 локации ЮЗАО/ЗАО зарегистрированы, страницы открываются из реестра', () => {
+    expect(newDirections).toHaveLength(2);
+    const localities = newDirections.flatMap((d) => d.localities);
+    expect(localities).toHaveLength(24);
+    localities.forEach((l) => {
+      const page = getGeoPage(`evakuator-${l.slug}`);
+      expect(page, `evakuator-${l.slug} отсутствует в реестре`).toBeTruthy();
+    });
+  });
+
+  it('title и H1 начинаются с разговорного ключа «Эвакуатор <Имя>»', () => {
+    newDirections.flatMap((d) => d.localities).forEach((l) => {
+      const page = getGeoPage(`evakuator-${l.slug}`)!;
+      const name = l.h1Name ?? l.name;
+      expect(page.title.startsWith(`Эвакуатор ${name}`), `${l.slug}: title не разговорный`).toBe(true);
+      expect(page.h1).toBe(`Эвакуатор ${name}`);
+    });
+  });
+
+  it('description содержит литературную форму (nameIn) и обе формы в хаб-метах', () => {
+    newDirections.flatMap((d) => d.localities).forEach((l) => {
+      const page = getGeoPage(`evakuator-${l.slug}`)!;
+      expect(l.nameIn.length).toBeGreaterThan(3);
+      expect(l.nameIn).toMatch(/^(в|на) /);
+      expect(page.description, `${l.slug}: description без литературной формы`).toContain(l.nameIn);
+    });
+    const yuzaoHub = getGeoPage('evakuator-yuzao-moskvy')!;
+    expect(yuzaoHub.title).toContain('Эвакуатор ЮЗАО');
+    expect(yuzaoHub.description).toContain('в юго-западном округе Москвы');
+    const zaoHub = getGeoPage('evakuator-zao-moskvy')!;
+    expect(zaoHub.title).toContain('Эвакуатор ЗАО');
+    expect(zaoHub.description).toContain('в западном округе Москвы');
+  });
+
+  it('грамматика nameIn: корректная предложная форма (ЧТЗ §7.4)', () => {
+    const expected = {
+      akademicheskij: 'в Академическом',
+      gagarinskij: 'в Гагаринском',
+      zyuzino: 'в Зюзино',
+      konkovo: 'в Конькове',
+      kotlovka: 'в Котловке',
+      lomonosovskij: 'в Ломоносовском',
+      obruchevskij: 'в Обручевском',
+      'severnoe-butovo': 'в Северном Бутово',
+      'teplyj-stan': 'в Тёплом Стане',
+      cheremushki: 'в Черёмушках',
+      'yuzhnoe-butovo': 'в Южном Бутово',
+      yasenevo: 'в Ясенево',
+      dorogomilovo: 'в Дорогомилово',
+      krylatskoe: 'в Крылатском',
+      kuncevo: 'в Кунцеве',
+      mozhajskij: 'в Можайском',
+      'novo-peredelkino': 'в Ново-Переделкино',
+      'ochakovo-matveevskoe': 'в Очаково-Матвеевском',
+      'prospekt-vernadskogo': 'на проспекте Вернадского',
+      ramenki: 'в Раменках',
+      solncevo: 'в Солнцеве',
+      'troparevo-nikulino': 'в Тропарёво-Никулино',
+      'filevskij-park': 'в Филёвском парке',
+      'fili-davydkovo': 'в Фили-Давыдково',
+    } as const;
+    newDirections.flatMap((d) => d.localities).forEach((l) => {
+      expect(l.nameIn, `${l.slug}: некорректная предложная форма`).toBe(expected[l.slug as keyof typeof expected]);
+    });
+  });
+
+  it('FAQ новых локаций: 1 литературный вопрос + 1 разговорный (ЧТЗ §3.1)', () => {
+    newDirections.flatMap((d) => d.localities).forEach((l) => {
+      const page = getGeoPage(`evakuator-${l.slug}`)!;
+      const questions = page.faq.map((f) => f.question);
+      expect(questions, `${l.slug}: нет литературного FAQ`).toContain(`Сколько стоит эвакуатор ${l.nameIn}?`);
+      expect(questions, `${l.slug}: нет разговорного FAQ`).toContain(`Эвакуатор ${l.h1Name} — как быстро приедете?`);
+    });
+  });
+});
+
+describe('geo: запрет грузовой тематики, лимит 15 тонн (ЧТЗ ЭПИК-2, §7.5)', () => {
+  const forbiddenRe = new RegExp(['грузовик', 'автопоезд', 'полуприцеп', 'фура'].join('|'));
+
+  function listSourceFiles(dir: string): string[] {
+    const out: string[] = [];
+    for (const entry of readdirSync(dir)) {
+      const full = join(dir, entry);
+      if (statSync(full).isDirectory()) {
+        out.push(...listSourceFiles(full));
+      } else if (/\.(ts|tsx)$/.test(entry) && !/\.test\.(ts|tsx)$/.test(entry)) {
+        out.push(full);
+      }
+    }
+    return out;
+  }
+
+  it('по src/ нет запрещённых грузовых терминов', () => {
+    const files = listSourceFiles(resolve(process.cwd(), 'src'));
+    expect(files.length).toBeGreaterThan(0);
+    files.forEach((file) => {
+      const content = readFileSync(file, 'utf8');
+      const match = content.match(forbiddenRe);
+      expect(match, `${file}: запрещённый термин «${match?.[0]}»`).toBeNull();
+    });
+  });
+
+  it('«тонн» встречается только как «до 15 тонн» (или «тоннель»)', () => {
+    const files = listSourceFiles(resolve(process.cwd(), 'src'));
+    files.forEach((file) => {
+      const content = readFileSync(file, 'utf8');
+      const rest = content.replace(/до 15 тонн/g, '').replace(/тоннел\w*/gi, '');
+      expect(rest, `${file}: «тонн» вне контекста «до 15 тонн»`).not.toMatch(/тонн/i);
+    });
+  });
+
+  it('карточка «спецтехника» и FAQ честно указывают лимит 15 тонн', () => {
+    const commercial = services.find((s) => s.slug === 'commercial')!;
+    expect(commercial.title).toBe('Эвакуация спецтехники');
+    expect(commercial.description).toContain('до 15 тонн');
+    const faqText = faqItems.map((f) => f.question + f.answer).join('\n');
+    expect(faqText).toContain('до 15 тонн');
   });
 });
 
