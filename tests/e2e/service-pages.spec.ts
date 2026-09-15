@@ -11,6 +11,12 @@ const SLUGS = [
   'evakuator-zablokirovannyh-koles',
   'evakuator-vidnoe',
   'evakuator-legkovyh',
+  'evakuaciya-spec-tehniki',
+  'evakuaciya-elektromobilya',
+  'evakuator-5-tonn',
+  'evakuator-iz-podzemnogo-parkinga',
+  'nochnoj-evakuator',
+  'perevozka-avto-v-drugoy-gorod',
 ];
 
 test('посадочная 24/7: H1, цена, форма, FAQ рендерятся', async ({ page }) => {
@@ -44,7 +50,7 @@ test('неизвестный слаг — 404, не индексируется',
   await expect(robots).toHaveAttribute('content', /noindex/i);
 });
 
-test('sitemap.xml содержит все 7 посадочных', async ({ request }) => {
+test('sitemap.xml содержит все 13 посадочных', async ({ request }) => {
   const res = await request.get('/sitemap.xml');
   expect(res.ok()).toBeTruthy();
   const xml = await res.text();
@@ -66,4 +72,35 @@ test('карточка услуги с главной ведёт на посад
   await page.goto('/#services');
   await page.getByRole('link', { name: 'Эвакуация легковых авто' }).first().click();
   await expect(page).toHaveURL(/\/evakuator-legkovyh$/);
+});
+
+test('новые посадочные (ЧТЗ SEO_нетиповые): паркинг, ночной, межгород рендерятся', async ({ page }) => {
+  await page.goto('/evakuator-iz-podzemnogo-parkinga');
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('подземного паркинга');
+  await expect(page.getByTestId('price-label')).toBeVisible();
+
+  await page.goto('/nochnoj-evakuator');
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('Ночной эвакуатор');
+  await expect(page.locator('#order-service form')).toBeVisible();
+
+  await page.goto('/perevozka-avto-v-drugoy-gorod');
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('другой город');
+  await expect(page.getByRole('heading', { name: 'Частые вопросы' })).toBeVisible();
+});
+
+test('удалённые страницы (джип, аренда) отдают 404 и выпали из sitemap', async ({ page, request }) => {
+  const dzhip = await page.goto('/evakuator-dzhip-s-lebedkoj');
+  expect(dzhip?.status()).toBe(404);
+  const arenda = await page.goto('/arenda-evakuatora-s-voditelem');
+  expect(arenda?.status()).toBe(404);
+
+  const xml = await (await request.get('/sitemap.xml')).text();
+  expect(xml).not.toContain('evakuator-dzhip-s-lebedkoj');
+  expect(xml).not.toContain('arenda-evakuatora-s-voditelem');
+});
+
+test('карточка «спецтехника» с главной ведёт на новую посадочную', async ({ page }) => {
+  await page.goto('/#services');
+  await page.getByRole('link', { name: 'Эвакуация спецтехники' }).first().click();
+  await expect(page).toHaveURL(/\/evakuaciya-spec-tehniki$/);
 });

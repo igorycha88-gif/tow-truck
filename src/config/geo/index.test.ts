@@ -49,8 +49,8 @@ describe('geo: состав реестра (ЧТЗ §2.2)', () => {
     expect(localityPages).toHaveLength(94);
   });
 
-  it('109 посадочных в объединённом реестре (7 услуг + 102 гео)', () => {
-    expect(landingPages).toHaveLength(109);
+  it('115 посадочных в объединённом реестре (13 услуг + 102 гео)', () => {
+    expect(landingPages).toHaveLength(115);
     expect(landingPages.length).toBe(servicePages.length + geoPages.length);
   });
 
@@ -75,17 +75,17 @@ describe('geo: состав реестра (ЧТЗ §2.2)', () => {
 });
 
 describe('geo: уникальность мета-данных (анти-дорвей, ЧТЗ §3.2)', () => {
-  it('title уникальны по всем 83 страницам', () => {
+  it('title уникальны по всем 115 посадочным', () => {
     const titles = landingPages.map((p) => p.title);
     expect(new Set(titles).size).toBe(titles.length);
   });
 
-  it('description уникальны по всем 83 страницам', () => {
+  it('description уникальны по всем 115 посадочным', () => {
     const descriptions = landingPages.map((p) => p.description);
     expect(new Set(descriptions).size).toBe(descriptions.length);
   });
 
-  it('H1 уникальны по всем 83 страницам', () => {
+  it('H1 уникальны по всем 115 посадочным', () => {
     const h1s = landingPages.map((p) => p.h1);
     expect(new Set(h1s).size).toBe(h1s.length);
   });
@@ -405,11 +405,14 @@ describe('geo: запрет грузовой тематики, лимит 15 т�
     });
   });
 
-  it('«тонн» встречается только как «до 15 тонн» (или «тоннель»)', () => {
+  it('«тонн» встречается только как «до 15 тонн» / «до 5 тонн» (или «тоннель»)', () => {
     const files = listSourceFiles(resolve(process.cwd(), 'src'));
     files.forEach((file) => {
       const content = readFileSync(file, 'utf8');
-      const rest = content.replace(/до 15 тонн/g, '').replace(/тоннел\w*/gi, '');
+      const rest = content
+        .replace(/до 15 тонн/g, '')
+        .replace(/до 5 тонн/g, '')
+        .replace(/тоннел\w*/gi, '');
       expect(rest, `${file}: «тонн» вне контекста «до 15 тонн»`).not.toMatch(/тонн/i);
     });
   });

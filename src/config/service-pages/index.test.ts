@@ -34,9 +34,9 @@ const allowedPrices = [
   formatPrice(tariffs.lightVehicle.perKm),
 ];
 
-describe('service-pages: состав реестра (ЧТЗ табл. 4.1)', () => {
-  it('ровно 7 страниц с требуемыми слагами', () => {
-    expect(servicePages).toHaveLength(7);
+describe('service-pages: состав реестра (ЧТЗ табл. 4.1 + ЧТЗ SEO_нетиповые, корректировка 15.09)', () => {
+  it('ровно 13 страниц с требуемыми слагами', () => {
+    expect(servicePages).toHaveLength(13);
     expect([...servicePageSlugs()].sort()).toEqual(
       [
         'evakuator-24-7',
@@ -46,6 +46,12 @@ describe('service-pages: состав реестра (ЧТЗ табл. 4.1)', ()
         'evakuaciya-mototehniki',
         'evakuator-vidnoe',
         'evakuator-zablokirovannyh-koles',
+        'evakuaciya-spec-tehniki',
+        'evakuaciya-elektromobilya',
+        'evakuator-5-tonn',
+        'evakuator-iz-podzemnogo-parkinga',
+        'nochnoj-evakuator',
+        'perevozka-avto-v-drugoy-gorod',
       ].sort(),
     );
   });
@@ -99,6 +105,12 @@ describe('service-pages: уникальность мета-данных (ант�
       'evakuator-zablokirovannyh-koles': 'эвакуатор с заблокированными',
       'evakuator-vidnoe': 'эвакуатор в видном',
       'evakuator-legkovyh': 'эвакуатор легковых',
+      'evakuaciya-spec-tehniki': 'эвакуация спецтехники',
+      'evakuaciya-elektromobilya': 'эвакуация электромобиля',
+      'evakuator-5-tonn': 'эвакуатор до 5 тонн',
+      'evakuator-iz-podzemnogo-parkinga': 'эвакуатор из подземного',
+      'nochnoj-evakuator': 'ночной эвакуатор',
+      'perevozka-avto-v-drugoy-gorod': 'перевозка автомобиля',
     };
     servicePages.forEach((p) => {
       const key = keys[p.slug];

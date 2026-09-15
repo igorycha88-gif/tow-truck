@@ -18,7 +18,7 @@ describe('app/sitemap', () => {
     });
   });
 
-  it('содержит все 7 посадочных SEO-страниц из реестра (ЧТЗ ЭПИК-2)', () => {
+  it('содержит все посадочные SEO-страницы из реестра (ЧТЗ ЭПИК-2 + SEO_нетиповые)', () => {
     const urls = sitemap().map((r) => r.url);
     servicePageSlugs().forEach((slug) => {
       expect(urls.some((u) => u.endsWith(`/${slug}`)), `sitemap не содержит /${slug}`).toBe(true);

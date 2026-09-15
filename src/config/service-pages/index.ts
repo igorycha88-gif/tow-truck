@@ -15,6 +15,12 @@ import { mototehnikiPage } from './mototehniki';
 import { zablokirovannyeKolesaPage } from './zablokirovannyh-koles';
 import { vidnoePage } from './vidnoe';
 import { legkovyhPage } from './legkovyh';
+import { specTehnikiPage } from './spec-tehniki';
+import { elektromobilPage } from './elektromobilya';
+import { pyatiTonnPage } from './pyati-tonn';
+import { podzemnyjParkingPage } from './podzemnyj-parking';
+import { nochnojEvakuatorPage } from './nochnoj-evakuator';
+import { mezhgorodPage } from './mezhgorod';
 
 export const servicePages: ServicePageConfig[] = [
   evakuator24Page,
@@ -24,6 +30,12 @@ export const servicePages: ServicePageConfig[] = [
   zablokirovannyeKolesaPage,
   vidnoePage,
   legkovyhPage,
+  specTehnikiPage,
+  elektromobilPage,
+  pyatiTonnPage,
+  podzemnyjParkingPage,
+  nochnojEvakuatorPage,
+  mezhgorodPage,
 ];
 
 export const getServicePage = (slug: string): ServicePageConfig | undefined =>
@@ -38,6 +50,7 @@ export const catalogServiceToLanding: Partial<Record<ServiceType, string>> = {
   moto: 'evakuaciya-mototehniki',
   accident: 'evakuator-posle-dtp',
   offroad: 'evakuator-s-lebedkoj',
+  commercial: 'evakuaciya-spec-tehniki',
 };
 
 /** Человекочитаемая цена для посадочной — из единого источника (без хардкода). */
