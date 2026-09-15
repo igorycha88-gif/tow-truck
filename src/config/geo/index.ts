@@ -52,6 +52,7 @@ const composeGeoPage = (dir: GeoDirection, loc: GeoLocality): ServicePageConfig 
   orderServiceType: 'light_vehicle',
   parent: { name: dir.hubH1, slug: dir.hubSlug },
   areaName: loc.areaNameOverride ?? localityAreaName(dir, loc),
+  ...(loc.sections ? { sections: loc.sections } : {}),
 });
 
 /** Хаб направления: обзор + перелинковка на все локации. */

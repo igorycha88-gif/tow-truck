@@ -17,6 +17,9 @@ const SLUGS = [
   'evakuator-iz-podzemnogo-parkinga',
   'nochnoj-evakuator',
   'perevozka-avto-v-drugoy-gorod',
+  'evakuator-dzhip-s-lebedkoj',
+  'ceny',
+  'sravnenie-evakuatorov-moskva',
 ];
 
 test('посадочная 24/7: H1, цена, телефонный CTA, FAQ рендерятся', async ({ page }) => {
@@ -51,7 +54,7 @@ test('неизвестный слаг — 404, не индексируется',
   await expect(robots).toHaveAttribute('content', /noindex/i);
 });
 
-test('sitemap.xml содержит все 13 посадочных', async ({ request }) => {
+test('sitemap.xml содержит все 16 посадочных', async ({ request }) => {
   const res = await request.get('/sitemap.xml');
   expect(res.ok()).toBeTruthy();
   const xml = await res.text();
@@ -89,15 +92,63 @@ test('новые посадочные (ЧТЗ SEO_нетиповые): парк�
   await expect(page.getByRole('heading', { name: 'Частые вопросы' })).toBeVisible();
 });
 
-test('удалённые страницы (джип, аренда) отдают 404 и выпали из sitemap', async ({ page, request }) => {
-  const dzhip = await page.goto('/evakuator-dzhip-s-lebedkoj');
-  expect(dzhip?.status()).toBe(404);
+test('удалённая страница аренды отдаёт 404 и выпала из sitemap', async ({ page, request }) => {
   const arenda = await page.goto('/arenda-evakuatora-s-voditelem');
   expect(arenda?.status()).toBe(404);
 
   const xml = await (await request.get('/sitemap.xml')).text();
-  expect(xml).not.toContain('evakuator-dzhip-s-lebedkoj');
   expect(xml).not.toContain('arenda-evakuatora-s-voditelem');
+});
+
+test('EV-03 (ЧТЗ v2): страница джипов возвращена в индекс — 200, H1, тариф', async ({ page }) => {
+  const res = await page.goto('/evakuator-dzhip-s-lebedkoj');
+  expect(res?.status()).toBe(200);
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('джипа и внедорожника');
+  await expect(page.getByTestId('price-label')).toContainText('6');
+});
+
+test('EV-07 /ceny: тарифы, примеры расчёта 10–50 км, телефонный CTA', async ({ page }) => {
+  await page.goto('/ceny');
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('Сколько стоит эвакуатор');
+  await expect(
+    page.getByRole('heading', { name: /Тарифы на эвакуатор по типам/i }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: /Примеры расчёта/i }),
+  ).toBeVisible();
+  await expect(page.locator('table').first()).toBeVisible();
+  await expect(page.locator('#order-service a[href^="tel:"]')).toBeVisible();
+  // Перелинковка на сравнение служб (EV-07 ↔ EV-08)
+  await expect(page.getByRole('link', { name: /сравнение служб/i }).first()).toBeVisible();
+});
+
+test('EV-08 /sravnenie: таблица сравнения, бренды в тексте — но НЕ в title', async ({ page }) => {
+  await page.goto('/sravnenie-evakuatorov-moskva');
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('сравнение служб и цен');
+  await expect(
+    page.getByRole('heading', { level: 2, name: 'Круглосуточный эвакуатор 24/7' }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('heading', { level: 2, name: /Как вызвать эвакуатор прямо сейчас/i }),
+  ).toBeVisible();
+
+  const table = page.locator('table').first();
+  await expect(table).toBeVisible();
+  await expect(table).toContainText('автоэвакуатор.рф');
+  await expect(table).toContainText('Перевозка 24');
+
+  // Безопасный формат (ЧТЗ §2): бренды конкурентов не должны попасть в meta title
+  const title = await page.title();
+  expect(title.toLowerCase()).not.toContain('автоэвакуатор');
+  expect(title.toLowerCase()).not.toContain('перевозка 24');
+});
+
+test('EV-01: страница Орехово-Борисово Северного содержит таблицу цен района', async ({ page }) => {
+  await page.goto('/evakuator-orehovo-borisovo-severnoe');
+  await expect(
+    page.getByRole('heading', { name: /Цены на эвакуатор в Орехово-Борисово/i }),
+  ).toBeVisible();
+  await expect(page.locator('table').first()).toContainText('Джип');
 });
 
 test('карточка «спецтехника» с главной ведёт на новую посадочную', async ({ page }) => {

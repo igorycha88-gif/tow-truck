@@ -1,5 +1,5 @@
 import type { FaqItem } from '@/types';
-import type { ServicePageInclude, ServicePageStep } from '@/types/service-page';
+import type { ServicePageInclude, ServicePageSection, ServicePageStep } from '@/types/service-page';
 
 // Типы гео-модуля (ADR-003): данные локаций → композер → ServicePageConfig.
 // Уникальный контент (меты, лиды, локальные карточки и FAQ) хранится в данных
@@ -42,6 +42,8 @@ export type GeoLocality = {
   localFaq: FaqItem[];
   /** Доп. слаги перелинковки (полные, 2 шт.): соседи/услуги; хаб добавляется автоматически */
   related: string[];
+  /** Доп. H2-секции локации (напр., таблица цен района — ЧТЗ SEO v2, EV-01) */
+  sections?: ServicePageSection[];
 };
 
 /** Базовый FAQ направления: вопрос/ответ генерируются с именем локации. */

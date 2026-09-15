@@ -20,6 +20,30 @@ export type ServicePageStep = {
   text: string;
 };
 
+/** Таблица в доп. секции посадочной (EV-07 тарифы, EV-08 сравнение служб). */
+export type ServicePageTable = {
+  head: string[];
+  rows: string[][];
+  /** Примечание под таблицей: источник данных, дисклеймер. */
+  note?: string;
+};
+
+/** Доп. H2-секция посадочной спецформата (ЧТЗ_эвакуация_online_SEO v2, EV-07/EV-08). */
+export type ServicePageSection = {
+  /** Якорь секции, уникальный в пределах страницы. */
+  id: string;
+  /** Заголовок H2. */
+  title: string;
+  /** Абзацы текста под заголовком. */
+  paragraphs?: string[];
+  /** Маркированный список. */
+  bullets?: string[];
+  /** Таблица (адаптивная, с горизонтальной прокруткой на мобиле). */
+  table?: ServicePageTable;
+  /** Показать телефонный CTA-блок в конце секции. */
+  cta?: boolean;
+};
+
 export type ServicePageConfig = {
   /** URL-слаг, напр. `evakuator-24-7` */
   slug: string;
@@ -45,6 +69,12 @@ export type ServicePageConfig = {
   related: string[];
   /** Тип услуги для предзаполнения формы заявки */
   orderServiceType: ServiceType;
+  /** Доп. H2-секции спецформата: тарифы, сравнение служб (EV-07/EV-08). */
+  sections?: ServicePageSection[];
+  /** Заголовок блока шагов (дефолт «Как проходит эвакуация»). */
+  stepsTitle?: string;
+  /** Заголовок блока «Что входит» (дефолт «Что входит в услугу»). */
+  includedTitle?: string;
   /** Заголовок блока перелинковки (для гео-хабов), дефолт «Смежные услуги» */
   relatedTitle?: string;
   /** Родительская страница (гео-хаб направления) для хлебных крошек */

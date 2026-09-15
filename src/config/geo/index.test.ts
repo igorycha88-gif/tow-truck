@@ -33,6 +33,14 @@ function allTexts(page: (typeof landingPages)[number]): string {
     page.priceNote ?? '',
     ...page.steps.flatMap((s) => [s.title, s.text]),
     ...page.faq.flatMap((f) => [f.question, f.answer]),
+    ...(page.sections ?? []).flatMap((s) => [
+      s.title,
+      ...(s.paragraphs ?? []),
+      ...(s.bullets ?? []),
+      ...(s.table
+        ? [s.table.head.join(' '), ...s.table.rows.map((r) => r.join(' ')), s.table.note ?? '']
+        : []),
+    ]),
   ].join('\n');
 }
 
@@ -49,8 +57,8 @@ describe('geo: состав реестра (ЧТЗ §2.2)', () => {
     expect(localityPages).toHaveLength(94);
   });
 
-  it('115 посадочных в объединённом реестре (13 услуг + 102 гео)', () => {
-    expect(landingPages).toHaveLength(115);
+  it('118 посадочных в объединённом реестре (16 услуг + 102 гео)', () => {
+    expect(landingPages).toHaveLength(118);
     expect(landingPages.length).toBe(servicePages.length + geoPages.length);
   });
 
@@ -75,17 +83,17 @@ describe('geo: состав реестра (ЧТЗ §2.2)', () => {
 });
 
 describe('geo: уникальность мета-данных (анти-дорвей, ЧТЗ §3.2)', () => {
-  it('title уникальны по всем 115 посадочным', () => {
+  it('title уникальны по всем 118 посадочным', () => {
     const titles = landingPages.map((p) => p.title);
     expect(new Set(titles).size).toBe(titles.length);
   });
 
-  it('description уникальны по всем 115 посадочным', () => {
+  it('description уникальны по всем 118 посадочным', () => {
     const descriptions = landingPages.map((p) => p.description);
     expect(new Set(descriptions).size).toBe(descriptions.length);
   });
 
-  it('H1 уникальны по всем 115 посадочным', () => {
+  it('H1 уникальны по всем 118 посадочным', () => {
     const h1s = landingPages.map((p) => p.h1);
     expect(new Set(h1s).size).toBe(h1s.length);
   });
@@ -294,6 +302,27 @@ describe('geo: цены из единого источника (рассинхр
         expect(allowed, `${p.slug}: цена «${price}» не из pricing.ts`).toBe(true);
       });
     });
+  });
+
+  it('EV-01: у Орехово-Борисово Северного есть таблица цен района (ЧТЗ SEO v2)', () => {
+    const orehovo = getGeoPage('evakuator-orehovo-borisovo-severnoe')!;
+    expect(orehovo.sections).toHaveLength(1);
+    const table = orehovo.sections![0].table!;
+    expect(orehovo.sections![0].title).toContain('Цены на эвакуатор');
+    expect(table.head).toEqual(['Тип автомобиля', 'Подача', 'Дальше — за километр']);
+    // Все три класса авто из ЧТЗ: легковая / кроссовер / джип — цифры из pricing.ts
+    const rows = table.rows.flat().join('\n');
+    expect(rows).toContain('Легковая');
+    expect(rows).toContain('Кроссовер');
+    expect(rows).toContain('Джип');
+    expect(rows).toContain(formatPrice(tariffs.lightVehicle.baseFee));
+    expect(rows).toContain(formatPrice(tariffs.offroad.baseFee));
+    expect(table.note).toBeTruthy();
+  });
+
+  it('EV-01 → EV-07: хаб ЮАО перелинкован со страницей цен', () => {
+    const yuaoHub = getGeoPage('evakuator-yuao-moskvy')!;
+    expect(yuaoHub.related).toContain('ceny');
   });
 });
 

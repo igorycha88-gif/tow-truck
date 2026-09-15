@@ -76,11 +76,96 @@ export function ServicePage({ page }: { page: ServicePageConfig }) {
         </div>
       </header>
 
+      {/* Доп. H2-секции спецформата (EV-07 цены, EV-08 сравнение): таблицы, списки, CTA */}
+      {page.sections?.map((section) => (
+        <section
+          key={section.id}
+          className="py-12 md:py-16"
+          aria-labelledby={`${page.slug}-${section.id}`}
+        >
+          <div className="container">
+            <h2
+              id={`${page.slug}-${section.id}`}
+              className="text-2xl font-bold tracking-tight sm:text-3xl"
+            >
+              {section.title}
+            </h2>
+            {section.paragraphs && (
+              <div className="mt-5 max-w-3xl space-y-4 leading-relaxed text-muted-foreground">
+                {section.paragraphs.map((p) => (
+                  <p key={p.slice(0, 40)}>{p}</p>
+                ))}
+              </div>
+            )}
+            {section.bullets && (
+              <ul className="mt-6 max-w-3xl space-y-3" aria-label={section.title}>
+                {section.bullets.map((b) => (
+                  <li key={b} className="flex gap-2.5 leading-relaxed text-muted-foreground">
+                    <CheckCircle2
+                      className="mt-0.5 h-5 w-5 shrink-0 text-accent"
+                      aria-hidden="true"
+                    />
+                    <span>{b}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {section.table && (
+              <>
+                <div className="mt-8 max-w-4xl overflow-x-auto rounded-xl border border-border bg-card">
+                  <table className="w-full min-w-[560px] text-left text-sm">
+                    <thead className="bg-muted/60">
+                      <tr>
+                        {section.table.head.map((h) => (
+                          <th key={h} scope="col" className="px-4 py-3 font-semibold text-foreground">
+                            {h}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {section.table.rows.map((row) => (
+                        <tr key={row.join('|')} className="border-t border-border">
+                          {row.map((cell) => (
+                            <td key={cell} className="px-4 py-3 text-muted-foreground">
+                              {cell}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {section.table.note && (
+                  <p className="mt-3 max-w-3xl text-sm leading-relaxed text-muted-foreground">
+                    {section.table.note}
+                  </p>
+                )}
+              </>
+            )}
+            {section.cta && (
+              <div className="mt-6">
+                <a
+                  href={company.phoneHref}
+                  data-page="service_page"
+                  className={cn(buttonVariants({ size: 'lg' }), 'inline-flex gap-2')}
+                >
+                  <Phone className="h-5 w-5" /> {company.phone}
+                </a>
+                <p className="mt-3 text-sm text-muted-foreground">
+                  Диспетчер на линии 24/7 — сумма и время подачи фиксируются при заказе.
+                </p>
+              </div>
+            )}
+          </div>
+        </section>
+      ))}
+
       {/* Что входит в услугу */}
       <section className="py-12 md:py-16" aria-labelledby={`${page.slug}-included`}>
         <div className="container">
           <h2 id={`${page.slug}-included`} className="text-2xl font-bold tracking-tight sm:text-3xl">
-            Что входит в услугу
+            {page.includedTitle ?? 'Что входит в услугу'}
           </h2>
           <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-label="Состав услуги">
             {page.included.map((item) => (
@@ -124,7 +209,7 @@ export function ServicePage({ page }: { page: ServicePageConfig }) {
       <section className="py-12 md:py-16" aria-labelledby={`${page.slug}-steps`}>
         <div className="container">
           <h2 id={`${page.slug}-steps`} className="text-2xl font-bold tracking-tight sm:text-3xl">
-            Как проходит эвакуация
+            {page.stepsTitle ?? 'Как проходит эвакуация'}
           </h2>
           <ol className="mt-8 grid gap-4 md:grid-cols-2" aria-label="Этапы выполнения">
             {page.steps.map((step, i) => (

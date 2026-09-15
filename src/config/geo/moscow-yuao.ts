@@ -1,6 +1,10 @@
 import type { GeoDirection } from './types';
+import { tariffs } from '@/config/pricing';
+import { formatPrice } from '@/lib/utils';
 
 // Направление ЮАО (юг Москвы): 15 районов + хаб (ADR-003, ЧТЗ_Гео §2.2).
+// Орехово-Борисово Северное: таблица цен района (ЧТЗ_эвакуация_online_SEO v2, EV-01);
+// хаб ссылается на страницу цен (перелинковка EV-01 → EV-07).
 
 export const moscowYuao: GeoDirection = {
   id: 'moscow-yuao',
@@ -64,6 +68,7 @@ export const moscowYuao: GeoDirection = {
     },
   ],
   hubRelatedTitle: 'Районы ЮАО, куда приезжаем',
+  hubRelatedExtra: ['ceny'],
   hubAreaName: 'Южный административный округ Москвы',
   baseIncluded: [
     {
@@ -501,6 +506,33 @@ export const moscowYuao: GeoDirection = {
         },
       ],
       related: ['evakuator-caricyno', 'evakuator-orehovo-borisovo-yuzhnoe'],
+      sections: [
+        {
+          id: 'ceny-rajon',
+          title: 'Цены на эвакуатор в Орехово-Борисово Северном',
+          table: {
+            head: ['Тип автомобиля', 'Подача', 'Дальше — за километр'],
+            rows: [
+              [
+                'Легковая',
+                `от ${formatPrice(tariffs.lightVehicle.baseFee)}`,
+                formatPrice(tariffs.lightVehicle.perKm),
+              ],
+              [
+                'Кроссовер',
+                `от ${formatPrice(tariffs.offroad.baseFee)}`,
+                formatPrice(tariffs.offroad.perKm),
+              ],
+              [
+                'Джип / внедорожник',
+                `от ${formatPrice(tariffs.offroad.baseFee)}`,
+                formatPrice(tariffs.offroad.perKm),
+              ],
+            ],
+            note: 'Точную сумму по вашим адресам назовёт оператор до выезда. Полные тарифы и примеры расчёта маршрутов — на странице «Сколько стоит эвакуатор в Москве».',
+          },
+        },
+      ],
     },
     {
       slug: 'orehovo-borisovo-yuzhnoe',

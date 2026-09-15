@@ -21,6 +21,9 @@ import { pyatiTonnPage } from './pyati-tonn';
 import { podzemnyjParkingPage } from './podzemnyj-parking';
 import { nochnojEvakuatorPage } from './nochnoj-evakuator';
 import { mezhgorodPage } from './mezhgorod';
+import { dzhipSLebedkojPage } from './dzhip-s-lebedkoj';
+import { cenyPage } from './ceny';
+import { sravnenieEvakuatorovPage } from './sravnenie-evakuatorov-moskva';
 
 export const servicePages: ServicePageConfig[] = [
   evakuator24Page,
@@ -36,6 +39,9 @@ export const servicePages: ServicePageConfig[] = [
   podzemnyjParkingPage,
   nochnojEvakuatorPage,
   mezhgorodPage,
+  dzhipSLebedkojPage,
+  cenyPage,
+  sravnenieEvakuatorovPage,
 ];
 
 export const getServicePage = (slug: string): ServicePageConfig | undefined =>
@@ -49,7 +55,7 @@ export const catalogServiceToLanding: Partial<Record<ServiceType, string>> = {
   light_vehicle: 'evakuator-legkovyh',
   moto: 'evakuaciya-mototehniki',
   accident: 'evakuator-posle-dtp',
-  offroad: 'evakuator-s-lebedkoj',
+  offroad: 'evakuator-dzhip-s-lebedkoj',
   commercial: 'evakuaciya-spec-tehniki',
 };
 

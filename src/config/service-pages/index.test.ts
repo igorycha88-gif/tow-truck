@@ -24,19 +24,31 @@ function allTexts(page: (typeof servicePages)[number]): string {
     page.priceNote ?? '',
     ...page.steps.flatMap((s) => [s.title, s.text]),
     ...page.faq.flatMap((f) => [f.question, f.answer]),
+    ...(page.sections ?? []).flatMap((s) => [
+      s.title,
+      ...(s.paragraphs ?? []),
+      ...(s.bullets ?? []),
+      ...(s.table ? [s.table.head.join(' '), ...s.table.rows.map((r) => r.join(' ')), s.table.note ?? ''] : []),
+    ]),
   ].join('\n');
 }
 
 // Разрешённые ценовые подстроки (формат единого источника pricing.ts, с nbsp от Intl).
+// Примеры маршрутов EV-07 (10/30/50 км) вычисляются по той же формуле — из tariffs.
+const routeSums = [10, 30, 50].flatMap((km) => [
+  formatPrice(tariffs.lightVehicle.baseFee + km * tariffs.lightVehicle.perKm),
+  formatPrice(tariffs.offroad.baseFee + km * tariffs.offroad.perKm),
+]);
 const allowedPrices = [
   formatPrice(tariffs.lightVehicle.baseFee),
   formatPrice(tariffs.offroad.baseFee),
   formatPrice(tariffs.lightVehicle.perKm),
+  ...routeSums,
 ];
 
-describe('service-pages: состав реестра (ЧТЗ табл. 4.1 + ЧТЗ SEO_нетиповые, корректировка 15.09)', () => {
-  it('ровно 13 страниц с требуемыми слагами', () => {
-    expect(servicePages).toHaveLength(13);
+describe('service-pages: состав реестра (ЧТЗ табл. 4.1 + ЧТЗ SEO_нетиповые + ЧТЗ SEO v2)', () => {
+  it('ровно 16 страниц с требуемыми слагами', () => {
+    expect(servicePages).toHaveLength(16);
     expect([...servicePageSlugs()].sort()).toEqual(
       [
         'evakuator-24-7',
@@ -52,6 +64,9 @@ describe('service-pages: состав реестра (ЧТЗ табл. 4.1 + Ч�
         'evakuator-iz-podzemnogo-parkinga',
         'nochnoj-evakuator',
         'perevozka-avto-v-drugoy-gorod',
+        'evakuator-dzhip-s-lebedkoj',
+        'ceny',
+        'sravnenie-evakuatorov-moskva',
       ].sort(),
     );
   });
@@ -111,6 +126,9 @@ describe('service-pages: уникальность мета-данных (ант�
       'evakuator-iz-podzemnogo-parkinga': 'эвакуатор из подземного',
       'nochnoj-evakuator': 'ночной эвакуатор',
       'perevozka-avto-v-drugoy-gorod': 'перевозка автомобиля',
+      'evakuator-dzhip-s-lebedkoj': 'эвакуатор для джипа',
+      ceny: 'сколько стоит эвакуатор',
+      'sravnenie-evakuatorov-moskva': 'эвакуатор рядом',
     };
     servicePages.forEach((p) => {
       const key = keys[p.slug];
@@ -241,5 +259,96 @@ describe('service-pages: цены из единого источника (рас
     const dtp = getServicePage('evakuator-posle-dtp')!;
     expect(servicePagePriceLabel(dtp.price)).toBe(`от ${formatPrice(minBaseFee())}`);
     expect(servicePagePriceLabel({ kind: 'onRequest' })).toBe('Цена по запросу');
+  });
+});
+
+describe('service-pages: спецформаты ЧТЗ SEO v2 (EV-07 цены, EV-08 сравнение, EV-03 джипы)', () => {
+  it('EV-08 безопасный формат: бренды конкурентов в контенте, но НЕ в title/description/h1', () => {
+    const sravnenie = getServicePage('sravnenie-evakuatorov-moskva')!;
+    const metas = [sravnenie.title, sravnenie.description, sravnenie.h1].join('\n').toLowerCase();
+    ['автоэвакуатор', 'перевозка 24'].forEach((brand) => {
+      expect(metas, `бренд «${brand}» не должен быть в метах EV-08`).not.toContain(brand);
+    });
+    // Бренды обязаны присутствовать в тексте страницы — иначе она не отвечает своему запросу
+    const body = allTexts(sravnenie);
+    expect(body).toContain('автоэвакуатор.рф');
+    expect(body).toContain('Перевозка 24');
+  });
+
+  it('EV-08 обязательные блоки: таблица сравнения, 24/7, CTA-секция (ЧТЗ §2)', () => {
+    const sravnenie = getServicePage('sravnenie-evakuatorov-moskva')!;
+    const sections = sravnenie.sections ?? [];
+    expect(sections.map((s) => s.id)).toEqual([
+      'sravnenie-sluzhb',
+      'skolko-stoit',
+      'kruglosutochno',
+      'kak-vyzvat',
+    ]);
+    const table = sections[0].table!;
+    expect(table.head.length).toBeGreaterThanOrEqual(4);
+    expect(table.rows.length).toBeGreaterThanOrEqual(3);
+    expect(table.note).toBeTruthy();
+    expect(sections.find((s) => s.id === 'kruglosutochno')?.bullets?.length).toBeGreaterThanOrEqual(3);
+    expect(sections.find((s) => s.id === 'kak-vyzvat')?.cta).toBe(true);
+  });
+
+  it('EV-07 обязательные блоки: тарифы, примеры расчёта 10/30/50 км, факторы, агрегаторы', () => {
+    const ceny = getServicePage('ceny')!;
+    const sections = ceny.sections ?? [];
+    expect(sections.map((s) => s.id)).toEqual([
+      'tarify',
+      'primery-rascheta',
+      'ot-chego-zavisit',
+      'agregatory-ili-sluzhba',
+    ]);
+    // Примеры расчёта синхронны с pricing.ts: 10/30/50 км по обоим тарифам
+    const calcTable = sections[1].table!;
+    const body = calcTable.rows.flat().join('\n');
+    [10, 30, 50].forEach((km) => {
+      expect(body).toContain(
+        formatPrice(tariffs.lightVehicle.baseFee + km * tariffs.lightVehicle.perKm),
+      );
+      expect(body).toContain(
+        formatPrice(tariffs.offroad.baseFee + km * tariffs.offroad.perKm),
+      );
+    });
+    // Честное сравнение с упоминанием конкурентов — но БЕЗ брендов в метах (безопасный формат)
+    const metas = [ceny.title, ceny.description, ceny.h1].join('\n').toLowerCase();
+    expect(metas).not.toContain('автоэвакуатор');
+    expect(sections[3].paragraphs?.join(' ') ?? '').toContain('автоэвакуатор.рф');
+  });
+
+  it('EV-07 ↔ EV-08 перелинкованы между собой (взаимные related)', () => {
+    const ceny = getServicePage('ceny')!;
+    const sravnenie = getServicePage('sravnenie-evakuatorov-moskva')!;
+    expect(ceny.related).toContain('sravnenie-evakuatorov-moskva');
+    expect(sravnenie.related).toContain('ceny');
+  });
+
+  it('EV-03 джипы: тариф offroad, перелинковка с лебёдкой и 5 тоннами', () => {
+    const dzhip = getServicePage('evakuator-dzhip-s-lebedkoj')!;
+    expect(dzhip.price).toEqual({ kind: 'tariff', serviceSlug: 'offroad' });
+    expect(dzhip.orderServiceType).toBe('offroad');
+    expect(dzhip.related).toContain('evakuator-s-lebedkoj');
+    // Карточка каталога «Внедорожники и кроссоверы» ведёт на посадочную джипов
+    expect(catalogServiceToLanding.offroad).toBe('evakuator-dzhip-s-lebedkoj');
+  });
+
+  it('sections: id уникальны, таблицы согласованы (row.length === head.length)', () => {
+    servicePages.forEach((p) => {
+      const ids = (p.sections ?? []).map((s) => s.id);
+      expect(new Set(ids).size, `${p.slug}: дубли id секций`).toBe(ids.length);
+      (p.sections ?? []).forEach((s) => {
+        if (s.table) {
+          expect(s.table.head.length).toBeGreaterThanOrEqual(2);
+          expect(s.table.rows.length).toBeGreaterThanOrEqual(1);
+          s.table.rows.forEach((row) => {
+            expect(row.length, `${p.slug}/${s.id}: строка не совпадает с шапкой`).toBe(
+              s.table!.head.length,
+            );
+          });
+        }
+      });
+    });
   });
 });

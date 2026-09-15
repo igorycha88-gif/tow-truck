@@ -4,8 +4,15 @@ import { company } from '@/config/company';
 import { navigation } from '@/config/site';
 import { getServicePage } from '@/config/service-pages';
 
-// Ссылки на главные услуги в подвале (ЭПИК-4): 3–4 посадочные, без переспама.
-const footerServiceLinks = ['evakuator-24-7', 'evakuator-posle-dtp', 'evakuator-legkovyh', 'evakuator-vidnoe']
+// Ссылки на главные услуги в подвале (ЭПИК-4 + ЧТЗ SEO v2: /ceny — сквозная
+// перелинковка на страницу цен со всех страниц сайта).
+const footerServiceLinks = [
+  'ceny',
+  'evakuator-24-7',
+  'evakuator-posle-dtp',
+  'evakuator-legkovyh',
+  'evakuator-vidnoe',
+]
   .map((slug) => getServicePage(slug))
   .filter((p): p is NonNullable<typeof p> => Boolean(p));
 
