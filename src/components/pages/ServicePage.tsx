@@ -4,7 +4,6 @@ import { Card } from '@/components/ui/card';
 import { buttonVariants } from '@/components/ui/button';
 import { Breadcrumbs } from '@/components/seo/Breadcrumbs';
 import { JsonLd } from '@/components/seo/JsonLd';
-import { OrderForm } from '@/components/forms/OrderForm';
 import { servicePageLd, faqPageLd } from '@/lib/seo/json-ld';
 import { getLandingPage } from '@/config/geo';
 import { servicePagePriceLabel } from '@/config/service-pages';
@@ -65,10 +64,14 @@ export function ServicePage({ page }: { page: ServicePageConfig }) {
             data-page="service_page"
             className={cn(buttonVariants({ size: 'lg' }), 'gap-2')}
           >
-            <Phone className="h-5 w-5" /> {company.phone}
+            <Phone className="h-5 w-5" /> Заказать эвакуатор
           </a>
-          <a href="#order-service" className={cn(buttonVariants({ variant: 'secondary', size: 'lg' }))}>
-            Оставить заявку
+          <a
+            href={company.phoneHref}
+            data-page="service_page"
+            className={cn(buttonVariants({ variant: 'secondary', size: 'lg' }))}
+          >
+            {company.phone}
           </a>
         </div>
       </header>
@@ -173,34 +176,30 @@ export function ServicePage({ page }: { page: ServicePageConfig }) {
         </div>
       </section>
 
-      {/* CTA + форма заказа (мобильная кнопка-телефон — sticky FloatingCallBtn в layout) */}
+      {/* CTA заказа (id="order-service" — якорь). Форма заявки убрана: конверсия
+          переведена на прямой звонок (tel:). Трекается делегированно (ClickEventsTracker). */}
       <section id="order-service" className="py-12 md:py-16" aria-labelledby={`${page.slug}-order`}>
         <div className="container">
-          <div className="mx-auto grid max-w-5xl gap-10 lg:grid-cols-2">
-            <div className="lg:pr-8">
-              <h2 id={`${page.slug}-order`} className="text-2xl font-bold tracking-tight sm:text-3xl">
-                Заказать: {page.h1.toLowerCase()}
-              </h2>
-              <p className="mt-4 text-lg text-muted-foreground">
-                Позвоните — оператор назовёт точную стоимость и время подачи.
-                Или оставьте заявку: перезвоним в течение нескольких минут.
-              </p>
-              <a
-                href={company.phoneHref}
-                data-page="service_page"
-                className="mt-6 inline-block text-2xl font-extrabold text-accent hover:underline"
-              >
-                {company.phone}
-              </a>
-              <ul className="mt-6 space-y-2 text-sm text-muted-foreground">
-                <li>✓ Подача {trustStats.responseMinutes} минут по Москве и МО</li>
-                <li>✓ Фиксированная цена, без скрытых платежей</li>
-                <li>✓ Работаем 24/7, без выходных</li>
-              </ul>
-            </div>
-            <div className="rounded-2xl border border-border bg-card p-6 shadow-sm sm:p-8">
-              <OrderForm defaultServiceType={page.orderServiceType} />
-            </div>
+          <div className="mx-auto max-w-3xl text-center">
+            <h2 id={`${page.slug}-order`} className="text-2xl font-bold tracking-tight sm:text-3xl">
+              Заказать: {page.h1.toLowerCase()}
+            </h2>
+            <p className="mt-4 text-lg text-muted-foreground">
+              Позвоните — оператор назовёт точную стоимость и время подачи.
+              Работаем 24/7, без выходных.
+            </p>
+            <a
+              href={company.phoneHref}
+              data-page="service_page"
+              className={cn(buttonVariants({ size: 'lg' }), 'mt-6 inline-flex gap-2')}
+            >
+              <Phone className="h-5 w-5" /> {company.phone}
+            </a>
+            <ul className="mx-auto mt-8 grid max-w-xl gap-2 text-left text-sm text-muted-foreground">
+              <li>✓ Подача {trustStats.responseMinutes} минут по Москве и МО</li>
+              <li>✓ Фиксированная цена, без скрытых платежей</li>
+              <li>✓ Работаем 24/7, без выходных</li>
+            </ul>
           </div>
         </div>
       </section>

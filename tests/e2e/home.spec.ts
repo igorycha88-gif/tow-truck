@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-// E2E: главная страница. Базовые сценарии рендера и формы.
+// E2E: главная страница. Базовые сценарии рендера и телефонного CTA.
 
 test('главная: H1 и ключевые секции рендерятся', async ({ page }) => {
   await page.goto('/');
@@ -21,33 +21,19 @@ test('главная: телефон кликабелен в header (tel:)', asy
   expect(href).toMatch(/^tel:\+?\d+$/);
 });
 
-test('форма: показывает ошибку при невалидном телефоне', async ({ page }) => {
-  await page.goto('/#order');
-
-  await page.fill('#name', 'Иван');
-  await page.fill('#phone', '123');
-  await page.fill('#addressFrom', 'МКАД');
-  await page.check('#consent');
-
-  await page.click('button[type="submit"]');
-
-  await expect(page.locator('text=/неверный формат|укажите номер/i')).toBeVisible({ timeout: 5000 });
+test('кнопка «Заказать эвакуатор» в Hero — tel:-ссылка на номер', async ({ page }) => {
+  await page.goto('/');
+  const cta = page.getByRole('link', { name: /Заказать эвакуатор/i }).first();
+  await expect(cta).toBeVisible();
+  expect(await cta.getAttribute('href')).toMatch(/^tel:\+?\d+$/);
 });
 
-test('форма: кнопка отправки неактивна до согласия на обработку ПД (152-ФЗ)', async ({ page }) => {
+test('секция #order: телефонный CTA, формы заявки нет', async ({ page }) => {
   await page.goto('/#order');
 
-  await page.fill('#name', 'Иван');
-  await page.fill('#phone', '+7 (999) 123-45-67');
-  await page.fill('#addressFrom', 'МКАД 50 км');
-
-  // consent не отмечен → кнопка disabled
-  const submit = page.locator('button[type="submit"]');
-  await expect(submit).toBeDisabled();
-
-  // отмечаем согласие → кнопка активна
-  await page.check('#consent');
-  await expect(submit).toBeEnabled();
+  await expect(page.locator('#order a[href^="tel:"]')).toBeVisible();
+  await expect(page.locator('#order form')).toHaveCount(0);
+  await expect(page.locator('#consent')).toHaveCount(0);
 });
 
 test('мобильная вьюпорт: floating-call кнопка видна', async ({ page, isMobile }) => {

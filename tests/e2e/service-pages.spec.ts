@@ -19,14 +19,15 @@ const SLUGS = [
   'perevozka-avto-v-drugoy-gorod',
 ];
 
-test('посадочная 24/7: H1, цена, форма, FAQ рендерятся', async ({ page }) => {
+test('посадочная 24/7: H1, цена, телефонный CTA, FAQ рендерятся', async ({ page }) => {
   await page.goto('/evakuator-24-7');
 
   await expect(page.getByRole('heading', { level: 1 })).toContainText(/24\/7/i);
   await expect(page.getByRole('heading', { name: 'Что входит в услугу' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Стоимость услуги' })).toBeVisible();
   await expect(page.getByTestId('price-label')).toContainText(/от/i);
-  await expect(page.locator('#order-service form')).toBeVisible();
+  await expect(page.locator('#order-service a[href^="tel:"]')).toBeVisible();
+  await expect(page.locator('#order-service form')).toHaveCount(0);
   await expect(page.getByRole('heading', { name: 'Смежные услуги' })).toBeVisible();
 });
 
@@ -81,7 +82,7 @@ test('новые посадочные (ЧТЗ SEO_нетиповые): парк�
 
   await page.goto('/nochnoj-evakuator');
   await expect(page.getByRole('heading', { level: 1 })).toContainText('Ночной эвакуатор');
-  await expect(page.locator('#order-service form')).toBeVisible();
+  await expect(page.locator('#order-service a[href^="tel:"]')).toBeVisible();
 
   await page.goto('/perevozka-avto-v-drugoy-gorod');
   await expect(page.getByRole('heading', { level: 1 })).toContainText('другой город');

@@ -2,22 +2,23 @@ import { test, expect } from '@playwright/test';
 
 // E2E smoke гео-посадочных (ADR-003, ЧТЗ_Гео §7.2): район Москвы, город МО, хаб.
 
-test('гео-район ЮВАО: H1, цена, форма, крошки с хабом', async ({ page }) => {
+test('гео-район ЮВАО: H1, цена, телефонный CTA, крошки с хабом', async ({ page }) => {
   await page.goto('/evakuator-marino');
   await expect(page.getByRole('heading', { level: 1 })).toContainText(/Марьино/i);
   await expect(page.getByRole('heading', { name: 'Что входит в услугу' })).toBeVisible();
   await expect(page.getByTestId('price-label')).toContainText(/от/i);
-  await expect(page.locator('#order-service form')).toBeVisible();
+  await expect(page.locator('#order-service a[href^="tel:"]')).toBeVisible();
+  await expect(page.locator('#order-service form')).toHaveCount(0);
   // Крошки: Главная → Хаб ЮВАО → Марьино
   const crumbs = page.getByRole('navigation', { name: 'Хлебные крошки' });
   await expect(crumbs.getByRole('link', { name: 'Главная' })).toBeVisible();
   await expect(crumbs.getByText(/ЮВАО/i)).toBeVisible();
 });
 
-test('гео-город МО: H1 и форма', async ({ page }) => {
+test('гео-город МО: H1 и телефонный CTA', async ({ page }) => {
   await page.goto('/evakuator-lyubercy');
   await expect(page.getByRole('heading', { level: 1 })).toContainText(/Люберцах/i);
-  await expect(page.locator('#order-service form')).toBeVisible();
+  await expect(page.locator('#order-service a[href^="tel:"]')).toBeVisible();
 });
 
 test('разговорные ключи: H1 «Эвакуатор Балашиха» без предлога', async ({ page }) => {
@@ -25,10 +26,10 @@ test('разговорные ключи: H1 «Эвакуатор Балаших�
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Эвакуатор Балашиха');
 });
 
-test('трасса Горьковка: H1, форма, крошки с хабом МО-восток', async ({ page }) => {
+test('трасса Горьковка: H1, телефонный CTA, крошки с хабом МО-восток', async ({ page }) => {
   await page.goto('/evakuator-gorkovka');
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Эвакуатор Горьковка');
-  await expect(page.locator('#order-service form')).toBeVisible();
+  await expect(page.locator('#order-service a[href^="tel:"]')).toBeVisible();
   const crumbs = page.getByRole('navigation', { name: 'Хлебные крошки' });
   await expect(crumbs.getByText(/востоке Подмосковья/i)).toBeVisible();
 });
@@ -80,26 +81,26 @@ const v2Pages = [
 ];
 
 for (const { url, h1 } of v2Pages) {
-  test(`ЮЗАО/ЗАО район ${url}: 200, разговорный H1 и форма`, async ({ page }) => {
+  test(`ЮЗАО/ЗАО район ${url}: 200, разговорный H1 и телефонный CTA`, async ({ page }) => {
     const res = await page.goto(url);
     expect(res?.status()).toBe(200);
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(h1);
-    await expect(page.locator('#order-service form')).toBeVisible();
+    await expect(page.locator('#order-service a[href^="tel:"]')).toBeVisible();
   });
 }
 
-test('хаб ЮЗАО: H1, блок «Районы ЮЗАО», форма', async ({ page }) => {
+test('хаб ЮЗАО: H1, блок «Районы ЮЗАО», телефонный CTA', async ({ page }) => {
   await page.goto('/evakuator-yuzao-moskvy');
   await expect(page.getByRole('heading', { level: 1 })).toContainText(/ЮЗАО/i);
   await expect(page.getByRole('heading', { name: /^Районы ЮЗАО/i })).toBeVisible();
-  await expect(page.locator('#order-service form')).toBeVisible();
+  await expect(page.locator('#order-service a[href^="tel:"]')).toBeVisible();
 });
 
-test('хаб ЗАО: H1, блок «Районы ЗАО», форма', async ({ page }) => {
+test('хаб ЗАО: H1, блок «Районы ЗАО», телефонный CTA', async ({ page }) => {
   await page.goto('/evakuator-zao-moskvy');
   await expect(page.getByRole('heading', { level: 1 })).toContainText(/ЗАО/i);
   await expect(page.getByRole('heading', { name: /^Районы ЗАО/i })).toBeVisible();
-  await expect(page.locator('#order-service form')).toBeVisible();
+  await expect(page.locator('#order-service a[href^="tel:"]')).toBeVisible();
 });
 
 test('меты ЮЗАО/ЗАО в JSON-LD: Service, FAQPage, BreadcrumbList', async ({ page }) => {

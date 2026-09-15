@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import { Phone, Mail, Timer, ShieldCheck, Star } from 'lucide-react';
 import { company, trustStats } from '@/config/company';
 import { buttonVariants } from '@/components/ui/button';
@@ -41,23 +40,24 @@ export function Hero() {
           </p>
 
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-              <a
-                href={company.phoneHref}
-                data-page="home"
-                className={cn(buttonVariants({ variant: 'default', size: 'lg' }), 'w-full sm:w-auto')}
-              >
-                <Phone className="h-5 w-5" />
-                {company.phone}
-              </a>
-            <Link
-              href="/#order"
+            <a
+              href={company.phoneHref}
+              data-page="home"
+              className={cn(buttonVariants({ variant: 'default', size: 'lg' }), 'w-full sm:w-auto')}
+            >
+              <Phone className="h-5 w-5" />
+              Заказать эвакуатор
+            </a>
+            <a
+              href={company.phoneHref}
+              data-page="home"
               className={cn(
                 buttonVariants({ variant: 'secondary', size: 'lg' }),
                 'w-full sm:w-auto',
               )}
             >
-              Заказать эвакуатор
-            </Link>
+              {company.phone}
+            </a>
           </div>
 
           {company.email && (
