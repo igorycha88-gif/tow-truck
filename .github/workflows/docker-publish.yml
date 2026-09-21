@@ -58,9 +58,12 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          # NEXT_PUBLIC_* инлайнятся при next build — передаём боевой URL в образ.
+          # NEXT_PUBLIC_* инлайнятся при next build — передаём боевые значения в образ.
+          # METRIKA_ID: без него статический HTML главной не содержит счётчик
+          # (ЧТЗ_Метрика_прод_и_WAF_боты).
           build-args: |
             NEXT_PUBLIC_SITE_URL=https://эвакуация.online
+            NEXT_PUBLIC_METRIKA_ID=111456265
           cache-from: type=gha
           cache-to: type=gha,mode=max
 

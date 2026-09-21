@@ -5,6 +5,28 @@
 Формат основан на [Keep a Changelog](https://keepachangelog.com/ru/1.1.0/),
 версионирование — [Semantic Versioning](https://semver.org/lang/ru/).
 
+## [0.14.0] — 2026-09-21
+
+### Добавлено
+- **Yandex.Метрика на проде** (ЧТЗ_Метрика_прод_и_WAF_боты): счётчик `111456265` встраивается
+  в статический HTML при сборке образа — `NEXT_PUBLIC_METRIKA_ID` прокинут build-arg'ом
+  (Dockerfile + docker-publish.yml) и задан в `.env` на VPS (runtime для SSR-страховки).
+  Сайт перестал быть «слепым»: трафик, конверсии, Вебвизор, карта кликов.
+- **WAF: явный allow-list ботов и мониторинга** поверх блок-листа
+  (evakuaciya-protection.conf): Яндекс (все краулеры содержат «Yandex»/«YaDirect»),
+  Googlebot/Google-InspectionTool, bingbot, DuckDuckBot, Mail.RU_Bot, Applebot, Baidu,
+  UptimeRobot/Uptime-Kuma/Pingdom/CheckHost/Host-Tracker/StatusCake. Разрешения объявлены
+  РАНЬШЕ блок-паттернов (nginx map: first-match-wins) — будущие правки блок-листа
+  не смогут уронить Яндекс-ботов в 403 (риск SEO-падения исключён). Защита от сканеров
+  (nuclei/sqlmap/httpx/Semrush/Ahrefs и др.) не ослаблена: 403 подтверждён live.
+- **Автотест WAF-конфига** (src/lib/deploy/waf-protection.test.ts): порядок allow/block,
+  реальные UA Яндекс-ботов разрешены, сканеры блокируются, согласованность ID Метрики
+  между dev-compose/.env.example/Dockerfile/CI.
+- **Nginx защита от ботов** (ЧТЗ_Nginx_защита_от_ботов, применена на VPS 2026-09-08,
+  фиксация в git): карта `$blocked_agent` (403 скриптовым/сканирующим UA), rate-limit
+  зоны site_limit 10 r/s / api_limit 5 r/s (429), внутренние IP без лимита; Grafana
+  под внешним basic-auth (deploy/nginx/README.md).
+
 ## [0.13.0] — 2026-09-08
 
 ### Добавлено

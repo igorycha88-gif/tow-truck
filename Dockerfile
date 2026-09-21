@@ -26,10 +26,15 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
-# NEXT_PUBLIC_* переменные инлайнятся в код при `next build` (недоступны в рантайме).
-# Пробрасываем URL сайта как build-arg (см. docker-publish.yml). Дефолт — для локальной сборки.
+# NEXT_PUBLIC_* переменные инлайнятся в код при `next build` (недоступны в рантайме
+# для статически прендеренных страниц). Пробрасываем как build-arg (см.
+# docker-publish.yml). Дефолты — для локальной сборки.
 ARG NEXT_PUBLIC_SITE_URL=http://localhost:3000
 ENV NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
+# ID Яндекс.Метрики: без него статический HTML главной не содержит счётчик
+# (ЧТЗ_Метрика_прод_и_WAF_боты; runtime env не влияет на прендер из сборки).
+ARG NEXT_PUBLIC_METRIKA_ID=
+ENV NEXT_PUBLIC_METRIKA_ID=$NEXT_PUBLIC_METRIKA_ID
 RUN npx prisma generate && npm run build
 
 # ─── runner (production-образ) ───

@@ -10,7 +10,11 @@ Production reverse-proxy и HTTPS (Let's Encrypt) для домена
 | `evakuaciya-upstream.conf` | Blue-Green upstream `app` → 127.0.0.1:3001 (PROD/BLUE) | `/etc/nginx/conf.d/` |
 | `evakuaciya-map.conf` | `map $http_upgrade $connection_upgrade` (http-контекст) | `/etc/nginx/conf.d/` |
 | `evakuaciya-online.conf` | Server-блоки: http→https, www→apex, SSL proxy | `/etc/nginx/conf.d/` |
+| `evakuaciya-protection.conf` | Блок ботов по UA + rate-limit зоны (см. ниже) | `/etc/nginx/conf.d/` |
 | `setup-ssl.sh` | Выпуск SSL через certbot + применение финального конфига | запустить на VPS |
+
+> default_server `:80` (catch-all по IP) лежит на VPS в `/etc/nginx/sites-enabled/evakuaciya`
+> (в git не хранится); при его правках — сверять с состоянием на сервере.
 
 ## Что реализовано
 
@@ -21,6 +25,16 @@ Production reverse-proxy и HTTPS (Let's Encrypt) для домена
   проброс `Host`/`X-Real-IP`/`X-Forwarded-*`, WebSocket upgrade (для Next.js).
 - **Grafana подпуть**: `location /grafana/` → `127.0.0.1:3030` (Grafana контейнер, ADR-001).
 - **Защита API метрик**: `location = /api/metrics` закрыт basic-auth (`/etc/nginx/.htpasswd-metrics`).
+- **Защита от ботов (2026-09-08, ЧТЗ «Nginx_защита_от_ботов»)**:
+  - `evakuaciya-protection.conf`: `map $blocked_agent` → **403** скриптовым/сканирующим UA
+    (python-httpx, python-requests, scrapy, axios, go-http-client, zgrab, nuclei, sqlmap,
+    SEO-скреперы MJ12/Semrush/Ahrefs/DotBot и др.). curl/wget НЕ блокируются (мониторинг/деплой),
+    боты поисковиков и верификатор Директа — тоже (SEO).
+  - **Rate-limit**: `location /` — 10 r/s burst 20 на IP; `location ^~ /api/` — 5 r/s burst 10.
+    Внутренние IP (127.0.0.1, ::1, VPS) не лимитируются (пустой ключ `$rl_key`).
+    Превышение → `429` (логируется в error.log как `limiting requests`).
+  - **Grafana закрыта** внешним basic-auth (`/etc/nginx/.htpasswd-grafana`, пользователь `admin`,
+    пароль на VPS в `/root/grafana-admin-password.txt`, chmod 600) + внутренний логин Grafana.
 - **Security headers**: HSTS, `X-Content-Type-Options`, `X-Frame-Options SAMEORIGIN`, `Referrer-Policy`.
 - **gzip**: text/css/js/json/xml/svg.
 - **Логи**: `/var/log/nginx/evakuaciya-online.{access,error}.log`.
