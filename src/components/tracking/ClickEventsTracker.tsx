@@ -1,12 +1,14 @@
 'use client';
 
 import * as React from 'react';
-import { toPageSlug, resolveSessionSource } from '@/lib/client-tracking';
+import { toPageSlug } from '@/lib/client-tracking';
+import { sendClickBeacon } from '@/lib/click-beacon';
 
 // Делегированный трекер кликов (ЧТЗ §2.1/§2.4, ADR-012): один обработчик click
 // на document ловит клики по tel:-ссылкам (eventType=click_phone) и элементам
 // с data-service (service_click). Новые номера/услуги ловятся автоматически.
 // Debounce: не чаще 1 события на цель в 5 секунд.
+// Отправка — sendBeacon (переживает хендофф tel: в диалер, см. lib/click-beacon).
 // Fire-and-forget: не блокирует переход по ссылке, ошибки молчаливые.
 
 const DEBOUNCE_MS = 5_000;
@@ -26,23 +28,10 @@ function pageContext(target: Element): string {
   return labelled?.dataset.page || toPageSlug(window.location.pathname || '/');
 }
 
-function sendEvent(payload: Record<string, unknown>): void {
-  try {
-    void fetch('/api/click-event', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...payload, referrer: resolveSessionSource() }),
-      keepalive: true,
-    });
-  } catch {
-    // Метрики — некритичны для UX, игнорируем ошибки отправки.
-  }
-}
-
 export function ClickEventsTracker() {
   React.useEffect(() => {
     const onClick = (event: MouseEvent) => {
-      if (event.defaultPrevented || event.button !== 0) return;
+      if (event.button !== 0) return;
       const target = event.target;
       if (!(target instanceof Element)) return;
       const now = Date.now();
@@ -50,7 +39,7 @@ export function ClickEventsTracker() {
       const phoneLink = target.closest<HTMLAnchorElement>('a[href^="tel:"]');
       if (phoneLink) {
         if (shouldFire(`phone:${phoneLink.href}`, now)) {
-          sendEvent({ eventType: 'click_phone', page: pageContext(phoneLink) });
+          sendClickBeacon({ eventType: 'click_phone', page: pageContext(phoneLink) });
         }
         return;
       }
@@ -59,7 +48,7 @@ export function ClickEventsTracker() {
       const service = serviceTarget?.dataset.service;
       if (service) {
         if (shouldFire(`service:${service}`, now)) {
-          sendEvent({ eventType: 'service_click', page: pageContext(serviceTarget), service });
+          sendClickBeacon({ eventType: 'service_click', page: pageContext(serviceTarget), service });
         }
       }
     };

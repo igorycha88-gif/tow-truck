@@ -5,6 +5,22 @@
 Формат основан на [Keep a Changelog](https://keepachangelog.com/ru/1.1.0/),
 версионирование — [Semantic Versioning](https://semver.org/lang/ru/).
 
+## [0.14.1] — 2026-09-22
+
+### Исправлено
+- **Трекинг кликов по телефону (tel:) на проде** (ЧТЗ_Фикс_трекинга_кликов_tel): с 15.09
+  (деплой перевода CTA на tel:) события `click_phone` перестали доходить — `fetch keepalive`
+  гибнет при хендоффе в диалер на мобильных (0 событий за 8 дней при ~120 визитах; ранее
+  CTR ≈ 6%). Транспорт переведён на `navigator.sendBeacon` (переживает unload) с fallback
+  на `fetch keepalive` (src/lib/click-beacon.ts + unit-тесты, 6 кейсов).
+- **`service_click` не трекался никогда**: Next.js `<Link>` делает `preventDefault` при
+  клиентской навигации, а делегированный обработчик выходил по `event.defaultPrevented`.
+  Guard убран (в БД 0 записей service_click за всё время — подтверждено диагностикой).
+- **E2E metrics.spec.ts был красный** (в CI не запускается): клик по tel: валил тест
+  таймаутом (внешний протокол). Фикс: `noWaitAfter` + рекордер sendBeacon через
+  `addInitScript` (тело Blob недоступно в перехвате на mobile-эмуляции).
+  Сюита: 80 passed / 0 failed, unit: 411 passed.
+
 ## [0.14.0] — 2026-09-21
 
 ### Добавлено
