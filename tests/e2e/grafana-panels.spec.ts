@@ -21,7 +21,13 @@ test('панель «Посетители по часам» рендерится
   }
   await page.waitForURL((url) => !url.pathname.includes('/login'), { timeout: 15000 });
 
-  await page.goto(`${GRAFANA}/d/evakuaciya-business-metrics`);
+  // Мобильная эмуляция периодически ловит «Frame load interrupted» на редиректах
+  // Grafana после логина — ретрай навигации делает тест стабильным.
+  const openDashboard = () =>
+    page.goto(`${GRAFANA}/d/evakuaciya-business-metrics`, {
+      waitUntil: 'domcontentloaded',
+    });
+  await openDashboard().catch(() => openDashboard());
   await page.waitForLoadState('networkidle');
 
   const panel = page.locator('h2, [data-testid*="panel-title"]').filter({

@@ -21,7 +21,6 @@ import { pyatiTonnPage } from './pyati-tonn';
 import { podzemnyjParkingPage } from './podzemnyj-parking';
 import { nochnojEvakuatorPage } from './nochnoj-evakuator';
 import { mezhgorodPage } from './mezhgorod';
-import { dzhipSLebedkojPage } from './dzhip-s-lebedkoj';
 import { cenyPage } from './ceny';
 import { sravnenieEvakuatorovPage } from './sravnenie-evakuatorov-moskva';
 
@@ -39,7 +38,6 @@ export const servicePages: ServicePageConfig[] = [
   podzemnyjParkingPage,
   nochnojEvakuatorPage,
   mezhgorodPage,
-  dzhipSLebedkojPage,
   cenyPage,
   sravnenieEvakuatorovPage,
 ];
@@ -55,7 +53,8 @@ export const catalogServiceToLanding: Partial<Record<ServiceType, string>> = {
   light_vehicle: 'evakuator-legkovyh',
   moto: 'evakuaciya-mototehniki',
   accident: 'evakuator-posle-dtp',
-  offroad: 'evakuator-dzhip-s-lebedkoj',
+  // Джип-посадочная удалена (ЧТЗ v3-код, TASK-V3-01): каталог offroad и 301 ведут на «Эвакуатор с лебёдкой».
+  offroad: 'evakuator-s-lebedkoj',
   commercial: 'evakuaciya-spec-tehniki',
 };
 

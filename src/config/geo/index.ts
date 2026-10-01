@@ -30,6 +30,29 @@ const localityAreaName = (dir: GeoDirection, loc: GeoLocality): string =>
     ? `район ${loc.name}, Москва`
     : `${loc.name}, Московская область`;
 
+/**
+ * Соседние локации того же направления для перелинковки (ЧТЗ v3 EV-R6):
+ * ручные слаги локации + автоматические соседи по округу/направлению,
+ * всего 3–5 ссылок на соседей (без дублей и ссылки на себя).
+ */
+const neighborSlugs = (dir: GeoDirection, loc: GeoLocality): string[] => {
+  const ownSlug = `evakuator-${loc.slug}`;
+  const manual = new Set(loc.related);
+  const auto = dir.localities
+    .filter((l) => l.slug !== loc.slug)
+    .map((l) => `evakuator-${l.slug}`)
+    .filter((s) => !manual.has(s));
+  // Цель — 4 соседа (середина диапазона 3–5 из ЧТЗ); в малых направлениях — сколько есть.
+  const target = Math.max(0, 4 - loc.related.length);
+  return [...manual, ...auto.slice(0, target)].filter(
+    (s, i, arr) => s !== ownSlug && arr.indexOf(s) === i,
+  );
+};
+
+/** Заголовок блока перелинковки локации (ЧТЗ v3 EV-R6: районы Москвы / города МО). */
+const localityRelatedTitle = (dir: GeoDirection): string =>
+  dir.id.startsWith('moscow-') ? 'Работаем в соседних районах' : 'Работаем в соседних городах';
+
 /** Посадочная локации: уникальные данные + общие блоки направления. */
 const composeGeoPage = (dir: GeoDirection, loc: GeoLocality): ServicePageConfig => ({
   slug: `evakuator-${loc.slug}`,
@@ -48,7 +71,8 @@ const composeGeoPage = (dir: GeoDirection, loc: GeoLocality): ServicePageConfig 
       answer: f.answer(loc.nameIn),
     })),
   ],
-  related: [dir.hubSlug, ...loc.related],
+  related: [dir.hubSlug, ...neighborSlugs(dir, loc), 'ceny'],
+  relatedTitle: localityRelatedTitle(dir),
   orderServiceType: 'light_vehicle',
   parent: { name: dir.hubH1, slug: dir.hubSlug },
   areaName: loc.areaNameOverride ?? localityAreaName(dir, loc),

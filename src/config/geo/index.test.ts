@@ -57,8 +57,8 @@ describe('geo: состав реестра (ЧТЗ §2.2)', () => {
     expect(localityPages).toHaveLength(94);
   });
 
-  it('118 посадочных в объединённом реестре (16 услуг + 102 гео)', () => {
-    expect(landingPages).toHaveLength(118);
+  it('117 посадочных в объединённом реестре (15 услуг + 102 гео; ЧТЗ v3-код)', () => {
+    expect(landingPages).toHaveLength(117);
     expect(landingPages.length).toBe(servicePages.length + geoPages.length);
   });
 
@@ -83,17 +83,17 @@ describe('geo: состав реестра (ЧТЗ §2.2)', () => {
 });
 
 describe('geo: уникальность мета-данных (анти-дорвей, ЧТЗ §3.2)', () => {
-  it('title уникальны по всем 118 посадочным', () => {
+  it('title уникальны по всем 117 посадочным', () => {
     const titles = landingPages.map((p) => p.title);
     expect(new Set(titles).size).toBe(titles.length);
   });
 
-  it('description уникальны по всем 118 посадочным', () => {
+  it('description уникальны по всем 117 посадочным', () => {
     const descriptions = landingPages.map((p) => p.description);
     expect(new Set(descriptions).size).toBe(descriptions.length);
   });
 
-  it('H1 уникальны по всем 118 посадочным', () => {
+  it('H1 уникальны по всем 117 посадочным', () => {
     const h1s = landingPages.map((p) => p.h1);
     expect(new Set(h1s).size).toBe(h1s.length);
   });
@@ -197,11 +197,28 @@ describe('geo: перелинковка (ЧТЗ §3.3)', () => {
     });
   });
 
-  it('локация: related 2–3 и начинается с хаба направления', () => {
+  it('локация: related = хаб + соседи (3–5) + ceny, начинается с хаба (ЧТЗ v3 EV-R6)', () => {
     localityPages.forEach((p) => {
-      expect(p.related.length).toBeGreaterThanOrEqual(2);
-      expect(p.related.length).toBeLessThanOrEqual(3);
+      // Соседних локаций — от 3 до 5; в малых направлениях (МО-юг, 3 города) — от 2
+      const dir = geoDirections.find((d) => d.hubSlug === p.parent?.slug)!;
+      const minNeighbors = Math.min(3, dir.localities.length - 1);
+      expect(p.related.length).toBeGreaterThanOrEqual(minNeighbors + 2);
+      expect(p.related.length).toBeLessThanOrEqual(7);
       expect(p.related[0]).toBe(p.parent?.slug);
+      // Сквозная перелинковка на страницу цен со всех районных страниц
+      expect(p.related, `${p.slug}: нет ссылки на /ceny`).toContain('ceny');
+      const neighbors = p.related.filter((r) => r !== p.parent?.slug && r !== 'ceny');
+      expect(neighbors.length, `${p.slug}: соседей ${neighbors.length}, нужно ≥${minNeighbors}`).toBeGreaterThanOrEqual(minNeighbors);
+      expect(neighbors.length).toBeLessThanOrEqual(5);
+    });
+  });
+
+  it('локация: relatedTitle — «соседние районы» (Москва) / «соседние города» (МО)', () => {
+    localityPages.forEach((p) => {
+      const isMoscow = geoDirections.some(
+        (d) => d.id.startsWith('moscow-') && d.hubSlug === p.parent?.slug,
+      );
+      expect(p.relatedTitle).toBe(isMoscow ? 'Работаем в соседних районах' : 'Работаем в соседних городах');
     });
   });
 

@@ -5,9 +5,11 @@ import { navigation } from '@/config/site';
 import { getServicePage } from '@/config/service-pages';
 
 // Ссылки на главные услуги в подвале (ЭПИК-4 + ЧТЗ SEO v2: /ceny — сквозная
-// перелинковка на страницу цен со всех страниц сайта).
+// перелинковка на страницу цен со всех страниц сайта; ЧТЗ v3 EV-R3 —
+// /sravnenie-evakuatorov-moskva сквозной ссылкой со всех страниц).
 const footerServiceLinks = [
   'ceny',
+  'sravnenie-evakuatorov-moskva',
   'evakuator-24-7',
   'evakuator-posle-dtp',
   'evakuator-legkovyh',

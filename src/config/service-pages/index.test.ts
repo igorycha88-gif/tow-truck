@@ -34,8 +34,10 @@ function allTexts(page: (typeof servicePages)[number]): string {
 }
 
 // Разрешённые ценовые подстроки (формат единого источника pricing.ts, с nbsp от Intl).
-// Примеры маршрутов EV-07 (10/30/50 км) вычисляются по той же формуле — из tariffs.
-const routeSums = [10, 30, 50].flatMap((km) => [
+// Примеры маршрутов EV-07 (10/30/50 км) и города МО из секции v3-EV-R4 (3/4/15/16 км)
+// вычисляются по той же формуле — из tariffs.
+const routeKms = [10, 30, 50, 3, 4, 15, 16];
+const routeSums = routeKms.flatMap((km) => [
   formatPrice(tariffs.lightVehicle.baseFee + km * tariffs.lightVehicle.perKm),
   formatPrice(tariffs.offroad.baseFee + km * tariffs.offroad.perKm),
 ]);
@@ -47,8 +49,8 @@ const allowedPrices = [
 ];
 
 describe('service-pages: состав реестра (ЧТЗ табл. 4.1 + ЧТЗ SEO_нетиповые + ЧТЗ SEO v2)', () => {
-  it('ровно 16 страниц с требуемыми слагами', () => {
-    expect(servicePages).toHaveLength(16);
+  it('ровно 15 страниц с требуемыми слагами (джип-посадочная удалена, ЧТЗ v3-код)', () => {
+    expect(servicePages).toHaveLength(15);
     expect([...servicePageSlugs()].sort()).toEqual(
       [
         'evakuator-24-7',
@@ -64,11 +66,15 @@ describe('service-pages: состав реестра (ЧТЗ табл. 4.1 + Ч�
         'evakuator-iz-podzemnogo-parkinga',
         'nochnoj-evakuator',
         'perevozka-avto-v-drugoy-gorod',
-        'evakuator-dzhip-s-lebedkoj',
         'ceny',
         'sravnenie-evakuatorov-moskva',
       ].sort(),
     );
+  });
+
+  it('джип-посадочная evakuator-dzhip-s-lebedkoj удалена из реестра (TASK-V3-01)', () => {
+    expect(servicePageSlugs()).not.toContain('evakuator-dzhip-s-lebedkoj');
+    expect(getServicePage('evakuator-dzhip-s-lebedkoj')).toBeUndefined();
   });
 
   it('getServicePage находит страницу, для мусорного слага — undefined', () => {
@@ -126,7 +132,6 @@ describe('service-pages: уникальность мета-данных (ант�
       'evakuator-iz-podzemnogo-parkinga': 'эвакуатор из подземного',
       'nochnoj-evakuator': 'ночной эвакуатор',
       'perevozka-avto-v-drugoy-gorod': 'перевозка автомобиля',
-      'evakuator-dzhip-s-lebedkoj': 'эвакуатор для джипа',
       ceny: 'сколько стоит эвакуатор',
       'sravnenie-evakuatorov-moskva': 'эвакуатор рядом',
     };
@@ -262,24 +267,28 @@ describe('service-pages: цены из единого источника (рас
   });
 });
 
-describe('service-pages: спецформаты ЧТЗ SEO v2 (EV-07 цены, EV-08 сравнение, EV-03 джипы)', () => {
-  it('EV-08 безопасный формат: бренды конкурентов в контенте, но НЕ в title/description/h1', () => {
+describe('service-pages: спецформаты ЧТЗ SEO v2/v3 (EV-07 цены, EV-08 сравнение, V3 джипы)', () => {
+  it('EV-08 дебрендинг (TASK-V3-06): упоминаний конкурентов нет во всём контенте страницы', () => {
     const sravnenie = getServicePage('sravnenie-evakuatorov-moskva')!;
-    const metas = [sravnenie.title, sravnenie.description, sravnenie.h1].join('\n').toLowerCase();
+    const everything = [
+      sravnenie.title,
+      sravnenie.description,
+      sravnenie.h1,
+      allTexts(sravnenie),
+    ]
+      .join('\n')
+      .toLowerCase();
     ['автоэвакуатор', 'перевозка 24'].forEach((brand) => {
-      expect(metas, `бренд «${brand}» не должен быть в метах EV-08`).not.toContain(brand);
+      expect(everything, `бренд «${brand}» не должен встречаться на EV-08`).not.toContain(brand);
     });
-    // Бренды обязаны присутствовать в тексте страницы — иначе она не отвечает своему запросу
-    const body = allTexts(sravnenie);
-    expect(body).toContain('автоэвакуатор.рф');
-    expect(body).toContain('Перевозка 24');
   });
 
-  it('EV-08 обязательные блоки: таблица сравнения, 24/7, CTA-секция (ЧТЗ §2)', () => {
+  it('EV-08 обязательные блоки: сравнение типов, эконом-класс, 24/7, CTA (ЧТЗ §2 + v3)', () => {
     const sravnenie = getServicePage('sravnenie-evakuatorov-moskva')!;
     const sections = sravnenie.sections ?? [];
     expect(sections.map((s) => s.id)).toEqual([
       'sravnenie-sluzhb',
+      'ekonom-klass',
       'skolko-stoit',
       'kruglosutochno',
       'kak-vyzvat',
@@ -287,20 +296,30 @@ describe('service-pages: спецформаты ЧТЗ SEO v2 (EV-07 цены, E
     const table = sections[0].table!;
     expect(table.head.length).toBeGreaterThanOrEqual(4);
     expect(table.rows.length).toBeGreaterThanOrEqual(3);
+    expect(table.rows.flat().join('\n')).toContain('Прямая служба');
+    expect(table.rows.flat().join('\n')).toContain('Агрегаторы');
+    expect(table.rows.flat().join('\n')).toContain('Частники');
     expect(table.note).toBeTruthy();
+    // Эконом-класс (ЧТЗ v3 EV-R7): H2 с точной формулировкой, без брендов
+    const ekonom = sections.find((s) => s.id === 'ekonom-klass')!;
+    expect(ekonom.title).toBe('Эвакуатор эконом-класса: что входит в цену');
+    expect(ekonom.bullets?.length).toBeGreaterThanOrEqual(3);
     expect(sections.find((s) => s.id === 'kruglosutochno')?.bullets?.length).toBeGreaterThanOrEqual(3);
     expect(sections.find((s) => s.id === 'kak-vyzvat')?.cta).toBe(true);
   });
 
-  it('EV-07 обязательные блоки: тарифы, примеры расчёта 10/30/50 км, факторы, агрегаторы', () => {
+  it('EV-07 обязательные блоки: тарифы, «нанять», МО-таблица, факторы, дешёвый эвакуатор', () => {
     const ceny = getServicePage('ceny')!;
     const sections = ceny.sections ?? [];
     expect(sections.map((s) => s.id)).toEqual([
       'tarify',
       'primery-rascheta',
+      'stoimost-v-oblasti',
       'ot-chego-zavisit',
       'agregatory-ili-sluzhba',
     ]);
+    // «Сколько стоит нанять эвакуатор» — точная фраза «нанять» в H2 (ЧТЗ v3 EV-R4)
+    expect(sections[1].title).toContain('нанять');
     // Примеры расчёта синхронны с pricing.ts: 10/30/50 км по обоим тарифам
     const calcTable = sections[1].table!;
     const body = calcTable.rows.flat().join('\n');
@@ -312,10 +331,18 @@ describe('service-pages: спецформаты ЧТЗ SEO v2 (EV-07 цены, E
         formatPrice(tariffs.offroad.baseFee + km * tariffs.offroad.perKm),
       );
     });
-    // Честное сравнение с упоминанием конкурентов — но БЕЗ брендов в метах (безопасный формат)
-    const metas = [ceny.title, ceny.description, ceny.h1].join('\n').toLowerCase();
-    expect(metas).not.toContain('автоэвакуатор');
-    expect(sections[3].paragraphs?.join(' ') ?? '').toContain('автоэвакуатор.рф');
+    // Стоимость в МО (ЧТЗ v3 EV-R4): 5 городов, суммы из pricing.ts, есть Видное
+    const moTable = sections[2].table!;
+    const moBody = moTable.rows.flat().join('\n');
+    ['Видное', 'Люберцы', 'Балашиха', 'Подольск', 'Домодедово'].forEach((city) => {
+      expect(moBody, `МО-таблица без города ${city}`).toContain(city);
+    });
+    expect(ceny.related, 'ссылка на /evakuator-vidnoe из МО-секции').toContain('evakuator-vidnoe');
+    // Дешёвый эвакуатор рядом — опасность цены ниже рынка (EV-R4), без брендов
+    expect(sections[4].title).toContain('Дешёвый эвакуатор рядом');
+    const debranded = allTexts(ceny).toLowerCase();
+    expect(debranded).not.toContain('автоэвакуатор');
+    expect(debranded).not.toContain('перевозка 24');
   });
 
   it('EV-07 ↔ EV-08 перелинкованы между собой (взаимные related)', () => {
@@ -325,13 +352,24 @@ describe('service-pages: спецформаты ЧТЗ SEO v2 (EV-07 цены, E
     expect(sravnenie.related).toContain('ceny');
   });
 
-  it('EV-03 джипы: тариф offroad, перелинковка с лебёдкой и 5 тоннами', () => {
-    const dzhip = getServicePage('evakuator-dzhip-s-lebedkoj')!;
-    expect(dzhip.price).toEqual({ kind: 'tariff', serviceSlug: 'offroad' });
-    expect(dzhip.orderServiceType).toBe('offroad');
-    expect(dzhip.related).toContain('evakuator-s-lebedkoj');
-    // Карточка каталога «Внедорожники и кроссоверы» ведёт на посадочную джипов
-    expect(catalogServiceToLanding.offroad).toBe('evakuator-dzhip-s-lebedkoj');
+  it('V3-04 /evakuator-24-7: H2 «24 часа в Москве», FAQ «3 часа ночи», related ↔ ночной', () => {
+    const page = getServicePage('evakuator-24-7')!;
+    expect(page.description.toLowerCase()).toContain('24 часа');
+    const sections = page.sections ?? [];
+    expect(sections.map((s) => s.id)).toEqual(['24-chasa-v-moskve']);
+    expect(sections[0].title).toBe('Эвакуатор 24 часа в Москве');
+    expect(sections[0].bullets?.length).toBeGreaterThanOrEqual(3);
+    const questions = page.faq.map((f) => f.question).join('\n');
+    expect(questions).toContain('3 часа ночи');
+    expect(page.related).toContain('nochnoj-evakuator');
+    const nochnoj = getServicePage('nochnoj-evakuator')!;
+    expect(nochnoj.related).toContain('evakuator-24-7');
+  });
+
+  it('V3-01 джипы удалены: каталог offroad ведёт на «Эвакуатор с лебёдкой»', () => {
+    expect(catalogServiceToLanding.offroad).toBe('evakuator-s-lebedkoj');
+    const sLebedkoj = getServicePage('evakuator-s-lebedkoj')!;
+    expect(sLebedkoj.price).toEqual({ kind: 'tariff', serviceSlug: 'offroad' });
   });
 
   it('sections: id уникальны, таблицы согласованы (row.length === head.length)', () => {

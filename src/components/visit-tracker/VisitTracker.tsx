@@ -19,16 +19,21 @@ export function VisitTracker() {
     const key = `${SESSION_KEY_PREFIX}${page}`;
 
     let isFirstPageView = true;
+    let alreadyTracked = false;
     try {
       if (typeof window === 'undefined') return;
       if (window.sessionStorage.getItem(key)) {
         isFirstPageView = false;
+        alreadyTracked = true;
       } else {
         window.sessionStorage.setItem(key, '1');
       }
     } catch {
       // sessionStorage недоступен (private mode) — отправляем без дедупа.
     }
+
+    // Дедуп (ADR-002): 1 beacon на страницу за сессию — перезагрузка не дублирует визит.
+    if (alreadyTracked) return;
 
     const body: Record<string, unknown> = { page };
     if (isFirstPageView && markSourceSent()) {

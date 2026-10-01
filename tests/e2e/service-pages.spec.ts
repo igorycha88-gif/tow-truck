@@ -17,7 +17,6 @@ const SLUGS = [
   'evakuator-iz-podzemnogo-parkinga',
   'nochnoj-evakuator',
   'perevozka-avto-v-drugoy-gorod',
-  'evakuator-dzhip-s-lebedkoj',
   'ceny',
   'sravnenie-evakuatorov-moskva',
 ];
@@ -54,13 +53,14 @@ test('неизвестный слаг — 404, не индексируется',
   await expect(robots).toHaveAttribute('content', /noindex/i);
 });
 
-test('sitemap.xml содержит все 16 посадочных', async ({ request }) => {
+test('sitemap.xml содержит все 15 посадочных (джип-страница удалена)', async ({ request }) => {
   const res = await request.get('/sitemap.xml');
   expect(res.ok()).toBeTruthy();
   const xml = await res.text();
   for (const slug of SLUGS) {
     expect(xml).toContain(`/${slug}</loc>`);
   }
+  expect(xml).not.toContain('evakuator-dzhip-s-lebedkoj');
 });
 
 test('JSON-LD посадочной содержит Service и FAQPage', async ({ page }) => {
@@ -100,33 +100,55 @@ test('удалённая страница аренды отдаёт 404 и вы�
   expect(xml).not.toContain('arenda-evakuatora-s-voditelem');
 });
 
-test('EV-03 (ЧТЗ v2): страница джипов возвращена в индекс — 200, H1, тариф', async ({ page }) => {
-  const res = await page.goto('/evakuator-dzhip-s-lebedkoj');
-  expect(res?.status()).toBe(200);
-  await expect(page.getByRole('heading', { level: 1 })).toContainText('джипа и внедорожника');
-  await expect(page.getByTestId('price-label')).toContainText('6');
+test('TASK-V3-01: удалённая джип-страница отдаёт 301 на «Эвакуатор с лебёдкой»', async ({ page }) => {
+  await page.goto('/evakuator-dzhip-s-lebedkoj');
+  await expect(page).toHaveURL(/\/evakuator-s-lebedkoj$/);
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('с лебёдкой');
 });
 
-test('EV-07 /ceny: тарифы, примеры расчёта 10–50 км, телефонный CTA', async ({ page }) => {
+test('TASK-V3-01: карточка «Внедорожники и кроссоверы» ведёт на посадочную лебёдки', async ({ page }) => {
+  await page.goto('/#services');
+  await page.getByRole('link', { name: /Внедорожники и кроссоверы/i }).first().click();
+  await expect(page).toHaveURL(/\/evakuator-s-lebedkoj$/);
+});
+
+test('EV-07 /ceny: «нанять», тарифы, примеры, МО-таблица, телефонный CTA', async ({ page }) => {
   await page.goto('/ceny');
   await expect(page.getByRole('heading', { level: 1 })).toContainText('Сколько стоит эвакуатор');
   await expect(
-    page.getByRole('heading', { name: /Тарифы на эвакуатор по типам/i }),
+    page.getByRole('heading', { name: /Сколько стоит нанять эвакуатор/i }),
   ).toBeVisible();
   await expect(
-    page.getByRole('heading', { name: /Примеры расчёта/i }),
+    page.getByRole('heading', { name: /Стоимость эвакуатора в Московской области/i }),
   ).toBeVisible();
-  await expect(page.locator('table').first()).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: /Дешёвый эвакуатор рядом/i }),
+  ).toBeVisible();
+  // МО-таблица — третья секция (после тарифов и примеров расчёта)
+  await expect(page.locator('section[aria-labelledby="ceny-stoimost-v-oblasti"] table')).toContainText('Видное');
   await expect(page.locator('#order-service a[href^="tel:"]')).toBeVisible();
   // Перелинковка на сравнение служб (EV-07 ↔ EV-08)
   await expect(page.getByRole('link', { name: /сравнение служб/i }).first()).toBeVisible();
 });
 
-test('EV-08 /sravnenie: таблица сравнения, бренды в тексте — но НЕ в title', async ({ page }) => {
+test('EV-R5 /evakuator-24-7: H2 «24 часа в Москве», FAQ про 3 часа ночи', async ({ page }) => {
+  await page.goto('/evakuator-24-7');
+  await expect(
+    page.getByRole('heading', { level: 2, name: 'Эвакуатор 24 часа в Москве' }),
+  ).toBeVisible();
+  await expect(page.getByText('3 часа ночи').first()).toBeVisible();
+  // Перелинковка ↔ ночная страница
+  await expect(page.getByRole('link', { name: /ночной эвакуатор/i }).first()).toBeVisible();
+});
+
+test('EV-08 /sravnenie: сравнение типов исполнителей, брендов конкурентов нет', async ({ page }) => {
   await page.goto('/sravnenie-evakuatorov-moskva');
   await expect(page.getByRole('heading', { level: 1 })).toContainText('сравнение служб и цен');
   await expect(
     page.getByRole('heading', { level: 2, name: 'Круглосуточный эвакуатор 24/7' }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('heading', { level: 2, name: /Эвакуатор эконом-класса: что входит в цену/i }),
   ).toBeVisible();
   await expect(
     page.getByRole('heading', { level: 2, name: /Как вызвать эвакуатор прямо сейчас/i }),
@@ -134,13 +156,32 @@ test('EV-08 /sravnenie: таблица сравнения, бренды в те�
 
   const table = page.locator('table').first();
   await expect(table).toBeVisible();
-  await expect(table).toContainText('автоэвакуатор.рф');
-  await expect(table).toContainText('Перевозка 24');
+  await expect(table).toContainText('Прямая служба');
+  await expect(table).toContainText('Агрегаторы');
 
-  // Безопасный формат (ЧТЗ §2): бренды конкурентов не должны попасть в meta title
-  const title = await page.title();
-  expect(title.toLowerCase()).not.toContain('автоэвакуатор');
-  expect(title.toLowerCase()).not.toContain('перевозка 24');
+  // Дебрендинг (ЧТЗ v3-код TASK-V3-06): конкуренты не упоминаются нигде на странице
+  const content = await page.content();
+  expect(content.toLowerCase()).not.toContain('автоэвакуатор');
+  expect(content.toLowerCase()).not.toContain('перевозка 24');
+});
+
+test('EV-R3: footer на всех страницах содержит ссылку на сравнение служб', async ({ page }) => {
+  for (const path of ['/', '/ceny', '/evakuator-marino']) {
+    await page.goto(path);
+    await expect(
+      page.getByRole('contentinfo').getByRole('link', { name: /сравнение служб/i }),
+    ).toBeVisible();
+  }
+});
+
+test('EV-R6: районная страница — блок «Работаем в соседних районах» со ссылкой на цены', async ({ page }) => {
+  await page.goto('/evakuator-marino');
+  await expect(
+    page.getByRole('heading', { level: 2, name: 'Работаем в соседних районах' }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('link', { name: /Сколько стоит эвакуатор/i }).first(),
+  ).toBeVisible();
 });
 
 test('EV-01: страница Орехово-Борисово Северного содержит таблицу цен района', async ({ page }) => {
