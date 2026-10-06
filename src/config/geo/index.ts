@@ -8,6 +8,8 @@ import { moscowZao } from './moscow-zao';
 import { moVostok } from './mo-vostok';
 import { moYugoVostok } from './mo-yugo-vostok';
 import { moYug } from './mo-yug';
+import { moZapad } from './mo-zapad';
+import { moSever } from './mo-sever';
 import type { GeoDirection, GeoLocality } from './types';
 
 // Гео-модуль (ADR-003): направления → композер → ServicePageConfig.
@@ -22,6 +24,8 @@ export const geoDirections: GeoDirection[] = [
   moVostok,
   moYugoVostok,
   moYug,
+  moZapad,
+  moSever,
 ];
 
 /** Гео-зона локации для schema.org areaServed. */

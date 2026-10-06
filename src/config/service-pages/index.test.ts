@@ -6,6 +6,7 @@ import {
   servicePagePriceLabel,
   catalogServiceToLanding,
 } from '@/config/service-pages';
+import { landingSlugs } from '@/config/geo';
 import { priceFromLabel, tariffs, minBaseFee } from '@/config/pricing';
 import { getServiceBySlug } from '@/config/services';
 import { SERVICE_TYPES } from '@/types';
@@ -194,13 +195,14 @@ describe('service-pages: структура контента (ЧТЗ ЭПИК-2)
 });
 
 describe('service-pages: перелинковка (ЧТЗ ЭПИК-4)', () => {
-  it('related: 2–3 существующих слага без ссылок на себя', () => {
-    const slugs = servicePageSlugs();
+  it('related: 2–3 существующих слага (ceny: до 9 — города МО, ЧТЗ v4 EV-4)', () => {
+    // Слаги проверяем по ОБЪЕДИНЁННОМУ реестру: /ceny ссылается на гео-города (ЧТЗ v4).
+    const slugs = new Set([...servicePageSlugs(), ...landingSlugs()]);
     servicePages.forEach((p) => {
       expect(p.related.length).toBeGreaterThanOrEqual(2);
-      expect(p.related.length).toBeLessThanOrEqual(3);
+      expect(p.related.length).toBeLessThanOrEqual(p.slug === 'ceny' ? 9 : 3);
       p.related.forEach((r) => {
-        expect(slugs).toContain(r);
+        expect(slugs.has(r), `${p.slug}: related «${r}» не существует`).toBe(true);
         expect(r).not.toBe(p.slug);
       });
     });
@@ -331,18 +333,63 @@ describe('service-pages: спецформаты ЧТЗ SEO v2/v3 (EV-07 цены
         formatPrice(tariffs.offroad.baseFee + km * tariffs.offroad.perKm),
       );
     });
-    // Стоимость в МО (ЧТЗ v3 EV-R4): 5 городов, суммы из pricing.ts, есть Видное
+    // Стоимость по городам МО (ЧТЗ v4 EV-4): H2 с точной формулировкой, 6 городов + Видное
+    expect(sections[2].title).toBe('Стоимость по городам МО');
     const moTable = sections[2].table!;
     const moBody = moTable.rows.flat().join('\n');
-    ['Видное', 'Люберцы', 'Балашиха', 'Подольск', 'Домодедово'].forEach((city) => {
-      expect(moBody, `МО-таблица без города ${city}`).toContain(city);
-    });
+    ['Одинцово', 'Мытищи', 'Люберцы', 'Балашиха', 'Подольск', 'Звенигород', 'Видное'].forEach(
+      (city) => {
+        expect(moBody, `МО-таблица без города ${city}`).toContain(city);
+      },
+    );
     expect(ceny.related, 'ссылка на /evakuator-vidnoe из МО-секции').toContain('evakuator-vidnoe');
     // Дешёвый эвакуатор рядом — опасность цены ниже рынка (EV-R4), без брендов
     expect(sections[4].title).toContain('Дешёвый эвакуатор рядом');
     const debranded = allTexts(ceny).toLowerCase();
     expect(debranded).not.toContain('автоэвакуатор');
     expect(debranded).not.toContain('перевозка 24');
+  });
+
+  it('EV-2 (ЧТЗ v4): H2 «за километр», FAQ «за километр» с цифрой в первой строке, ссылки', () => {
+    const ceny = getServicePage('ceny')!;
+    // H2 с точным хвостом «сколько стоит эвакуатор за километр»
+    const tarify = ceny.sections?.find((s) => s.id === 'tarify');
+    expect(tarify, 'нет секции tarify').toBeTruthy();
+    expect(tarify!.title).toContain('Сколько стоит эвакуатор за километр');
+    expect(tarify!.paragraphs?.join(' ')).toContain('погрузка');
+    // FAQ-пункт точного хвоста «сколько стоит услуга эвакуатора за километр»,
+    // ответ — цифрой в первой строке (ЧТЗ v4 EV-2 п.2)
+    const kmFaq = ceny.faq.find((f) =>
+      f.question.toLowerCase().includes('сколько стоит услуга эвакуатора за километр'),
+    );
+    expect(kmFaq, 'нет FAQ «за километр»').toBeTruthy();
+    expect(kmFaq!.answer).toContain(formatPrice(tariffs.lightVehicle.perKm));
+    // Внутренние ссылки: сравнение служб + «эвакуатор легковых цена» (поз. 21,3)
+    expect(ceny.related).toContain('sravnenie-evakuatorov-moskva');
+    expect(ceny.related).toContain('evakuator-legkovyh');
+    // Ссылки на 6 городов гео-волны (EV-4: ссылка с /ceny)
+    ['evakuator-zvenigorod', 'evakuator-odincovo', 'evakuator-mytishi', 'evakuator-balashiha', 'evakuator-podolsk', 'evakuator-lyubercy'].forEach(
+      (slug) => {
+        expect(ceny.related, `/ceny не ссылается на ${slug}`).toContain(slug);
+      },
+    );
+  });
+
+  it('EV-6 (ЧТЗ v4): FAQ «эвакуация мотоцикла на тросу» — честный разбор, отказ в первой строке', () => {
+    const moto = getServicePage('evakuaciya-mototehniki')!;
+    const trosFaq = moto.faq.find((f) => f.question.toLowerCase().includes('на тросу'))!;
+    expect(trosFaq).toBeTruthy();
+    expect(trosFaq.answer.startsWith('Нет')).toBe(true);
+    expect(trosFaq.answer).toContain('ПДД');
+    expect(trosFaq.answer).toContain('платформа');
+    expect(moto.faq.length).toBeLessThanOrEqual(5);
+  });
+
+  it('EV-1 (ЧТЗ v4): на service-страницах нет леммы «договор» (мусорные показы)', () => {
+    servicePages.forEach((p) => {
+      const text = (allTexts(p) + ' ' + p.description).toLowerCase();
+      expect(text, `${p.slug}: найдено «договор»`).not.toContain('договор');
+    });
   });
 
   it('EV-07 ↔ EV-08 перелинкованы между собой (взаимные related)', () => {

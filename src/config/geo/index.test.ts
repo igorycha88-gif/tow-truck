@@ -51,14 +51,14 @@ const allowedPrices = [
 ];
 
 describe('geo: состав реестра (ЧТЗ §2.2)', () => {
-  it('102 гео-страницы: 94 локации + 8 хабов', () => {
-    expect(geoPages).toHaveLength(102);
-    expect(geoHubs).toHaveLength(8);
-    expect(localityPages).toHaveLength(94);
+  it('107 гео-страниц: 97 локаций + 10 хабов (ЧТЗ v4: +запад/север МО)', () => {
+    expect(geoPages).toHaveLength(107);
+    expect(geoHubs).toHaveLength(10);
+    expect(localityPages).toHaveLength(97);
   });
 
-  it('117 посадочных в объединённом реестре (15 услуг + 102 гео; ЧТЗ v3-код)', () => {
-    expect(landingPages).toHaveLength(117);
+  it('122 посадочных в объединённом реестре (15 услуг + 107 гео; ЧТЗ v4)', () => {
+    expect(landingPages).toHaveLength(122);
     expect(landingPages.length).toBe(servicePages.length + geoPages.length);
   });
 
@@ -83,17 +83,11 @@ describe('geo: состав реестра (ЧТЗ §2.2)', () => {
 });
 
 describe('geo: уникальность мета-данных (анти-дорвей, ЧТЗ §3.2)', () => {
-  it('title уникальны по всем 117 посадочным', () => {
+  it('уникальность title/description/H1 по всем 122 посадочным', () => {
     const titles = landingPages.map((p) => p.title);
     expect(new Set(titles).size).toBe(titles.length);
-  });
-
-  it('description уникальны по всем 117 посадочным', () => {
     const descriptions = landingPages.map((p) => p.description);
     expect(new Set(descriptions).size).toBe(descriptions.length);
-  });
-
-  it('H1 уникальны по всем 117 посадочным', () => {
     const h1s = landingPages.map((p) => p.h1);
     expect(new Set(h1s).size).toBe(h1s.length);
   });
@@ -290,13 +284,15 @@ describe('geo: МО — дистанции и направления (ЧТЗ §2
       'mo-vostok',
       'mo-yugo-vostok',
       'mo-yug',
+      'mo-zapad',
+      'mo-sever',
     ];
     geoDirections.forEach((d) => {
       expect(validIds).toContain(d.id);
     });
   });
 
-  it('8 направлений: 15 ВАО + 12 ЮВАО + 15 ЮАО + 12 ЮЗАО + 12 ЗАО + 11 МО-восток + 14 ЮВ МО + 3 Ю МО', () => {
+  it('10 направлений: 15 ВАО + 12 ЮВАО + 15 ЮАО + 12 ЮЗАО + 12 ЗАО + 11 МО-восток + 14 ЮВ МО + 3 Ю МО + 2 З МО + 1 С МО', () => {
     const counts = Object.fromEntries(geoDirections.map((d) => [d.id, d.localities.length]));
     expect(counts['moscow-vao']).toBe(15);
     expect(counts['moscow-yuvao']).toBe(12);
@@ -306,6 +302,8 @@ describe('geo: МО — дистанции и направления (ЧТЗ §2
     expect(counts['mo-vostok']).toBe(11);
     expect(counts['mo-yugo-vostok']).toBe(14);
     expect(counts['mo-yug']).toBe(3);
+    expect(counts['mo-zapad']).toBe(2);
+    expect(counts['mo-sever']).toBe(1);
   });
 });
 
@@ -534,5 +532,77 @@ describe('geo: разговорные ключи и трассы (ЧТЗ SEO-в�
     expect(shosse.faq.map((f) => f.question)).toContain(
       'Приедете ли вы на шоссе Энтузиастов ночью?',
     );
+  });
+});
+
+// ЧТЗ_эвакуация_online_SEO_для_владельца_v4, TASK-EV-4: гео-волна МО — 6 городов.
+// Звенигород, Одинцово, Мытищи — новые (запад/север МО); Балашиха, Подольск,
+// Люберцы — уже были. Формат — разговорные ключи «Эвакуатор <Город>» (как Балашиха).
+
+describe('geo: ЧТЗ v4 — гео-волна Московской области (TASK-EV-4)', () => {
+  // Звенигород/Одинцово/Мытищи/Балашиха — разговорные якоря «Эвакуатор <Город>»;
+  // Подольск и Люберцы созданы раньше в литературной форме «Эвакуатор в …».
+  const v4Cities: ReadonlyArray<{ slug: string; h1: string; hub: string }> = [
+    { slug: 'evakuator-zvenigorod', h1: 'Эвакуатор Звенигород', hub: 'evakuator-zapad-podmoskovya' },
+    { slug: 'evakuator-odincovo', h1: 'Эвакуатор Одинцово', hub: 'evakuator-zapad-podmoskovya' },
+    { slug: 'evakuator-balashiha', h1: 'Эвакуатор Балашиха', hub: 'evakuator-vostok-podmoskovya' },
+    { slug: 'evakuator-mytishi', h1: 'Эвакуатор Мытищи', hub: 'evakuator-sever-podmoskovya' },
+    { slug: 'evakuator-podolsk', h1: 'Эвакуатор в Подольске', hub: 'evakuator-yug-podmoskovya' },
+    { slug: 'evakuator-lyubercy', h1: 'Эвакуатор в Люберцах', hub: 'evakuator-yugo-vostok-podmoskovya' },
+  ];
+
+  it('все 6 городов волны в реестре: ключ в начале title, areaServed МО, хаб-родитель', () => {
+    v4Cities.forEach(({ slug, h1, hub }) => {
+      const page = getGeoPage(slug)!;
+      expect(page, `${slug} нет в реестре`).toBeTruthy();
+      expect(page.title.slice(0, 30).toLowerCase(), `${slug}: title без ключа «эвакуатор»`).toContain('эвакуатор');
+      expect(page.h1).toBe(h1);
+      expect(page.parent?.slug).toBe(hub);
+    });
+  });
+
+  it('новые города (Одинцово, Мытищи, Звенигород): areaServed, дистанция ≤30 км, таблица цен', () => {
+    const novye: ReadonlyArray<{ slug: string; areaName: string; km: number }> = [
+      { slug: 'evakuator-zvenigorod', areaName: 'Звенигород, Московская область', km: 30 },
+      { slug: 'evakuator-odincovo', areaName: 'Одинцово, Московская область', km: 3 },
+      { slug: 'evakuator-mytishi', areaName: 'Мытищи, Московская область', km: 3 },
+    ];
+    novye.forEach(({ slug, areaName, km }) => {
+      const page = getGeoPage(slug)!;
+      expect(page.areaName).toBe(areaName);
+      expect(page.sections, `${slug}: нет секции с таблицей цен`).toBeTruthy();
+      const section = page.sections![0];
+      expect(section.title).toContain('Цены на эвакуатор');
+      expect(section.table, `${slug}: нет таблицы цен`).toBeTruthy();
+      const table = section.table!;
+      const body = table.rows.flat().join('\n');
+      expect(body).toContain('Легковая');
+      expect(body).toContain('Кроссовер');
+      expect(body).toContain('Джип');
+      expect(body).toContain(formatPrice(tariffs.lightVehicle.baseFee));
+      expect(body).toContain(formatPrice(tariffs.offroad.baseFee));
+      expect(body).toContain(formatPrice(tariffs.lightVehicle.perKm));
+      expect(table.note).toBeTruthy();
+      expect(km).toBeLessThanOrEqual(30);
+    });
+  });
+
+  it('местная специфика в FAQ: пробки/шоссе/санатории — не шаблонные вопросы', () => {
+    const odincovo = getGeoPage('evakuator-odincovo')!;
+    expect(odincovo.faq.map((f) => f.question).join('\n')).toContain('Можайское шоссе');
+    const mytishi = getGeoPage('evakuator-mytishi')!;
+    expect(mytishi.faq.map((f) => f.question).join('\n')).toContain('Ярославское шоссе');
+    const zvenigorod = getGeoPage('evakuator-zvenigorod')!;
+    expect(zvenigorod.faq.map((f) => f.question).join('\n')).toContain('санаторий');
+  });
+
+  it('хабы запада и севера МО существуют и ссылаются на свои города', () => {
+    const zapad = getGeoPage('evakuator-zapad-podmoskovya')!;
+    expect(zapad.related).toContain('evakuator-odincovo');
+    expect(zapad.related).toContain('evakuator-zvenigorod');
+    expect(zapad.areaName).toBe('Запад Московской области');
+    const sever = getGeoPage('evakuator-sever-podmoskovya')!;
+    expect(sever.related).toContain('evakuator-mytishi');
+    expect(sever.areaName).toBe('Север Московской области');
   });
 });

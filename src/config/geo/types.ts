@@ -14,7 +14,9 @@ export type GeoDirectionId =
   | 'moscow-zao'
   | 'mo-vostok'
   | 'mo-yugo-vostok'
-  | 'mo-yug';
+  | 'mo-yug'
+  | 'mo-zapad'
+  | 'mo-sever';
 
 /** Локация: район Москвы или город/посёлок МО ≤30 км от МКАД. */
 export type GeoLocality = {

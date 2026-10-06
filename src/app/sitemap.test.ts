@@ -32,10 +32,10 @@ describe('app/sitemap', () => {
     });
   });
 
-  it('102 гео-URL: хабы приоритет 0.8, локации 0.7 (ЧТЗ SEO-Вебмастер v2 §7.7)', () => {
+  it('107 гео-URL: хабы приоритет 0.8, локации 0.7 (ЧТЗ SEO-Вебмастер v2 §7.7 + v4)', () => {
     const entries = sitemap();
     const geoSlugs = landingSlugs().filter((slug) => !servicePageSlugs().includes(slug));
-    expect(geoSlugs).toHaveLength(102);
+    expect(geoSlugs).toHaveLength(107);
     const hubSlugSet = new Set(geoHubs.map((h) => h.slug));
     geoSlugs.forEach((slug) => {
       const entry = entries.find((r) => r.url.endsWith(`/${slug}`))!;
