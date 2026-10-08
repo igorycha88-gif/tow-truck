@@ -115,6 +115,6 @@ export const posleDtpPage: ServicePageConfig = {
         'Сообщите оператору о характере повреждений, и мы пришлём подходящую технику.',
     },
   ],
-  related: ['evakuator-24-7', 'evakuator-zablokirovannyh-koles', 'evakuator-legkovyh'],
+  related: ['evakuator-24-7', 'evakuator-zablokirovannyh-koles', 'srochnyj-evakuator'],
   orderServiceType: 'accident',
 };

@@ -6,8 +6,9 @@ import {
   servicePagePriceLabel,
   catalogServiceToLanding,
 } from '@/config/service-pages';
+import { MEZHGOROD_ROUTES, routeSumEstimate } from '@/config/service-pages/mezhgorod';
 import { landingSlugs } from '@/config/geo';
-import { priceFromLabel, tariffs, minBaseFee } from '@/config/pricing';
+import { priceFromLabel, tariffs, minBaseFee, perKmLabel } from '@/config/pricing';
 import { getServiceBySlug } from '@/config/services';
 import { SERVICE_TYPES } from '@/types';
 import { formatPrice } from '@/lib/utils';
@@ -47,11 +48,13 @@ const allowedPrices = [
   formatPrice(tariffs.offroad.baseFee),
   formatPrice(tariffs.lightVehicle.perKm),
   ...routeSums,
+  // Межгород-ориентиры TASK-WS-01 (ЧТЗ Wordstat 2026-10): подача + км × тариф лёгкого.
+  ...MEZHGOROD_ROUTES.map((r) => routeSumEstimate(r.km)),
 ];
 
-describe('service-pages: состав реестра (ЧТЗ табл. 4.1 + ЧТЗ SEO_нетиповые + ЧТЗ SEO v2)', () => {
-  it('ровно 15 страниц с требуемыми слагами (джип-посадочная удалена, ЧТЗ v3-код)', () => {
-    expect(servicePages).toHaveLength(15);
+describe('service-pages: состав реестра (ЧТЗ табл. 4.1 + ЧТЗ SEO_нетиповые + ЧТЗ SEO v2 + Wordstat 2026-10)', () => {
+  it('ровно 16 страниц с требуемыми слагами (джип-посадочная удалена; +срочная, WS-03)', () => {
+    expect(servicePages).toHaveLength(16);
     expect([...servicePageSlugs()].sort()).toEqual(
       [
         'evakuator-24-7',
@@ -69,6 +72,7 @@ describe('service-pages: состав реестра (ЧТЗ табл. 4.1 + Ч�
         'perevozka-avto-v-drugoy-gorod',
         'ceny',
         'sravnenie-evakuatorov-moskva',
+        'srochnyj-evakuator',
       ].sort(),
     );
   });
@@ -135,6 +139,7 @@ describe('service-pages: уникальность мета-данных (ант�
       'perevozka-avto-v-drugoy-gorod': 'перевозка автомобиля',
       ceny: 'сколько стоит эвакуатор',
       'sravnenie-evakuatorov-moskva': 'эвакуатор рядом',
+      'srochnyj-evakuator': 'срочный эвакуатор',
     };
     servicePages.forEach((p) => {
       const key = keys[p.slug];
@@ -435,5 +440,102 @@ describe('service-pages: спецформаты ЧТЗ SEO v2/v3 (EV-07 цены
         }
       });
     });
+  });
+});
+
+describe('service-pages: задачи ЧТЗ_SEO_Wordstat_2026-10 (WS-01…WS-05)', () => {
+  it('WS-01 /mezhgorod: title с «цена за км», секция-таблица и FAQ синхронны с pricing.ts', () => {
+    const page = getServicePage('perevozka-avto-v-drugoy-gorod')!;
+    expect(page.title.toLowerCase()).toContain('цена за км');
+    // Секция «цена за километр» с таблицей направлений
+    const kmSection = page.sections?.find((s) => s.id === 'cena-za-km');
+    expect(kmSection, 'нет секции cena-za-km').toBeTruthy();
+    expect(kmSection!.title).toContain('за километр');
+    const table = kmSection!.table!;
+    expect(table.head.length).toBe(3);
+    expect(table.rows.length).toBe(MEZHGOROD_ROUTES.length);
+    MEZHGOROD_ROUTES.forEach((r, i) => {
+      expect(table.rows[i][0]).toContain(r.city);
+      expect(table.rows[i][2]).toBe(routeSumEstimate(r.km));
+    });
+    expect(table.note).toBeTruthy();
+    // Дисклеймер «точную сумму называет оператор» (корректировка владельца 15.09)
+    expect(table.note! + kmSection!.paragraphs!.join(' ')).toContain('оператор');
+    // Ориентир за км — из pricing.ts, не хардкод
+    expect(kmSection!.paragraphs!.join(' ')).toContain(perKmLabel());
+    // priceNote и FAQ с «за километр»
+    expect(page.priceNote).toContain(perKmLabel());
+    const faq = page.faq.find((f) => f.question.includes('Сколько стоит'));
+    expect(faq).toBeTruthy();
+    expect(faq!.answer).toContain(perKmLabel());
+    // price.kind не изменился (цена по-прежнему «по запросу» до выезда)
+    expect(page.price).toEqual({ kind: 'onRequest' });
+  });
+
+  it('routeSumEstimate: подача + км × тариф лёгкого эвакуатора (единый источник)', () => {
+    expect(routeSumEstimate(0)).toBe(formatPrice(minBaseFee()));
+    expect(routeSumEstimate(100)).toBe(
+      formatPrice(minBaseFee() + 100 * tariffs.lightVehicle.perKm),
+    );
+  });
+
+  it('WS-02 /evakuator-24-7: телефонный интент в мета и контенте (просадка 13,7 → топ-10)', () => {
+    const page = getServicePage('evakuator-24-7')!;
+    expect(page.title.toLowerCase()).toContain('телефон');
+    expect(page.description.toLowerCase()).toContain('телефон');
+    expect(page.description).toContain('24 часа'); // требование V3-04 сохранено
+    const bullets = (page.sections ?? []).flatMap((s) => s.bullets ?? []);
+    expect(bullets.join('\n').toLowerCase()).toContain('телефон');
+    expect(
+      page.included.find((i) => i.title.includes('приём заявок'))!.text.toLowerCase(),
+    ).toContain('телефон');
+  });
+
+  it('WS-03 /srochnyj-evakuator: структура, анти-каннибализация с 24/7, цены из pricing.ts', () => {
+    const page = getServicePage('srochnyj-evakuator')!;
+    expect(page.h1).toBeTruthy();
+    expect(page.price).toEqual({ kind: 'fromMin' });
+    expect(page.priceNote).toContain(priceFromLabel());
+    expect(page.priceNote).toContain(perKmLabel());
+    // Секции: скорость подачи + «без наценки» (отличие от 24/7 — фокус на «сейчас»)
+    expect((page.sections ?? []).map((s) => s.id)).toEqual([
+      'kak-bystro-priedet',
+      'srochno-bez-nacenki',
+    ]);
+    expect(page.sections![1].cta).toBe(true);
+    // Входящая перелинковка: posle-dtp → срочная (DTP = срочный интент)
+    expect(getServicePage('evakuator-posle-dtp')!.related).toContain('srochnyj-evakuator');
+    // FAQ про скорость и «дороже ли срочный»
+    const questions = page.faq.map((f) => f.question.toLowerCase()).join('\n');
+    expect(questions).toContain('быстро');
+    expect(questions).toContain('дороже');
+  });
+
+  it('WS-04 синонимы Wordstat: мотоэвакуатор (2092/мес), самосвал (404/мес)', () => {
+    const moto = getServicePage('evakuaciya-mototehniki')!;
+    expect(moto.lead.join('\n').toLowerCase()).toContain('мотоэвакуатор');
+    const spec = getServicePage('evakuaciya-spec-tehniki')!;
+    expect(spec.lead.join('\n').toLowerCase()).toContain('самосвал');
+    // Погрузчики уже в title (спрос 354/мес) — не потеряны правками
+    expect(spec.title.toLowerCase()).toContain('погрузчик');
+  });
+
+  it('WS-05 /evakuator-legkovyh: FAQ Mercedes/BMW (эвакуатор мерседес 1128/мес)', () => {
+    const page = getServicePage('evakuator-legkovyh')!;
+    const premium = page.faq.find((f) => /mercedes|bmw/i.test(f.question));
+    expect(premium, 'нет FAQ про Mercedes/BMW').toBeTruthy();
+    const answer = premium!.answer.toLowerCase();
+    expect(answer).toContain('полной погрузкой');
+    expect(answer).toMatch(/мерседес|бмв/);
+  });
+
+  it('WS-общее: на новых/изменённых страницах нет леммы «договор» и бренда «автоэвакуатор»', () => {
+    const check = (slug: string) => {
+      const p = getServicePage(slug)!;
+      const text = (allTexts(p) + ' ' + p.description).toLowerCase();
+      expect(text, `${slug}: найдено «договор»`).not.toContain('договор');
+      expect(text, `${slug}: найден бренд «автоэвакуатор»`).not.toContain('автоэвакуатор');
+    };
+    ['srochnyj-evakuator', 'perevozka-avto-v-drugoy-gorod', 'evakuator-24-7'].forEach(check);
   });
 });

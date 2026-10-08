@@ -23,6 +23,7 @@ import { nochnojEvakuatorPage } from './nochnoj-evakuator';
 import { mezhgorodPage } from './mezhgorod';
 import { cenyPage } from './ceny';
 import { sravnenieEvakuatorovPage } from './sravnenie-evakuatorov-moskva';
+import { srochnyjEvakuatorPage } from './srochnyj-evakuator';
 
 export const servicePages: ServicePageConfig[] = [
   evakuator24Page,
@@ -40,6 +41,7 @@ export const servicePages: ServicePageConfig[] = [
   mezhgorodPage,
   cenyPage,
   sravnenieEvakuatorovPage,
+  srochnyjEvakuatorPage,
 ];
 
 export const getServicePage = (slug: string): ServicePageConfig | undefined =>

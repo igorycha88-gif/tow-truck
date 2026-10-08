@@ -57,8 +57,8 @@ describe('geo: состав реестра (ЧТЗ §2.2)', () => {
     expect(localityPages).toHaveLength(97);
   });
 
-  it('122 посадочных в объединённом реестре (15 услуг + 107 гео; ЧТЗ v4)', () => {
-    expect(landingPages).toHaveLength(122);
+  it('123 посадочных в объединённом реестре (16 услуг + 107 гео; WS-03 +срочная)', () => {
+    expect(landingPages).toHaveLength(123);
     expect(landingPages.length).toBe(servicePages.length + geoPages.length);
   });
 

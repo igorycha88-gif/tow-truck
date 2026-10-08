@@ -35,8 +35,8 @@ export function Hero() {
           </h1>
 
           <p className="mx-auto mt-5 max-w-2xl text-lg text-primary-foreground/80 sm:text-xl">
-            Круглосуточная эвакуация легковых, мото, спецтехники и авто после ДТП.
-            Своя техника, фиксированные цены, аккуратные водители.
+            Круглосуточная эвакуация автомобилей: легковые, мото, спецтехника и авто
+            после ДТП. Своя техника, фиксированные цены, аккуратные водители.
           </p>
 
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
