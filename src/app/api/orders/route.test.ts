@@ -129,11 +129,11 @@ describe('POST /api/orders', () => {
     expect(body.error).toBe('VALIDATION_ERROR');
   });
 
-  it('извлекает IP из x-forwarded-for', async () => {
+  it('извлекает IP из x-forwarded-for и маскирует перед записью (152-ФЗ)', async () => {
     createOrder.mockResolvedValue({ id: 'ord-3', status: 'NEW', createdAt: new Date() });
     await POST(makeReq(validPayload, { 'x-forwarded-for': '8.8.8.8' }));
     expect(createOrder).toHaveBeenCalledWith(
-      expect.objectContaining({ ip: '8.8.8.8' }),
+      expect.objectContaining({ ip: '8.8.8.0' }),
     );
   });
 });

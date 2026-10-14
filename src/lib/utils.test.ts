@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { NextRequest } from 'next/server';
 import {
   cn,
   formatPrice,
@@ -8,8 +9,8 @@ import {
   formatPhone,
   getClientIp,
   normalizeIp,
+  maskIp,
 } from '@/lib/utils';
-import { NextRequest } from 'next/server';
 
 describe('utils.cn', () => {
   it('объединяет классы и разрешает конфликты (twMerge)', () => {
@@ -148,5 +149,36 @@ describe('utils.normalizeIp', () => {
 
   it('не трогает unknown (edge case)', () => {
     expect(normalizeIp('unknown')).toBe('unknown');
+  });
+});
+
+describe('utils.maskIp (152-ФЗ: маскирование IP перед записью в БД)', () => {
+  it('IPv4: последний октет → 0 (happy path)', () => {
+    expect(maskIp('77.88.8.8')).toBe('77.88.8.0');
+    expect(maskIp('1.2.3.4')).toBe('1.2.3.0');
+  });
+
+  it('IPv6-mapped IPv4: сначала нормализация, затем маска (edge case)', () => {
+    expect(maskIp('::ffff:5.6.7.8')).toBe('5.6.7.0');
+  });
+
+  it('IPv6: обрезается до /64 (первые 4 группы + ::)', () => {
+    expect(maskIp('2a00:1372:1111:2222:3333:4444:5555:6666')).toBe('2a00:1372:1111:2222::');
+  });
+
+  it('короткий/сжатый IPv6 — корректное расширение нулей и идемпотентность (edge case)', () => {
+    expect(maskIp('2001:db8::1')).toBe('2001:db8:0:0::');
+    expect(maskIp(maskIp('2a00:1372:1111:2222:3333:4444:5555:6666'))).toBe('2a00:1372:1111:2222::');
+    expect(maskIp('::1')).toBe('0:0:0:0::');
+  });
+
+  it('unknown/мусор — без изменений (edge case)', () => {
+    expect(maskIp('unknown')).toBe('unknown');
+    expect(maskIp('')).toBe('');
+    expect(maskIp('1.2.3')).toBe('1.2.3'); // не 4 октета — не трогаем
+  });
+
+  it('одна подсеть даёт одну маску — сессии/уникальные не ломаются', () => {
+    expect(maskIp('77.88.8.1')).toBe(maskIp('77.88.8.254'));
   });
 });

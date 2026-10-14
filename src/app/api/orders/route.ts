@@ -5,7 +5,7 @@ import { orderSchema } from '@/lib/validators/order';
 import { ordersService } from '@/services/ordersService';
 import { notifyService } from '@/services/notifyService';
 import { rateLimit } from '@/lib/rate-limit';
-import { getClientIp } from '@/lib/utils';
+import { getClientIp, maskIp } from '@/lib/utils';
 import { logger } from '@/lib/logger';
 
 // POST /api/orders — создание заявки с сайта.
@@ -57,10 +57,10 @@ export async function POST(req: NextRequest) {
 
     const data = orderSchema.parse(body);
 
-    // 3. Сохранение в БД
+    // 3. Сохранение в БД (152-ФЗ: IP — только маскированный)
     const order = await ordersService.createOrder({
       ...data,
-      ip,
+      ip: maskIp(ip),
       source: 'website',
     });
 
