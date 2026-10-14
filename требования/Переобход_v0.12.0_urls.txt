@@ -1,0 +1,24 @@
+# Переобход v0.12.0 — 9 URL
+# Релиз: разговорные SEO-ключи востока (Балашиха/Реутов/Новогиреево)
+#        + посадочные Горьковка и шоссе Энтузиастов (commit 98cb464, deploy 2026-08-31)
+# Все URL проверены: HTTP 200, новые title на месте (2026-08-31 15:40 UTC)
+# Яндекс.Вебмастер: Переобход → вставить список → отправить
+# Google Search Console: Sitemaps → отправить sitemap.xml + Запросить индексирование (по 1)
+#
+# ── ГРУППА 1: НОВЫЕ посадочные (2) — приоритет №1 ────────────────────────
+https://эвакуация.online/evakuator-gorkovka
+https://эвакуация.online/evakuator-shosse-entuziastov
+
+# ── ГРУППА 2: ОБНОВЛЁННЫЕ страницы — разговорные ключи (3) ───────────────
+# Изменились title/description/H1/лид — нужно переиндексировать
+https://эвакуация.online/evakuator-balashiha
+https://эвакуация.online/evakuator-reutov
+https://эвакуация.online/evakuator-novogireevo
+
+# ── ГРУППА 3: ХАБЫ — в списках появились новые дети (2) ─────────────────
+https://эвакуация.online/evakuator-vao-moskvy
+https://эвакуация.online/evakuator-vostok-podmoskovya
+
+# ── ГРУППА 4: Служебные (2) ──────────────────────────────────────────────
+https://эвакуация.online/sitemap.xml
+https://эвакуация.online/

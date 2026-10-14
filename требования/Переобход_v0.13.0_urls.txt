@@ -1,0 +1,44 @@
+# Переобход v0.13.0 — 26 новых URL + 2 обновлённых
+# Релиз: гео-посадочные ЮЗАО/ЗАО (24 района + 2 хаба) + лимит 15 тонн
+#        (commit 4ab2ece, deploy v0.13.0 2026-09-08, Blue-Green из CI)
+# Все URL проверены: HTTP 200 (2026-09-08 ~10:20 UTC)
+# Яндекс.Вебмастер: Индексирование → Переобход страниц → вставить URL → отправить
+# Подавать ПОРЦИЯМИ 2–3 URL/день (митигация фильтра качества, ЧТЗ §9), старт с хабов
+# Google Search Console: Sitemaps → отправить sitemap.xml + Запросить индексирование (по 1)
+#
+# ── ГРУППА 1: ХАБЫ (2) — подать первыми ─────────────────────────────────
+https://эвакуация.online/evakuator-yuzao-moskvy
+https://эвакуация.online/evakuator-zao-moskvy
+
+# ── ГРУППА 2: ЮЗАО — новые районы (12) ──────────────────────────────────
+https://эвакуация.online/evakuator-akademicheskij
+https://эвакуация.online/evakuator-gagarinskij
+https://эвакуация.online/evakuator-zyuzino
+https://эвакуация.online/evakuator-konkovo
+https://эвакуация.online/evakuator-kotlovka
+https://эвакуация.online/evakuator-lomonosovskij
+https://эвакуация.online/evakuator-obruchevskij
+https://эвакуация.online/evakuator-severnoe-butovo
+https://эвакуация.online/evakuator-teplyj-stan
+https://эвакуация.online/evakuator-cheremushki
+https://эвакуация.online/evakuator-yuzhnoe-butovo
+https://эвакуация.online/evakuator-yasenevo
+
+# ── ГРУППА 3: ЗАО — новые районы (12) ───────────────────────────────────
+https://эвакуация.online/evakuator-dorogomilovo
+https://эвакуация.online/evakuator-krylatskoe
+https://эвакуация.online/evakuator-kuncevo
+https://эвакуация.online/evakuator-mozhajskij
+https://эвакуация.online/evakuator-novo-peredelkino
+https://эвакуация.online/evakuator-ochakovo-matveevskoe
+https://эвакуация.online/evakuator-prospekt-vernadskogo
+https://эвакуация.online/evakuator-ramenki
+https://эвакуация.online/evakuator-solncevo
+https://эвакуация.online/evakuator-troparevo-nikulino
+https://эвакуация.online/evakuator-filevskij-park
+https://эвакуация.online/evakuator-fili-davydkovo
+
+# ── ГРУППА 4: ОБНОВЛЁННЫЕ страницы (2) — лимит 15 тонн ──────────────────
+# Изменился контент (faq.ts, services.ts, moscow-yuvao.ts) — переиндексировать
+https://эвакуация.online/
+https://эвакуация.online/evakuator-yuvao-moskvy

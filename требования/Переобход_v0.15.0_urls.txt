@@ -1,0 +1,30 @@
+# Переобход v0.15.0 — 11 приоритетных URL
+# Релиз: ЧТЗ v3 кодовая часть — /ceny МО-таблица и «нанять», H2 «24 часа» + FAQ
+#        «3 часа ночи» (/evakuator-24-7), дебрендинг /sravnenie-evakuatorov-moskva,
+#        308 /evakuator-dzhip-s-lebedkoj → /evakuator-s-lebedkoj, перелинковка
+#        районов 3–5 (EV-R6), сквозная ссылка на сравнение в футере (EV-R3)
+#        (commit bd9cbcb, deploy v0.15.0 2026-10-01, Blue-Green из CI)
+# Все URL проверены: HTTP 200 (2026-10-01 ~11:20 UTC)
+# Яндекс.Вебмастер: Индексирование → Переобход страниц → вставить URL → отправить
+# Подавать ПОРЦИЯМИ 2–3 URL/день (митигация фильтра качества, ЧТЗ §9), старт с ГРУППЫ 1
+# Google Search Console: Запросить индексирование (по 1)
+#
+# Остальные ~110 URL (гео-районы с новой перелинковкой соседей) на переобход НЕ подавать:
+# изменения некритичные (блок ссылок), бот подберёт их сам через sitemap.xml.
+#
+# ── ГРУППА 1: СУЩЕСТВЕННО ИЗМЕНЁННЫЕ В v0.15.0 (4) — подать первыми ──────
+https://эвакуация.online/ceny
+https://эвакуация.online/evakuator-24-7
+https://эвакуация.online/sravnenie-evakuatorov-moskva
+https://эвакуация.online/
+
+# ── ГРУППА 2: ЦЕЛЬ 308-РЕДИРЕКТА (1) — склейка веса джип-страницы ────────
+https://эвакуация.online/evakuator-s-lebedkoj
+
+# ── ГРУППА 3: ПРИОРИТЕТНОЕ ЯДРО ИЗ EV-R2 / ЧТЗ v3 (6) ────────────────────
+https://эвакуация.online/evakuator-orehovo-borisovo-severnoe
+https://эвакуация.online/evakuator-chertanovo-centralnoe
+https://эвакуация.online/evakuator-yuvao-moskvy
+https://эвакуация.online/nochnoj-evakuator
+https://эвакуация.online/evakuator-legkovyh
+https://эвакуация.online/evakuator-posle-dtp

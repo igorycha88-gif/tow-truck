@@ -1,0 +1,106 @@
+# Переобход v0.8.0 — 83 URL
+# Источник: https://эвакуация.online/sitemap.xml (2026-08-25)
+# Яндекс.Вебмастер: Переобход → вставить список → отправить
+# Google Search Console: Проверка URL → запрос переобхода (по 1 за раз, либо sitemap)
+#
+# ── ГРУППА 1: Главная (1) ─────────────────────────────────────────────────
+https://эвакуация.online/
+
+# ── ГРУППА 2: Услуги (7) ──────────────────────────────────────────────────
+https://эвакуация.online/evakuator-24-7
+https://эвакуация.online/evakuator-posle-dtp
+https://эвакуация.online/evakuator-s-lebedkoj
+https://эвакуация.online/evakuaciya-mototehniki
+https://эвакуация.online/evakuator-zablokirovannyh-koles
+https://эвакуация.online/evakuator-legkovyh
+https://эвакуация.online/evakuator-vidnoe
+
+# ── ГРУППА 3: Хабы гео (6) — верхний уровень гео-дерева ───────────────────
+https://эвакуация.online/evakuator-vao-moskvy
+https://эвакуация.online/evakuator-yuvao-moskvy
+https://эвакуация.online/evakuator-yuao-moskvy
+https://эвакуация.online/evakuator-vostok-podmoskovya
+https://эвакуация.online/evakuator-yugo-vostok-podmoskovya
+https://эвакуация.online/evakuator-yug-podmoskovya
+
+# ── ГРУППА 4: Районы ВАО Москвы (14) — НОВОЕ ──────────────────────────────
+https://эвакуация.online/evakuator-bogorodskoe
+https://эвакуация.online/evakuator-veshnyaki
+https://эвакуация.online/evakuator-vostochnyj
+https://эвакуация.online/evakuator-golyanovo
+https://эвакуация.online/evakuator-ivanovskoe
+https://эвакуация.online/evakuator-izmajlovo
+https://эвакуация.online/evakuator-kosino-uhtomskij
+https://эвакуация.online/evakuator-metrogorodok
+https://эвакуация.online/evakuator-novogireevo
+https://эвакуация.online/evakuator-perovo
+https://эвакуация.online/evakuator-preobrazhenskoe
+https://эвакуация.online/evakuator-severnoe-izmajlovo
+https://эвакуация.online/evakuator-sokolinaya-gora
+https://эвакуация.online/evakuator-sokolniki
+
+# ── ГРУППА 5: Районы ЮВАО Москвы (12) — НОВОЕ ─────────────────────────────
+https://эвакуация.online/evakuator-vyhino-zhulebino
+https://эвакуация.online/evakuator-kapotnya
+https://эвакуация.online/evakuator-kuzminki
+https://эвакуация.online/evakuator-lefortovo
+https://эвакуация.online/evakuator-lyublino
+https://эвакуация.online/evakuator-marino
+https://эвакуация.online/evakuator-nekrasovka
+https://эвакуация.online/evakuator-nizhegorodskij
+https://эвакуация.online/evakuator-pechatniki
+https://эвакуация.online/evakuator-ryazanskij
+https://эвакуация.online/evakuator-tekstilshiki
+https://эвакуация.online/evakuator-yuzhnoportovyj
+
+# ── ГРУППА 6: Районы ЮАО Москвы (15) — НОВОЕ ──────────────────────────────
+https://эвакуация.online/evakuator-biryulevo-vostochnoe
+https://эвакуация.online/evakuator-biryulevo-zapadnoe
+https://эвакуация.online/evakuator-brateevo
+https://эвакуация.online/evakuator-danilovskij
+https://эвакуация.online/evakuator-donskoj
+https://эвакуация.online/evakuator-dzerzhinskij
+https://эвакуация.online/evakuator-caricyno
+https://эвакуация.online/evakuator-chertanovo-centralnoe
+https://эвакуация.online/evakuator-chertanovo-severnoe
+https://эвакуация.online/evakuator-chertanovo-yuzhnoe
+https://эвакуация.online/evakuator-moskvoreche-saburovo
+https://эвакуация.online/evakuator-nagatino-sadovniki
+https://эвакуация.online/evakuator-nagatinskij-zaton
+https://эвакуация.online/evakuator-orehovo-borisovo-severnoe
+https://эвакуация.online/evakuator-orehovo-borisovo-yuzhnoe
+https://эвакуация.online/evakuator-zyablikovo
+
+# ── ГРУППА 7: Города МО ≤30 км (27) — НОВОЕ ──────────────────────────────
+https://эвакуация.online/evakuator-balashiha
+https://эвакуация.online/evakuator-bronnicy
+https://эвакуация.online/evakuator-bykovo
+https://эвакуация.online/evakuator-vidnoe
+https://эвакуация.online/evakuator-domodedovo
+https://эвакуация.online/evakuator-elektrougli
+https://эвакуация.online/evakuator-fryazino
+https://эвакуация.online/evakuator-ilinskij
+https://эвакуация.online/evakuator-kotelniki
+https://эвакуация.online/evakuator-kraskovo
+https://эвакуация.online/evakuator-losino-petrovskij
+https://эвакуация.online/evakuator-lytkarino
+https://эвакуация.online/evakuator-lyubercy
+https://эвакуация.online/evakuator-malahovka
+https://эвакуация.online/evakuator-monino
+https://эвакуация.online/evakuator-oktyabrskij
+https://эвакуация.online/evakuator-podolsk
+https://эвакуация.online/evakuator-ramenskoe
+https://эвакуация.online/evakuator-reutov
+https://эвакуация.online/evakuator-shcherbinka
+https://эвакуация.online/evakuator-shelkovo
+https://эвакуация.online/evakuator-staraya-kupavna
+https://эвакуация.online/evakuator-tomilino
+https://эвакуация.online/evakuator-udelnaya
+https://эвакуация.online/evakuator-chernoe
+https://эвакуация.online/evakuator-zheleznodorozhnyj
+https://эвакуация.online/evakuator-zhukovskij
+
+# ── ГРУППА 8: Прочее (1) ──────────────────────────────────────────────────
+https://эвакуация.online/politika
+
+# ── ИТОГО: 83 URL (1 главная + 7 услуг + 6 хабов + 14 ВАО + 12 ЮВАО + 15 ЮАО + 27 МО + 1 политика)
