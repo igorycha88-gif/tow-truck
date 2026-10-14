@@ -653,6 +653,418 @@
       "timeFrom": "now-48h",
       "title": "Посетители по часам (48ч, время МСК браузера)",
       "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "postgres-metrics"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 20
+      },
+      "id": 20,
+      "targets": [],
+      "title": "Путь клиента (ADR-014: входы, переходы, воронка, устройства)",
+      "type": "row",
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "postgres-metrics"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 22
+      },
+      "id": 21,
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "postgres-metrics"
+          },
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT \"page\" AS \"Страница\", COUNT(*)::int AS \"Входы\" FROM \"Visit\" WHERE \"sessionId\" IS NOT NULL AND \"fromPage\" IS NULL AND $__timeFilter(\"createdAt\") GROUP BY 1 ORDER BY 2 DESC LIMIT 15;"
+        }
+      ],
+      "title": "Страницы входа — landing (7д)",
+      "type": "table",
+      "options": {
+        "showHeader": true
+      }
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "postgres-metrics"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 22
+      },
+      "id": 22,
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "postgres-metrics"
+          },
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT \"fromPage\" || ' → ' || \"page\" AS \"Переход\", COUNT(*)::int AS \"Раз\" FROM \"Visit\" WHERE \"fromPage\" IS NOT NULL AND $__timeFilter(\"createdAt\") GROUP BY 1 ORDER BY 2 DESC LIMIT 15;"
+        }
+      ],
+      "title": "Переходы между страницами (7д)",
+      "type": "table",
+      "options": {
+        "showHeader": true
+      }
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "postgres-metrics"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 30
+      },
+      "id": 23,
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "postgres-metrics"
+          },
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT COALESCE(\"device\", 'unknown') AS \"Устройство\", COUNT(*)::int AS \"value\" FROM \"Visit\" WHERE $__timeFilter(\"createdAt\") GROUP BY 1 ORDER BY 2 DESC;"
+        }
+      ],
+      "title": "Устройства (7д)",
+      "type": "piechart",
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "pieType": "donut",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "value",
+          "values": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "postgres-metrics"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 4,
+        "x": 8,
+        "y": 30
+      },
+      "id": 24,
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "postgres-metrics"
+          },
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT COUNT(*)::int AS \"value\" FROM \"ClickEvent\" WHERE \"eventType\" = 'click_whatsapp' AND $__timeFilter(\"createdAt\");"
+        }
+      ],
+      "title": "WhatsApp-клики (7д)",
+      "type": "stat",
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "value",
+          "values": false
+        },
+        "textMode": "value"
+      }
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "postgres-metrics"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 4,
+        "x": 12,
+        "y": 30
+      },
+      "id": 26,
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "postgres-metrics"
+          },
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT COUNT(DISTINCT v.\"visitorId\")::int AS \"value\" FROM \"Visit\" v WHERE v.\"visitorId\" IS NOT NULL AND v.\"createdAt\" >= NOW() - INTERVAL '7 days' AND EXISTS (SELECT 1 FROM \"Visit\" p WHERE p.\"visitorId\" = v.\"visitorId\" AND p.\"createdAt\" < NOW() - INTERVAL '7 days');"
+        }
+      ],
+      "title": "Вернувшиеся посетители (7д)",
+      "type": "stat",
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "value",
+          "values": false
+        },
+        "textMode": "value"
+      }
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "postgres-metrics"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 30
+      },
+      "id": 27,
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "postgres-metrics"
+          },
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT \"page\" AS \"Страница\", ROUND(AVG(\"dwellMs\") / 1000.0, 1)::float AS \"Сек на стр\", COUNT(*)::int AS \"Просмотров\" FROM \"Visit\" WHERE \"dwellMs\" IS NOT NULL AND $__timeFilter(\"createdAt\") GROUP BY 1 ORDER BY 2 DESC LIMIT 10;"
+        }
+      ],
+      "title": "Топ страниц по времени на странице (7д, сек)",
+      "type": "table",
+      "options": {
+        "showHeader": true
+      }
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "postgres-metrics"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 60,
+            "lineWidth": 1,
+            "showPoints": "never"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 38
+      },
+      "id": 25,
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "postgres-metrics"
+          },
+          "refId": "A",
+          "format": "time_series",
+          "rawSql": "SELECT date_trunc('day', \"createdAt\") AS time, COUNT(DISTINCT \"sessionId\")::int AS \"Сессии\", COUNT(DISTINCT CASE WHEN \"page\" NOT IN ('home', 'politika') THEN \"sessionId\" END)::int AS \"Контент-просмотры\" FROM \"Visit\" WHERE $__timeFilter(\"createdAt\") AND \"sessionId\" IS NOT NULL GROUP BY 1 ORDER BY 1;"
+        },
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "postgres-metrics"
+          },
+          "refId": "B",
+          "format": "time_series",
+          "rawSql": "SELECT date_trunc('day', \"createdAt\") AS time, COUNT(DISTINCT \"sessionId\")::int AS \"Контакт-клики (тел/WA)\" FROM \"ClickEvent\" WHERE $__timeFilter(\"createdAt\") AND \"sessionId\" IS NOT NULL AND \"eventType\" IN ('click_phone', 'click_whatsapp') GROUP BY 1 ORDER BY 1;"
+        },
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "postgres-metrics"
+          },
+          "refId": "C",
+          "format": "time_series",
+          "rawSql": "SELECT date_trunc('day', \"createdAt\") AS time, COUNT(*)::int AS \"Заявки\" FROM \"Order\" WHERE $__timeFilter(\"createdAt\") GROUP BY 1 ORDER BY 1;"
+        }
+      ],
+      "title": "Воронка по дням: визиты → контент → контакт-клик → заявка",
+      "type": "timeseries",
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
     }
   ],
   "refresh": "1m",
@@ -672,6 +1084,6 @@
   "timezone": "browser",
   "title": "Бизнес-метрики «Эвакуация»",
   "uid": "evakuaciya-business-metrics",
-  "version": 3,
+  "version": 4,
   "weekStart": ""
 }

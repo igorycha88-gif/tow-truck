@@ -2,55 +2,96 @@
 
 import * as React from 'react';
 import { usePathname } from 'next/navigation';
-import { toPageSlug, resolveSessionSource, markSourceSent } from '@/lib/client-tracking';
+import {
+  toPageSlug,
+  getSessionId,
+  getVisitorId,
+  getViewId,
+  readLastNav,
+  writeLastNav,
+  takeEntryPayload,
+  isEntryAlreadySent,
+  type LastNav,
+} from '@/lib/client-tracking';
+import { sendVisitBeacon } from '@/lib/visit-beacon';
 
-// Трекинг визитов (ADR-002): 1 beacon на страницу за сессию браузера.
-// Дедуп через sessionStorage (ключ visit:<page>) — перезагрузки не дублируются.
-// Первый визит сессии дополнительно несёт referrer — источник трафика (ЧТЗ §2.2).
+// Трекинг пути клиента v2 (ADR-014): enter на каждую навигацию (page, from,
+// sessionId, visitorId, viewId; вход вкладки дополнительно несёт referrer+UTM),
+// leave на уход со страницы (pagehide/visibilitychange/SPA-переход) — точное
+// время на странице. Дедуп: перезагрузка той же страницы < 30 с не пишется.
 // Fire-and-forget: не блокирует рендер, ошибки молчаливые (метрики некритичны).
 
-const SESSION_KEY_PREFIX = 'visit:';
+const RELOAD_DEDUP_MS = 30_000;
+const MAX_DWELL_MS = 1_800_000; // кламп 30 минут (как в Zod-схеме)
+
+// Текущий просмотр страницы (модульное состояние, живёт в памяти страницы).
+let currentView: LastNav | null = null;
+let leaveSentFor: string | null = null;
+
+function sendLeaveIfNeeded(): void {
+  if (!currentView) return;
+  if (leaveSentFor === currentView.viewId) return; // leave уже отправлен
+  const dwellMs = Math.min(Math.max(Date.now() - currentView.at, 0), MAX_DWELL_MS);
+  sendVisitBeacon({ type: 'leave', viewId: currentView.viewId, dwellMs });
+  leaveSentFor = currentView.viewId;
+  currentView = null;
+}
 
 export function VisitTracker() {
   const pathname = usePathname();
 
   React.useEffect(() => {
     const page = toPageSlug(pathname || '/');
-    const key = `${SESSION_KEY_PREFIX}${page}`;
+    const prev = readLastNav();
+    const now = Date.now();
 
-    let isFirstPageView = true;
-    let alreadyTracked = false;
+    // Дедуп перезагрузки (ADR-014): та же страница < 30 с — F5-шум, пропускаем.
+    if (prev && prev.page === page && now - prev.at < RELOAD_DEDUP_MS) return;
+
+    const view: LastNav = { page, viewId: getViewId(), at: now };
+    writeLastNav(view);
+    currentView = view;
+
+    const body: Record<string, unknown> = {
+      type: 'enter',
+      page,
+      sessionId: getSessionId(),
+      visitorId: getVisitorId(),
+      viewId: view.viewId,
+    };
+    if (prev) body.from = prev.page;
+
+    // Вход вкладки: источник + UTM посадочной страницы — один beacon за вкладку.
+    if (!isEntryAlreadySent()) {
+      Object.assign(body, takeEntryPayload());
+    }
+
     try {
-      if (typeof window === 'undefined') return;
-      if (window.sessionStorage.getItem(key)) {
-        isFirstPageView = false;
-        alreadyTracked = true;
-      } else {
-        window.sessionStorage.setItem(key, '1');
-      }
+      sendVisitBeacon(body);
     } catch {
-      // sessionStorage недоступен (private mode) — отправляем без дедупа.
+      // Метрики — некритичны для UX, ошибки отправки игнорируются.
     }
 
-    // Дедуп (ADR-002): 1 beacon на страницу за сессию — перезагрузка не дублирует визит.
-    if (alreadyTracked) return;
-
-    const body: Record<string, unknown> = { page };
-    if (isFirstPageView && markSourceSent()) {
-      body.referrer = resolveSessionSource();
-    }
-
-    try {
-      void fetch('/api/visit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-        keepalive: true,
-      });
-    } catch {
-      // Метрики — некритичны для UX, игнорируем ошибки отправки.
-    }
+    // SPA-навигация: leave текущего просмотра при уходе с маршрута.
+    return () => {
+      sendLeaveIfNeeded();
+    };
   }, [pathname]);
+
+  React.useEffect(() => {
+    const onHide = () => sendLeaveIfNeeded();
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') sendLeaveIfNeeded();
+    };
+
+    document.addEventListener('pagehide', onHide);
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      document.removeEventListener('pagehide', onHide);
+      document.removeEventListener('visibilitychange', onVisibility);
+      sendLeaveIfNeeded();
+    };
+  }, []);
 
   return null;
 }

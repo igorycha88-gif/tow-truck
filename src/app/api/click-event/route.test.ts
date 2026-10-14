@@ -89,11 +89,11 @@ describe('POST /api/click-event', () => {
           page: 'home',
           referer: 'yandex.ru',
           city: 'Moscow',
-          ip: '77.88.8.8',
+          ip: '77.88.8.0', // 152-ФЗ: маскированный IP в БД
         }),
       }),
     );
-    expect(lookupCityMock).toHaveBeenCalledWith('77.88.8.8');
+    expect(lookupCityMock).toHaveBeenCalledWith('77.88.8.8'); // гео — по полному
     expect(loggerMock.info).toHaveBeenCalledWith(
       'API request',
       expect.objectContaining({ path: '/api/click-event' }),

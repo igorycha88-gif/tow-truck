@@ -1,8 +1,8 @@
 import { test, expect, type Page } from '@playwright/test';
 
-// E2E: клики по телефону и услугам → POST /api/click-event через sendBeacon
+// E2E: клики по телефону/WhatsApp/услугам → POST /api/click-event через sendBeacon
 // (ЧТЗ «Полные бизнес-метрики», ADR-012, ClickEventsTracker.tsx — делегированный
-// обработчик + debounce 5 с; ЧТЗ_Фикс_трекинга_кликов_tel — транспорт sendBeacon).
+// обработчик + debounce 5 с; ADR-014 — click_whatsapp и sessionId в payload).
 //
 // Тело sendBeacon (Blob) недоступно в перехвате запросов (на mobile-эмуляции
 // postData()/postDataBuffer() = null), поэтому рекордер ставится до загрузки
@@ -35,6 +35,12 @@ function beaconPayloads(page: Page): Promise<Record<string, unknown>[]> {
   );
 }
 
+function hasBeacon(payloads: Record<string, unknown>[], match: Record<string, unknown>): boolean {
+  return payloads.some(
+    (p) => typeof p.sessionId === 'string' && Object.entries(match).every(([k, v]) => p[k] === v),
+  );
+}
+
 test.beforeEach(async ({ page }) => {
   await installBeaconRecorder(page);
   await page.route('**/api/click-event', async (route) => {
@@ -42,7 +48,7 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
-test('клик по номеру в Hero отправляет click_phone с page=home', async ({ page }) => {
+test('клик по номеру в Hero отправляет click_phone с page=home и sessionId', async ({ page }) => {
   await page.goto('/');
 
   // Первый телефон в Hero (CTA с номером). noWaitAfter: клик по tel: инициирует
@@ -52,8 +58,10 @@ test('клик по номеру в Hero отправляет click_phone с pag
   await heroPhone.click({ noWaitAfter: true });
 
   await expect
-    .poll(() => beaconPayloads(page), { timeout: 5000 })
-    .toContainEqual({ eventType: 'click_phone', page: 'home', referrer: '(direct)' });
+    .poll(() => hasBeacon(await beaconPayloads(page), { eventType: 'click_phone', page: 'home', referrer: '(direct)' }), {
+      timeout: 5000,
+    })
+    .toBe(true);
 });
 
 test('мобильная вьюпорт: клик по floating-call отправляет метрику', async ({ page, isMobile }) => {
@@ -66,8 +74,25 @@ test('мобильная вьюпорт: клик по floating-call отпра�
   await floating.click({ noWaitAfter: true });
 
   await expect
-    .poll(() => beaconPayloads(page), { timeout: 5000 })
-    .toContainEqual({ eventType: 'click_phone', page: 'floating_call', referrer: '(direct)' });
+    .poll(
+      () => hasBeacon(await beaconPayloads(page), { eventType: 'click_phone', page: 'floating_call', referrer: '(direct)' }),
+      { timeout: 5000 },
+    )
+    .toBe(true);
+});
+
+test('клик по WhatsApp в футере отправляет click_whatsapp (ADR-014)', async ({ page }) => {
+  await page.goto('/');
+
+  const whatsapp = page.locator('footer a[href*="wa.me"]').first();
+  await expect(whatsapp).toBeVisible();
+  await whatsapp.click({ noWaitAfter: true });
+
+  await expect
+    .poll(() => hasBeacon(await beaconPayloads(page), { eventType: 'click_whatsapp', page: 'home', referrer: '(direct)' }), {
+      timeout: 5000,
+    })
+    .toBe(true);
 });
 
 test('клик по карточке услуги отправляет service_click со slug', async ({ page }) => {
@@ -80,13 +105,10 @@ test('клик по карточке услуги отправляет service_c
   await card.click({ noWaitAfter: true });
 
   await expect
-    .poll(() => beaconPayloads(page), { timeout: 5000 })
-    .toContainEqual({
-      eventType: 'service_click',
-      page: 'home',
-      service: slug,
-      referrer: '(direct)',
-    });
+    .poll(() => hasBeacon(await beaconPayloads(page), { eventType: 'service_click', page: 'home', service: slug, referrer: '(direct)' }), {
+      timeout: 5000,
+    })
+    .toBe(true);
 });
 
 test('debounce 5 с: повторный клик по той же ссылке не дублирует событие', async ({ page }) => {

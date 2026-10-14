@@ -4,13 +4,14 @@ import { ZodError } from 'zod';
 import { clickEventSchema } from '@/lib/validators/click-event';
 import { metricsService } from '@/services/metricsService';
 import { rateLimit } from '@/lib/rate-limit';
-import { getClientIp } from '@/lib/utils';
+import { getClientIp, maskIp } from '@/lib/utils';
 import { lookupCity } from '@/lib/geo';
 import { logger } from '@/lib/logger';
 
 // POST /api/click-event — события трекинга кликов: click_phone (tel:-ссылки,
-// ADR-012 / ЧТЗ §2.1) и service_click (карточки услуг, ЧТЗ §2.4).
-// Гео по IP (GeoLite2) и источник сессии сохраняются с событием (ЧТЗ §2.2/§2.3).
+// ADR-012 / ЧТЗ §2.1), click_whatsapp (wa.me, ADR-014) и service_click
+// (карточки услуг, ЧТЗ §2.4). Гео по IP (GeoLite2), источник сессии и
+// sessionId (связка с сессией для воронки, ADR-014) сохраняются с событием.
 // Валидация (Zod) → rate-limit (Redis) → metricsService (Prisma).
 // Статусы: 201 / 400 (VALIDATION_ERROR) / 429 (RATE_LIMIT_EXCEEDED) / 500 (INTERNAL_ERROR).
 // Не влияет на UX: клиент не ждёт ответа, это fire-and-forget (смотрите ClickEventsTracker).
@@ -62,7 +63,9 @@ export async function POST(req: NextRequest) {
       page: data.page,
       service: data.service,
       referrer: data.referrer,
-      ip,
+      sessionId: data.sessionId,
+      // 152-ФЗ: в БД — только маскированный IP (полный — лишь для rate-limit/гео).
+      ip: maskIp(ip),
       userAgent: req.headers.get('user-agent'),
       city: lookupCity(ip),
     });

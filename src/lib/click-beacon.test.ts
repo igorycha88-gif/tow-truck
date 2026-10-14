@@ -1,11 +1,14 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
-// Транспорт кликов (ЧТЗ_Фикс_трекинга_кликов_tel): sendBeacion-first + fetch-fallback.
+// Транспорт кликов (ЧТЗ_Фикс_трекинга_кликов_tel): sendBeacon-first + fetch-fallback.
+// ADR-014: в payload добавлен sessionId (связка клика с сессией вкладки).
 // Node-окружение: navigator/fetch/globalThis.window стубаются глобально.
 
 import { sendClickBeacon } from '@/lib/click-beacon';
 
 const ENDPOINT = '/api/click-event';
+
+const SESSION_ID_RE = /^[a-zA-Z0-9_-]{8,64}$/;
 
 function lastBeaconBody(sendBeacon: ReturnType<typeof vi.fn>): Promise<unknown> {
   const blob = sendBeacon.mock.calls[0][1] as Blob;
@@ -46,11 +49,11 @@ describe('sendClickBeacon', () => {
     expect(sendBeacon.mock.calls[0][0]).toBe(ENDPOINT);
     const blob = sendBeacon.mock.calls[0][1] as Blob;
     expect(blob.type).toBe('application/json');
-    await expect(lastBeaconBody(sendBeacon)).resolves.toEqual({
-      eventType: 'click_phone',
-      page: 'home',
-      referrer: '(direct)',
-    });
+    const body = (await lastBeaconBody(sendBeacon)) as Record<string, unknown>;
+    expect(body).toMatchObject({ eventType: 'click_phone', page: 'home', referrer: '(direct)' });
+    // ADR-014: sessionId обязателен в payload (uuid-подобный).
+    expect(typeof body.sessionId).toBe('string');
+    expect(String(body.sessionId)).toMatch(SESSION_ID_RE);
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
@@ -65,11 +68,9 @@ describe('sendClickBeacon', () => {
     expect(url).toBe(ENDPOINT);
     expect(init.method).toBe('POST');
     expect(init.keepalive).toBe(true);
-    expect(JSON.parse(init.body)).toEqual({
-      eventType: 'click_phone',
-      page: 'floating_call',
-      referrer: '(direct)',
-    });
+    const body = JSON.parse(init.body) as Record<string, unknown>;
+    expect(body).toMatchObject({ eventType: 'click_phone', page: 'floating_call', referrer: '(direct)' });
+    expect(String(body.sessionId)).toMatch(SESSION_ID_RE);
   });
 
   it('error case: sendBeacon бросил исключение → fetch fallback', () => {
@@ -80,7 +81,8 @@ describe('sendClickBeacon', () => {
     sendClickBeacon({ eventType: 'service_click', page: 'home', service: 'evakuator-legkovyh' });
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body) as Record<string, unknown>;
+    expect(body).toMatchObject({
       eventType: 'service_click',
       page: 'home',
       service: 'evakuator-legkovyh',

@@ -1,14 +1,17 @@
 import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
 import { sanitizeSourceLabel } from '@/lib/referer';
+import { detectDevice } from '@/lib/device';
 import type { ClickEventSchemaInput } from '@/lib/validators/click-event';
 import type { VisitSchemaInput } from '@/lib/validators/visit';
 
-// Бизнес-логика бизнес-метрик (см. ADR-001, ADR-002,
-// ЧТЗ_Сайт_эвакуация_online_Полные_Бизнес_Метрики.md).
+// Бизнес-логика бизнес-метрик (см. ADR-001, ADR-002, ADR-014,
+// ЧТЗ_Сайт_эвакуация_online_Полные_Бизнес_Метрики.md,
+// ЧТЗ_Метрики_пути_клиента_v2.md).
 // Prisma только в services (SKILL_DEVELOPER.md §1). Логирование в начале/конец и в catch.
 // referer — источник сессии (sanitized host | (direct)); null = не входное событие.
 // city — город по GeoLite2 (geoip-lite), определяется в роуте по IP.
+// device — по User-Agent на сервере (ADR-014); sessionId связывает клики с сессией.
 
 export type CreateClickEventParams = ClickEventSchemaInput & {
   ip?: string | null;
@@ -16,10 +19,15 @@ export type CreateClickEventParams = ClickEventSchemaInput & {
   city?: string | null;
 };
 
-export type CreateVisitParams = VisitSchemaInput & {
+export type CreateVisitParams = Extract<VisitSchemaInput, { type?: 'enter' }> & {
   ip?: string | null;
   userAgent?: string | null;
   city?: string | null;
+};
+
+export type LeaveVisitParams = {
+  viewId: string;
+  dwellMs: number;
 };
 
 export type ClickEventSummary = {
@@ -45,16 +53,17 @@ export type BusinessMetrics = {
 };
 
 export const metricsService = {
-  // Событие трекинга: click_phone (клик по tel:-ссылке, ADR-012) или
-  // service_click (клик по карточке/пункту услуги, ЧТЗ §2.4).
+  // Событие трекинга: click_phone (клик по tel:-ссылке, ADR-012),
+  // click_whatsapp (wa.me, ADR-014) или service_click (карточка услуги, ЧТЗ §2.4).
   async createClickEvent(params: CreateClickEventParams): Promise<ClickEventSummary> {
-    const { eventType, page, service, referrer, ip, userAgent, city } = params;
+    const { eventType, page, service, referrer, sessionId, ip, userAgent, city } = params;
 
     logger.info('Creating click event', {
       operation: 'metricsService.createClickEvent',
       eventType,
       page,
       service: service ?? null,
+      withSession: Boolean(sessionId),
     });
 
     try {
@@ -67,6 +76,8 @@ export const metricsService = {
           city: city ?? null,
           ip: ip ?? null,
           userAgent: userAgent ?? null,
+          sessionId: sessionId ?? null,
+          device: detectDevice(userAgent),
         },
         select: { id: true, createdAt: true },
       });
@@ -90,23 +101,46 @@ export const metricsService = {
     }
   },
 
-  // Трекинг визита на страницу (ADR-002). Посетитель = запись в Visit;
-  // дедупликация по IP выполняется в отчётах (COUNT DISTINCT ip).
+  // Трекинг просмотра страницы (ADR-002, v2 — ADR-014): каждая навигация
+  // пишется с from→to, sessionId/visitorId/viewId, UTM входа и устройством.
   // referer присылается только входным визитом сессии (ЧТЗ §2.2).
   async createVisit(params: CreateVisitParams): Promise<ClickEventSummary> {
-    const { page, referrer, ip, userAgent, city } = params;
+    const {
+      page,
+      from,
+      referrer,
+      sessionId,
+      visitorId,
+      viewId,
+      utmSource,
+      utmMedium,
+      utmCampaign,
+      ip,
+      userAgent,
+      city,
+    } = params;
 
     logger.info('Creating visit', {
       operation: 'metricsService.createVisit',
       page,
       withSource: referrer !== undefined,
+      withSession: Boolean(sessionId),
+      withFrom: Boolean(from),
     });
 
     try {
       const visit = await prisma.visit.create({
         data: {
           page,
+          fromPage: from ? from : null,
           referer: referrer !== undefined ? sanitizeSourceLabel(referrer) : null,
+          sessionId: sessionId ?? null,
+          visitorId: visitorId ?? null,
+          viewId: viewId ?? null,
+          utmSource: utmSource ?? null,
+          utmMedium: utmMedium ?? null,
+          utmCampaign: utmCampaign ?? null,
+          device: detectDevice(userAgent),
           city: city ?? null,
           ip: ip ?? null,
           userAgent: userAgent ?? null,
@@ -126,6 +160,38 @@ export const metricsService = {
         operation: 'metricsService.createVisit',
         error: err instanceof Error ? err.message : String(err),
         page,
+      });
+      throw err;
+    }
+  },
+
+  // Leave-обновление времени на странице (ADR-014): идемпотентный UPDATE
+  // по viewId; 0 строк (гонка/чужой viewId) — не ошибка, fire-and-forget.
+  async applyLeave(params: LeaveVisitParams): Promise<void> {
+    const { viewId, dwellMs } = params;
+
+    logger.info('Applying visit leave', {
+      operation: 'metricsService.applyLeave',
+      viewId,
+      dwellMs,
+    });
+
+    try {
+      const result = await prisma.visit.updateMany({
+        where: { viewId },
+        data: { dwellMs },
+      });
+
+      logger.info('Visit leave applied', {
+        operation: 'metricsService.applyLeave',
+        viewId,
+        updated: result.count,
+      });
+    } catch (err) {
+      logger.error('Failed to apply visit leave', {
+        operation: 'metricsService.applyLeave',
+        error: err instanceof Error ? err.message : String(err),
+        viewId,
       });
       throw err;
     }

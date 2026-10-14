@@ -1,8 +1,9 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 
-const { visitCreate, rateLimitFn } = vi.hoisted(() => ({
+const { visitCreate, visitUpdateMany, rateLimitFn } = vi.hoisted(() => ({
   visitCreate: vi.fn(),
+  visitUpdateMany: vi.fn(),
   rateLimitFn: vi.fn(),
 }));
 
@@ -10,6 +11,7 @@ vi.mock('@/lib/prisma', () => ({
   prisma: {
     visit: {
       create: visitCreate,
+      updateMany: visitUpdateMany,
       count: vi.fn(),
       findMany: vi.fn(),
     },
@@ -63,6 +65,8 @@ describe('POST /api/visit', () => {
     rateLimitFn.mockReset();
     rateLimitFn.mockResolvedValue({ ok: true, remaining: 119, resetSec: 3600 });
     visitCreate.mockReset();
+    visitUpdateMany.mockReset();
+    visitUpdateMany.mockResolvedValue({ count: 1 });
     lookupCityMock.mockReset();
     lookupCityMock.mockReturnValue(null);
   });
@@ -100,13 +104,14 @@ describe('POST /api/visit', () => {
       ),
     );
     expect(res.status).toBe(201);
+    // 152-ФЗ: в БД — маскированный IP, гео — по полному.
     expect(visitCreate).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
           page: 'home',
           referer: 'yandex.ru',
           city: 'Moscow',
-          ip: '77.88.8.8',
+          ip: '77.88.8.0',
         }),
       }),
     );
@@ -131,7 +136,7 @@ describe('POST /api/visit', () => {
     );
   });
 
-  it('нормализует IPv6-mapped IP из x-forwarded-for (edge case)', async () => {
+  it('нормализует и маскирует IPv6-mapped IP из x-forwarded-for (edge case)', async () => {
     visitCreate.mockResolvedValue({ id: 'vis2', createdAt: new Date().toISOString() });
 
     const res = await postVisit(
@@ -140,7 +145,7 @@ describe('POST /api/visit', () => {
     expect(res.status).toBe(201);
     expect(visitCreate).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({ ip: '5.6.7.8' }),
+        data: expect.objectContaining({ ip: '5.6.7.0' }),
       }),
     );
   });
@@ -187,6 +192,105 @@ describe('POST /api/visit', () => {
     expect(loggerMock.error).toHaveBeenCalledWith(
       'API response 500',
       expect.objectContaining({ path: '/api/visit' }),
+    );
+  });
+
+  // ── v2 (ADR-014): полный путь клиента ────────────────────────────────
+
+  it('v2 enter: полный payload с from/sessionId/UTM пишется (happy path)', async () => {
+    visitCreate.mockResolvedValue({ id: 'vis-v2', createdAt: new Date().toISOString() });
+
+    const res = await postVisit(
+      makeRequest(
+        {
+          type: 'enter',
+          page: 'uslugi/a',
+          from: 'home',
+          sessionId: 'sid-12345678',
+          visitorId: 'vid-87654321',
+          viewId: 'view-abcdef01',
+          utmSource: 'yandex',
+          utmMedium: 'cpc',
+          utmCampaign: 'evacuation-moscow',
+        },
+        { 'user-agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) Mobile Safari' },
+      ),
+    );
+    expect(res.status).toBe(201);
+    expect(visitCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          page: 'uslugi/a',
+          fromPage: 'home',
+          sessionId: 'sid-12345678',
+          visitorId: 'vid-87654321',
+          viewId: 'view-abcdef01',
+          utmSource: 'yandex',
+          utmMedium: 'cpc',
+          utmCampaign: 'evacuation-moscow',
+          device: 'mobile',
+        }),
+      }),
+    );
+  });
+
+  it('v2 leave: обновляет dwellMs по viewId и возвращает 200 (happy path)', async () => {
+    visitUpdateMany.mockResolvedValue({ count: 1 });
+
+    const res = await postVisit(
+      makeRequest({ type: 'leave', viewId: 'view-abcdef01', dwellMs: 42_000 }),
+    );
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ ok: true });
+    expect(visitUpdateMany).toHaveBeenCalledWith({
+      where: { viewId: 'view-abcdef01' },
+      data: { dwellMs: 42_000 },
+    });
+    expect(visitCreate).not.toHaveBeenCalled();
+  });
+
+  it('v2 leave: viewId не найден (гонка) → всё равно 200, fire-and-forget (edge case)', async () => {
+    visitUpdateMany.mockResolvedValue({ count: 0 });
+
+    const res = await postVisit(
+      makeRequest({ type: 'leave', viewId: 'view-unknown1', dwellMs: 1000 }),
+    );
+    expect(res.status).toBe(200);
+  });
+
+  it('v2 leave: dwellMs > 30 минут → 400 (edge case)', async () => {
+    const res = await postVisit(
+      makeRequest({ type: 'leave', viewId: 'view-abcdef01', dwellMs: 1_800_001 }),
+    );
+    expect(res.status).toBe(400);
+    expect(visitUpdateMany).not.toHaveBeenCalled();
+  });
+
+  it('v2 leave: короткий viewId → 400 (валидация)', async () => {
+    const res = await postVisit(makeRequest({ type: 'leave', viewId: 'abc', dwellMs: 100 }));
+    expect(res.status).toBe(400);
+  });
+
+  it('v2 enter: невалидный sessionId → 400 (валидация)', async () => {
+    const res = await postVisit(
+      makeRequest({ type: 'enter', page: 'home', sessionId: 'слишком-коротко!' }),
+    );
+    expect(res.status).toBe(400);
+  });
+
+  it('v2 enter: desktop UA определяется по user-agent (edge case)', async () => {
+    visitCreate.mockResolvedValue({ id: 'vis-d', createdAt: new Date().toISOString() });
+
+    await postVisit(
+      makeRequest(
+        { type: 'enter', page: 'home' },
+        { 'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit Chrome' },
+      ),
+    );
+    expect(visitCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ device: 'desktop' }),
+      }),
     );
   });
 });

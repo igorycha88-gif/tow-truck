@@ -39,17 +39,19 @@ model Order {
 }
 
 // События трекинга (бизнес-метрики, см. ADR-001, ЧТЗ_Сайт_эвакуация_online_
-// Полные_Бизнес_Метрики.md, ADR-012 мониторинга): клики по телефону и по услугам.
-// Уникальные IP из Order + ClickEvent дают метрику «посетители».
+// Полные_Бизнес_Метрики.md, ADR-012 мониторинга): клики по телефону, WhatsApp
+// и по услугам. Уникальные IP из Order + ClickEvent дают метрику «посетители».
 model ClickEvent {
   id        String   @id @default(cuid())
   ip        String?
   userAgent String?
   page      String   @default("home") // home, contacts, floating_call, header, service_page
-  eventType String   @default("click_phone") // click_phone | service_click (ADR-012)
+  eventType String   @default("click_phone") // click_phone | click_whatsapp | service_click (ADR-012/014)
   service   String? // slug услуги (для service_click)
   referer   String? // источник сессии: host | (direct)
   city      String? // город по GeoLite2 (geoip-lite)
+  sessionId String? // сессия вкладки (ADR-014) — связка клика с сессией для воронки
+  device    String? // mobile | tablet | desktop (server-side из UA, ADR-014)
   createdAt DateTime @default(now())
 
   @@index([createdAt])
@@ -57,19 +59,33 @@ model ClickEvent {
   @@index([eventType, createdAt])
 }
 
-// Трекинг визитов на сайт (см. ADR-002). Источник истины метрики «посетители»:
-// фиксируется каждый заход (1 раз на страницу за сессию браузера).
+// Трекинг визитов на сайт (ADR-002, v2 — ADR-014: полный путь клиента).
+// С v2 каждая навигация пишется отдельной строкой (pageview):
+// sessionId — сессия вкладки; visitorId — постоянный анонимный ID (новые/вернувшиеся);
+// viewId — ключ leave-обновления dwellMs; fromPage — предыдущая страница (null = вход);
+// utm_* — метки с посадочной URL; device — по UA; dwellMs — время на странице.
 // referer — источник захода (host | (direct)); null = не входной визит сессии.
 // city — город по GeoLite2 (geoip-lite).
 model Visit {
-  id        String   @id @default(cuid())
-  ip        String?
-  userAgent String?
-  page      String   @default("home") // slug страницы: home, politika, ...
-  referer   String?
-  city      String?
-  createdAt DateTime @default(now())
+  id          String   @id @default(cuid())
+  ip          String?
+  userAgent   String?
+  page        String   @default("home") // slug страницы: home, politika, ...
+  referer     String?
+  city        String?
+  sessionId   String?
+  visitorId   String?
+  viewId      String?  @unique
+  fromPage    String?
+  utmSource   String?
+  utmMedium   String?
+  utmCampaign String?
+  device      String?
+  dwellMs     Int?
+  createdAt   DateTime @default(now())
 
   @@index([createdAt])
   @@index([page])
+  @@index([sessionId])
+  @@index([visitorId, createdAt])
 }

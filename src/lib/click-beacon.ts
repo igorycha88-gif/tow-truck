@@ -1,13 +1,18 @@
-// Транспорт событий кликов (ADR-012, ЧТЗ_Фикс_трекинга_кликов_tel 22.09.2026).
+// Транспорт событий кликов (ADR-012, ЧТЗ_Фикс_трекинга_кликов_tel 22.09.2026;
+// ADR-014 — в payload добавлен sessionId для связки клика с сессией).
 // sendBeacon — основной канал: переживает unload при хендоффе tel: в диалер
 // (fetch keepalive гибнет вместе со страницей на мобильных). Fallback — fetch.
 
-import { resolveSessionSource } from '@/lib/client-tracking';
+import { resolveSessionSource, getSessionId } from '@/lib/client-tracking';
 
 const ENDPOINT = '/api/click-event';
 
 export function sendClickBeacon(payload: Record<string, unknown>): void {
-  const body = JSON.stringify({ ...payload, referrer: resolveSessionSource() });
+  const body = JSON.stringify({
+    ...payload,
+    referrer: resolveSessionSource(),
+    sessionId: getSessionId(),
+  });
 
   try {
     if (typeof navigator !== 'undefined' && typeof navigator.sendBeacon === 'function') {

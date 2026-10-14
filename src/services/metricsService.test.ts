@@ -1,16 +1,26 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
-const { clickEventCreate, orderCount, clickCount, orderFindMany, clickFindMany, orderGroupBy, visitFindMany, visitCreate } =
-  vi.hoisted(() => ({
-    clickEventCreate: vi.fn(),
-    orderCount: vi.fn(),
-    clickCount: vi.fn(),
-    orderFindMany: vi.fn(),
-    clickFindMany: vi.fn(),
-    orderGroupBy: vi.fn(),
-    visitFindMany: vi.fn(),
-    visitCreate: vi.fn(),
-  }));
+const {
+  clickEventCreate,
+  orderCount,
+  clickCount,
+  orderFindMany,
+  clickFindMany,
+  orderGroupBy,
+  visitFindMany,
+  visitCreate,
+  visitUpdateMany,
+} = vi.hoisted(() => ({
+  clickEventCreate: vi.fn(),
+  orderCount: vi.fn(),
+  clickCount: vi.fn(),
+  orderFindMany: vi.fn(),
+  clickFindMany: vi.fn(),
+  orderGroupBy: vi.fn(),
+  visitFindMany: vi.fn(),
+  visitCreate: vi.fn(),
+  visitUpdateMany: vi.fn(),
+}));
 
 vi.mock('@/lib/prisma', () => ({
   prisma: {
@@ -27,6 +37,7 @@ vi.mock('@/lib/prisma', () => ({
     visit: {
       create: visitCreate,
       findMany: visitFindMany,
+      updateMany: visitUpdateMany,
     },
   },
   pingDb: vi.fn(),
@@ -47,6 +58,28 @@ import { metricsService } from '@/services/metricsService';
 describe('metricsService.createClickEvent', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it('v2: WhatsApp-клик с sessionId сохраняет связку с сессией и device (ADR-014)', async () => {
+    clickEventCreate.mockResolvedValue({ id: 'wa1', createdAt: new Date() });
+
+    await metricsService.createClickEvent({
+      eventType: 'click_whatsapp',
+      page: 'contacts',
+      sessionId: 'sid-12345678',
+      userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0) Mobile Safari',
+    });
+
+    expect(clickEventCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          eventType: 'click_whatsapp',
+          page: 'contacts',
+          sessionId: 'sid-12345678',
+          device: 'mobile',
+        }),
+      }),
+    );
   });
 
   it('создаёт клик по телефону и логирует начало/конец (happy path)', async () => {
@@ -216,6 +249,94 @@ describe('metricsService.createVisit', () => {
     expect(loggerMock.error).toHaveBeenCalledWith(
       'Failed to create visit',
       expect.objectContaining({ operation: 'metricsService.createVisit' }),
+    );
+  });
+
+  // ── v2 (ADR-014): полный путь клиента ────────────────────────────────
+
+  it('v2: пишет from/sessionId/visitorId/viewId/UTM и device из UA (happy path)', async () => {
+    visitCreate.mockResolvedValue({ id: 'vis-v2', createdAt: new Date() });
+
+    await metricsService.createVisit({
+      page: 'uslugi/a',
+      from: 'home',
+      sessionId: 'sid-12345678',
+      visitorId: 'vid-87654321',
+      viewId: 'view-abcdef01',
+      utmSource: 'yandex',
+      utmMedium: 'cpc',
+      utmCampaign: 'summer',
+      userAgent: 'Mozilla/5.0 (Linux; Android 14) Mobile Safari',
+    });
+
+    expect(visitCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          page: 'uslugi/a',
+          fromPage: 'home',
+          sessionId: 'sid-12345678',
+          visitorId: 'vid-87654321',
+          viewId: 'view-abcdef01',
+          utmSource: 'yandex',
+          utmMedium: 'cpc',
+          utmCampaign: 'summer',
+          device: 'mobile',
+        }),
+      }),
+    );
+  });
+
+  it('v2: пустой from → fromPage=null (edge case)', async () => {
+    visitCreate.mockResolvedValue({ id: 'v3', createdAt: new Date() });
+    await metricsService.createVisit({ page: 'home', from: '' });
+    expect(visitCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ fromPage: null }),
+      }),
+    );
+  });
+});
+
+describe('metricsService.applyLeave (ADR-014)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('обновляет dwellMs по viewId и логирует (happy path)', async () => {
+    visitUpdateMany.mockResolvedValue({ count: 1 });
+
+    await metricsService.applyLeave({ viewId: 'view-abcdef01', dwellMs: 15_000 });
+
+    expect(visitUpdateMany).toHaveBeenCalledWith({
+      where: { viewId: 'view-abcdef01' },
+      data: { dwellMs: 15_000 },
+    });
+    expect(loggerMock.info).toHaveBeenCalledWith(
+      'Visit leave applied',
+      expect.objectContaining({ operation: 'metricsService.applyLeave', updated: 1 }),
+    );
+  });
+
+  it('viewId не найден → не ошибка, 0 обновлений (edge case)', async () => {
+    visitUpdateMany.mockResolvedValue({ count: 0 });
+
+    await expect(
+      metricsService.applyLeave({ viewId: 'view-none123', dwellMs: 1000 }),
+    ).resolves.toBeUndefined();
+    expect(loggerMock.info).toHaveBeenCalledWith(
+      'Visit leave applied',
+      expect.objectContaining({ updated: 0 }),
+    );
+  });
+
+  it('бросает и логирует ошибку при сбое БД (error case)', async () => {
+    visitUpdateMany.mockRejectedValue(new Error('DB down'));
+    await expect(
+      metricsService.applyLeave({ viewId: 'view-abcdef01', dwellMs: 1000 }),
+    ).rejects.toThrow('DB down');
+    expect(loggerMock.error).toHaveBeenCalledWith(
+      'Failed to apply visit leave',
+      expect.objectContaining({ operation: 'metricsService.applyLeave' }),
     );
   });
 });

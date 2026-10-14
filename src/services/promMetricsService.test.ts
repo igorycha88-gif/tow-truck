@@ -33,6 +33,12 @@ import {
   topSlices,
   computeConversionRate,
   computeBusinessSnapshot,
+  computeTransitions,
+  computeEntryFlows,
+  computeDevices,
+  computeTopDwellPages,
+  computeReturningVisitors,
+  computeAvgTimeOnPageSeconds,
   renderExtraBusinessMetricsText,
   escapeLabelValue,
   promMetricsService,
@@ -43,6 +49,11 @@ import {
 const NOW = Date.UTC(2026, 7, 19, 12, 0, 0);
 const MIN = 60 * 1000;
 const HOUR = 60 * 60 * 1000;
+const DAY = 24 * HOUR;
+
+type VisitExtra = Partial<
+  Pick<VisitRow, 'page' | 'fromPage' | 'sessionId' | 'visitorId' | 'device' | 'dwellMs'>
+>;
 
 // minutesAgo — количество МИНУТ (целое), конвертация внутри хелпера.
 function visit(
@@ -51,35 +62,71 @@ function visit(
   minutesAgo: number,
   referer: string | null = null,
   city: string | null = null,
+  extra: VisitExtra = {},
 ): VisitRow {
-  return { id, ip, referer, city, createdAt: new Date(NOW - minutesAgo * MIN) };
+  return { id, ip, referer, city, createdAt: new Date(NOW - minutesAgo * MIN), ...extra };
 }
 
 interface StubDbInput {
   visits: VisitRow[];
   pageViews24h: number;
+  pageViews1h: number;
+  pageViews7d: number;
   events: Array<{ eventType: string; count: number }>;
   leads24h: number;
+  leads1h: number;
+  leads7d: number;
   phoneClicks12h: number;
+  phoneClicks7d: number;
   phoneClicks24hMs: number[];
+  whatsappClicks12h: number;
+  whatsappClicks7d: number;
+  whatsappClicks24hMs: number[];
   serviceClicks: Array<{ service: string; count: number }>;
+  contactSessions24h: string[];
+  contactSessions7d: string[];
+  seenBeforeVisitorIds: string[];
 }
 
 function stubDb(input: Partial<StubDbInput>) {
   const {
     visits = [],
     pageViews24h = 0,
+    pageViews1h = 0,
+    pageViews7d = 0,
     events = [],
     leads24h = 0,
+    leads1h = 0,
+    leads7d = 0,
     phoneClicks12h = 0,
+    phoneClicks7d = 0,
     phoneClicks24hMs = [],
+    whatsappClicks12h = 0,
+    whatsappClicks7d = 0,
+    whatsappClicks24hMs = [],
     serviceClicks = [],
+    contactSessions24h = [],
+    contactSessions7d = [],
+    seenBeforeVisitorIds = [],
   } = input;
 
-  prismaMocks.visitFindMany.mockResolvedValue(visits);
+  // Основной запрос визитов (7д+lookback) и seen-before-запросы (where.visitorId).
+  prismaMocks.visitFindMany.mockImplementation(
+    ({ where }: { where: Record<string, unknown> }) => {
+      if (where && 'visitorId' in where) {
+        return seenBeforeVisitorIds.map((vid) => ({ visitorId: vid }));
+      }
+      return visits;
+    },
+  );
   prismaMocks.visitCount.mockImplementation(
-    ({ where }: { where: { createdAt: { gte: Date } } }) =>
-      where.createdAt.gte.getTime() === NOW - 24 * HOUR ? pageViews24h : 0,
+    ({ where }: { where: { createdAt: { gte: Date } } }) => {
+      const gte = where.createdAt.gte.getTime();
+      if (gte === NOW - 24 * HOUR) return pageViews24h;
+      if (gte === NOW - HOUR) return pageViews1h;
+      if (gte === NOW - 7 * DAY) return pageViews7d;
+      return 0;
+    },
   );
   // Два вызова groupBy: по eventType (все события) и по service (service_click).
   prismaMocks.clickGroupBy.mockImplementation(
@@ -90,20 +137,55 @@ function stubDb(input: Partial<StubDbInput>) {
       return serviceClicks.map((s) => ({ service: s.service, _count: { _all: s.count } }));
     },
   );
-  prismaMocks.clickCount.mockResolvedValue(phoneClicks12h);
-  prismaMocks.clickFindMany.mockResolvedValue(
-    phoneClicks24hMs.map((ms) => ({ createdAt: new Date(ms) })),
+  prismaMocks.clickCount.mockImplementation(
+    ({ where }: { where: { eventType: string; createdAt: { gte: Date } } }) => {
+      const gte = where.createdAt.gte.getTime();
+      if (where.eventType === 'click_phone') {
+        if (gte === NOW - 12 * HOUR) return phoneClicks12h;
+        return phoneClicks7d;
+      }
+      if (gte === NOW - 12 * HOUR) return whatsappClicks12h;
+      return whatsappClicks7d;
+    },
+  );
+  prismaMocks.clickFindMany.mockImplementation(
+    ({ where, select }: { where: Record<string, unknown>; select?: Record<string, unknown> }) => {
+      // Контакт-сессии воронки (distinct sessionId, ADR-014).
+      if (select && 'sessionId' in select) {
+        const gte = (where.createdAt as { gte: Date }).gte.getTime();
+        const ids = gte === NOW - 24 * HOUR ? contactSessions24h : contactSessions7d;
+        return ids.map((sid) => ({ sessionId: sid }));
+      }
+      if (where.eventType === 'click_whatsapp') {
+        return whatsappClicks24hMs.map((ms) => ({ createdAt: new Date(ms) }));
+      }
+      return phoneClicks24hMs.map((ms) => ({ createdAt: new Date(ms) }));
+    },
   );
   prismaMocks.orderCount.mockImplementation(
-    ({ where }: { where: { createdAt: { gte: Date } } }) =>
-      where.createdAt.gte.getTime() === NOW - 24 * HOUR ? leads24h : 0,
+    ({ where }: { where: { createdAt: { gte: Date } } }) => {
+      const gte = where.createdAt.gte.getTime();
+      if (gte === NOW - 24 * HOUR) return leads24h;
+      if (gte === NOW - HOUR) return leads1h;
+      if (gte === NOW - 7 * DAY) return leads7d;
+      return 0;
+    },
   );
 }
 
 describe('sessionizeVisits', () => {
   it('одиночный визит → одна сессия с одним просмотром', () => {
     const sessions = sessionizeVisits([visit('1', '1.1.1.1', 60)]);
-    expect(sessions).toEqual([{ first: NOW - 60 * MIN, last: NOW - 60 * MIN, views: 1 }]);
+    expect(sessions).toEqual([
+      {
+        first: NOW - 60 * MIN,
+        last: NOW - 60 * MIN,
+        views: 1,
+        firstPage: 'home',
+        lastPage: 'home',
+        key: 'ip:1.1.1.1',
+      },
+    ]);
   });
 
   it('визиты одного ip без разрыва > 30 мин → одна сессия (happy path)', () => {
@@ -150,6 +232,37 @@ describe('sessionizeVisits', () => {
     expect(sessions[0].views).toBe(2);
     expect(sessions[0].first).toBe(NOW - 20 * MIN);
     expect(sessions[0].last).toBe(NOW - 10 * MIN);
+  });
+
+  // ── v2 (ADR-014): сессии по sessionId ────────────────────────────────
+
+  it('v2: sessionId главнее ip — один ip с двумя вкладками = две сессии', () => {
+    const sessions = sessionizeVisits([
+      visit('1', '1.1.1.1', 60, null, null, { sessionId: 'sid-a', page: 'home' }),
+      visit('2', '1.1.1.1', 50, null, null, { sessionId: 'sid-b', page: 'home' }),
+    ]);
+    expect(sessions).toHaveLength(2);
+    expect(sessions.map((s) => s.key).sort()).toEqual(['sid:sid-a', 'sid:sid-b']);
+  });
+
+  it('v2: смена IP внутри сессии не рвёт её (мобильные сети, ADR-014)', () => {
+    const sessions = sessionizeVisits([
+      visit('1', '5.5.5.5', 60, null, null, { sessionId: 'sid-a', page: 'home' }),
+      visit('2', '6.6.6.6', 50, null, null, { sessionId: 'sid-a', page: 'uslugi/x' }),
+    ]);
+    expect(sessions).toHaveLength(1);
+    expect(sessions[0].views).toBe(2);
+    expect(sessions[0].firstPage).toBe('home');
+    expect(sessions[0].lastPage).toBe('uslugi/x');
+  });
+
+  it('v2: легаси-визиты без sessionId продолжают группироваться по ip', () => {
+    const sessions = sessionizeVisits([
+      visit('1', '1.1.1.1', 60),
+      visit('2', '1.1.1.1', 50, null, null, { sessionId: 'sid-b' }),
+      visit('3', '1.1.1.1', 40),
+    ]);
+    expect(sessions).toHaveLength(2); // ip-сессия (2 просмотра) + sid-сессия
   });
 });
 
@@ -229,15 +342,132 @@ describe('escapeLabelValue', () => {
   });
 });
 
+// ── v2 (ADR-014): чистые функции пути клиента ──────────────────────────
+
+describe('computeTransitions (from→to, ADR-014)', () => {
+  it('считает пары переходов, сортирует по убыванию (happy path)', () => {
+    const rows = computeTransitions([
+      visit('1', null, 60, null, null, { page: 'uslugi/a', fromPage: 'home' }),
+      visit('2', null, 50, null, null, { page: 'uslugi/b', fromPage: 'home' }),
+      visit('3', null, 40, null, null, { page: 'uslugi/a', fromPage: 'home' }),
+    ]);
+    expect(rows).toEqual([{ from: 'home', to: 'uslugi/a', count: 2 }, { from: 'home', to: 'uslugi/b', count: 1 }]);
+  });
+
+  it('входные просмотры (fromPage=null) не считаются переходом (edge case)', () => {
+    const rows = computeTransitions([visit('1', null, 60, null, null, { page: 'home', fromPage: null })]);
+    expect(rows).toEqual([]);
+  });
+
+  it('больше 10 пар → топ-10 + other (кардинальность)', () => {
+    const visits = Array.from({ length: 15 }, (_, i) =>
+      visit(String(i), null, 60 - i, null, null, { page: `p${i}`, fromPage: 'home' }),
+    );
+    const rows = computeTransitions(visits);
+    expect(rows).toHaveLength(11);
+    expect(rows[rows.length - 1]).toEqual({ from: 'other', to: 'other', count: 5 });
+  });
+});
+
+describe('computeEntryFlows (источник × посадочная, ADR-014)', () => {
+  it('группирует входные визиты по source+landing (happy path)', () => {
+    const rows = computeEntryFlows([
+      visit('1', null, 60, 'yandex.ru', null, { page: 'uslugi/a', fromPage: null }),
+      visit('2', null, 50, 'yandex.ru', null, { page: 'home', fromPage: null }),
+      visit('3', null, 40, 'yandex.ru', null, { page: 'uslugi/a', fromPage: null }),
+    ]);
+    expect(rows[0]).toEqual({ source: 'yandex.ru', landing: 'uslugi/a', count: 2 });
+    expect(rows).toContainEqual({ source: 'yandex.ru', landing: 'home', count: 1 });
+  });
+
+  it('внутренние визиты без referer не попадают (edge case)', () => {
+    expect(computeEntryFlows([visit('1', null, 60, null, null, { page: 'home' })])).toEqual([]);
+  });
+});
+
+describe('computeDevices (ADR-014)', () => {
+  it('группирует по device, null → unknown', () => {
+    const rows = computeDevices([
+      visit('1', null, 60, null, null, { device: 'mobile' }),
+      visit('2', null, 50, null, null, { device: 'mobile' }),
+      visit('3', null, 40, null, null, { device: 'desktop' }),
+      visit('4', null, 30, null, null, { device: null }),
+    ]);
+    expect(rows).toEqual([
+      { device: 'mobile', count: 2 },
+      { device: 'desktop', count: 1 },
+      { device: 'unknown', count: 1 },
+    ]);
+  });
+});
+
+describe('computeTopDwellPages (ADR-014)', () => {
+  it('среднее время на странице в секундах, топ-5 (happy path)', () => {
+    const rows = computeTopDwellPages([
+      visit('1', null, 60, null, null, { page: 'a', dwellMs: 10_000 }),
+      visit('2', null, 50, null, null, { page: 'a', dwellMs: 20_000 }),
+      visit('3', null, 40, null, null, { page: 'b', dwellMs: 90_000 }),
+    ]);
+    expect(rows).toEqual([
+      { page: 'b', seconds: 90 },
+      { page: 'a', seconds: 15 },
+    ]);
+  });
+
+  it('просмотры без dwellMs игнорируются (edge case)', () => {
+    expect(computeTopDwellPages([visit('1', null, 60, null, null, { page: 'a', dwellMs: null })])).toEqual([]);
+  });
+});
+
+describe('computeReturningVisitors (ADR-014)', () => {
+  it('visitorId в окне, который был до окна → возвращающийся', () => {
+    const windowVisits = [
+      visit('1', null, 60, null, null, { visitorId: 'vid-1' }),
+      visit('2', null, 50, null, null, { visitorId: 'vid-2' }),
+      visit('3', null, 40, null, null, { visitorId: 'vid-1' }), // дубль — не считается дважды
+    ];
+    expect(computeReturningVisitors(windowVisits, new Set(['vid-1']))).toBe(1);
+  });
+
+  it('нет пересечений → 0 (empty case)', () => {
+    expect(computeReturningVisitors([visit('1', null, 60, null, null, { visitorId: 'vid-9' })], new Set())).toBe(0);
+  });
+});
+
+describe('computeAvgTimeOnPageSeconds (ADR-014)', () => {
+  it('среднее по просмотрам с dwellMs, округление до 0.1 с', () => {
+    const avg = computeAvgTimeOnPageSeconds([
+      visit('1', null, 60, null, null, { dwellMs: 5_000 }),
+      visit('2', null, 50, null, null, { dwellMs: 8_000 }),
+      visit('3', null, 40, null, null, { dwellMs: null }),
+    ]);
+    expect(avg).toBe(6.5);
+  });
+
+  it('нет данных → 0', () => {
+    expect(computeAvgTimeOnPageSeconds([])).toBe(0);
+  });
+});
+
 describe('computeBusinessSnapshot', () => {
   const base = {
     now: NOW,
     pageViews24h: 0,
     pageViews1h: 0,
+    pageViews7d: 0,
     leads24h: 0,
     leads1h: 0,
+    leads7d: 0,
     phoneClicks12h: 0,
+    phoneClicks7d: 0,
     phoneClickTimestamps24h: [] as number[],
+    whatsappClicks12h: 0,
+    whatsappClicks7d: 0,
+    whatsappClickTimestamps24h: [] as number[],
+    contactClickSessionIds24h: [] as string[],
+    contactClickSessionIds7d: [] as string[],
+    visitorsSeenBefore24h: [] as string[],
+    visitorsSeenBefore7d: [] as string[],
   };
 
   it('пустая БД → нули и без events/топ-серий (empty case)', () => {
@@ -256,6 +486,15 @@ describe('computeBusinessSnapshot', () => {
     expect(snap.referralSources24h).toEqual([]);
     expect(snap.geoVisitors24h).toEqual([]);
     expect(snap.serviceClicks24h).toEqual([]);
+    // v2: путь клиента тоже пуст.
+    expect(snap.landingPages24h).toEqual([]);
+    expect(snap.transitions24h).toEqual([]);
+    expect(snap.entryFlows24h).toEqual([]);
+    expect(snap.exitPages24h).toEqual([]);
+    expect(snap.devices24h).toEqual([]);
+    expect(snap.topDwellPages24h).toEqual([]);
+    expect(snap.whatsappClickTimestamps24h).toEqual([]);
+    expect(snap.funnel24h).toEqual({ visit: 0, content_view: 0, contact_click: 0, lead: 0 });
   });
 
   it('считает окна, сессии, bounce, длительность, конверсию (happy path)', () => {
@@ -379,27 +618,157 @@ describe('computeBusinessSnapshot', () => {
     expect(snap.leads24h).toBe(7);
     expect(snap.conversionRate24h).toBe(0);
   });
+
+  // ── v2 (ADR-014): путь, воронка, устройства, dwell ───────────────────
+
+  it('v2: landing/exit/переходы/глубина по sessionId-сессии (happy path)', () => {
+    // Сессия: home (вход с yandex) → uslugi/a → uslugi/b (выход), все < 24ч.
+    const snap = computeBusinessSnapshot({
+      ...base,
+      visits: [
+        visit('1', '1.1.1.1', 60, 'yandex.ru', null, { sessionId: 'sid-a', page: 'home', fromPage: null }),
+        visit('2', '1.1.1.1', 50, null, null, { sessionId: 'sid-a', page: 'uslugi/a', fromPage: 'home' }),
+        visit('3', '1.1.1.1', 40, null, null, { sessionId: 'sid-a', page: 'uslugi/b', fromPage: 'uslugi/a' }),
+      ],
+      events24h: [],
+      serviceClicks24h: [],
+    });
+
+    expect(snap.landingPages24h).toEqual([{ page: 'home', count: 1 }]);
+    expect(snap.exitPages24h).toEqual([{ page: 'uslugi/b', count: 1 }]);
+    expect(snap.transitions24h).toEqual([
+      { from: 'home', to: 'uslugi/a', count: 1 },
+      { from: 'uslugi/a', to: 'uslugi/b', count: 1 },
+    ]);
+    expect(snap.entryFlows24h).toEqual([{ source: 'yandex.ru', landing: 'home', count: 1 }]);
+    expect(snap.avgPagesPerSession24h).toBe(3);
+  });
+
+  it('v2: воронка visit → content_view → contact_click → lead (happy path)', () => {
+    const snap = computeBusinessSnapshot({
+      ...base,
+      visits: [
+        // Сессия A: вход home → uslugi/a, клик по телефону (sid-a в contact).
+        visit('1', '1.1.1.1', 60, null, null, { sessionId: 'sid-a', page: 'home', fromPage: null }),
+        visit('2', '1.1.1.1', 50, null, null, { sessionId: 'sid-a', page: 'uslugi/a', fromPage: 'home' }),
+        // Сессия B: bounce на home.
+        visit('3', '2.2.2.2', 30, null, null, { sessionId: 'sid-b', page: 'home', fromPage: null }),
+      ],
+      events24h: [],
+      serviceClicks24h: [],
+      leads24h: 1,
+      contactClickSessionIds24h: ['sid-a', 'sid-unknown'], // sid-unknown не входит в сессии окна
+    });
+
+    expect(snap.funnel24h).toEqual({ visit: 2, content_view: 1, contact_click: 1, lead: 1 });
+  });
+
+  it('v2: время на странице и топ-dwell (happy path)', () => {
+    const snap = computeBusinessSnapshot({
+      ...base,
+      visits: [
+        visit('1', null, 60, null, null, { sessionId: 'sid-a', page: 'home', dwellMs: 30_000 }),
+        visit('2', null, 50, null, null, { sessionId: 'sid-a', page: 'uslugi/a', dwellMs: 60_000 }),
+      ],
+      events24h: [],
+      serviceClicks24h: [],
+    });
+    expect(snap.avgTimeOnPageSeconds24h).toBe(45);
+    expect(snap.topDwellPages24h).toEqual([
+      { page: 'uslugi/a', seconds: 60 },
+      { page: 'home', seconds: 30 },
+    ]);
+  });
+
+  it('v2: устройства и вернувшиеся по visitorId (happy path)', () => {
+    const snap = computeBusinessSnapshot({
+      ...base,
+      visits: [
+        visit('1', '1.1.1.1', 60, null, null, {
+          sessionId: 'sid-a', visitorId: 'vid-1', device: 'mobile', page: 'home',
+        }),
+        visit('2', '2.2.2.2', 50, null, null, {
+          sessionId: 'sid-b', visitorId: 'vid-2', device: 'desktop', page: 'home',
+        }),
+      ],
+      events24h: [],
+      serviceClicks24h: [],
+      visitorsSeenBefore24h: ['vid-1'],
+    });
+    expect(snap.devices24h).toEqual([
+      { device: 'desktop', count: 1 },
+      { device: 'mobile', count: 1 },
+    ]);
+    expect(snap.visitorsReturning24h).toBe(1);
+    // Уникальные посетители v2 — по visitorId (главнее ip).
+    expect(snap.uniqueVisitors24h).toBe(2);
+  });
+
+  it('v2: окно 7д считается отдельно от 24ч (визит 3-дневной давности)', () => {
+    const snap = computeBusinessSnapshot({
+      ...base,
+      visits: [
+        visit('old', '1.1.1.1', 3 * 24 * 60, null, null, { sessionId: 'sid-old', page: 'uslugi/a' }),
+      ],
+      events24h: [],
+      serviceClicks24h: [],
+      leads7d: 1,
+    });
+    expect(snap.sessions24h).toBe(0);
+    expect(snap.sessions7d).toBe(1);
+    expect(snap.conversionRate7d).toBe(1);
+    expect(snap.landingPages7d).toEqual([{ page: 'uslugi/a', count: 1 }]);
+  });
 });
 
-describe('renderExtraBusinessMetricsText (ручной рендер, ЧТЗ §2.1–2.4)', () => {
+describe('renderExtraBusinessMetricsText (ручной рендер, ЧТЗ §2.1–2.4; ADR-014)', () => {
   function snapshotWith(overrides: Partial<Parameters<typeof renderExtraBusinessMetricsText>[0]>) {
     return {
       sessionsActive: 0,
       pageViews24h: 0,
       pageViews1h: 0,
+      pageViews7d: 0,
       uniqueVisitors24h: 0,
+      uniqueVisitors7d: 0,
       sessions24h: 0,
+      sessions7d: 0,
       avgSessionDurationSeconds24h: 0,
+      avgSessionDurationSeconds7d: 0,
       bounceRate24h: 0,
+      bounceRate7d: 0,
       leads24h: 0,
       leads1h: 0,
+      leads7d: 0,
       conversionRate24h: 0,
+      conversionRate7d: 0,
       events24h: [],
       phoneClicks12h: 0,
+      phoneClicks7d: 0,
       phoneClickTimestamps24h: [],
       referralSources24h: [],
       geoVisitors24h: [],
       serviceClicks24h: [],
+      landingPages24h: [],
+      landingPages7d: [],
+      transitions24h: [],
+      transitions7d: [],
+      entryFlows24h: [],
+      exitPages24h: [],
+      exitPages7d: [],
+      devices24h: [],
+      devices7d: [],
+      visitorsReturning24h: 0,
+      visitorsReturning7d: 0,
+      whatsappClicks12h: 0,
+      whatsappClicks7d: 0,
+      whatsappClickTimestamps24h: [],
+      avgPagesPerSession24h: 0,
+      avgPagesPerSession7d: 0,
+      avgTimeOnPageSeconds24h: 0,
+      avgTimeOnPageSeconds7d: 0,
+      topDwellPages24h: [],
+      funnel24h: { visit: 0, content_view: 0, contact_click: 0, lead: 0 },
+      funnel7d: { visit: 0, content_view: 0, contact_click: 0, lead: 0 },
       ...overrides,
     } as Parameters<typeof renderExtraBusinessMetricsText>[0];
   }
@@ -471,6 +840,45 @@ describe('renderExtraBusinessMetricsText (ручной рендер, ЧТЗ §2.
     );
     expect(text).toContain('business_referral_sources_24h{source="we\\"ird\\\\name"} 1');
   });
+
+  // ── v2 (ADR-014) ─────────────────────────────────────────────────────
+
+  it('v2: WhatsApp-события рендерятся с timestamp', () => {
+    const text = renderExtraBusinessMetricsText(
+      snapshotWith({ whatsappClickTimestamps24h: [NOW - HOUR, NOW - 2 * HOUR] }),
+    );
+    expect(text).toContain('# TYPE business_whatsapp_clicks_event gauge');
+    expect(text).toContain(`business_whatsapp_clicks_event 1 ${NOW - HOUR}`);
+    expect(text).toContain(`business_whatsapp_clicks_event 1 ${NOW - 2 * HOUR}`);
+  });
+
+  it('v2: landing/переходы/entry_flows/exit/устройства/топ-dwell с лейблами', () => {
+    const text = renderExtraBusinessMetricsText(
+      snapshotWith({
+        landingPages24h: [{ page: 'home', count: 9 }],
+        transitions24h: [{ from: 'home', to: 'uslugi/a', count: 4 }],
+        entryFlows24h: [{ source: 'yandex.ru', landing: 'home', count: 6 }],
+        exitPages24h: [{ page: 'uslugi/a', count: 2 }],
+        devices24h: [{ device: 'mobile', count: 11 }],
+        topDwellPages24h: [{ page: 'uslugi/a', seconds: 42.5 }],
+      }),
+    );
+    expect(text).toContain('business_landing_pages_24h{page="home"} 9');
+    expect(text).toContain('business_page_transitions_24h{from="home",to="uslugi/a"} 4');
+    expect(text).toContain('business_entry_flows_24h{source="yandex.ru",landing="home"} 6');
+    expect(text).toContain('business_exit_pages_24h{page="uslugi/a"} 2');
+    expect(text).toContain('business_devices_24h{device="mobile"} 11');
+    expect(text).toContain('business_top_dwell_pages_24h{page="uslugi/a"} 42.5');
+  });
+
+  it('v2: экранирование спецсимволов в паре from→to (edge case)', () => {
+    const text = renderExtraBusinessMetricsText(
+      snapshotWith({
+        transitions24h: [{ from: 'a"b', to: 'c\\d', count: 1 }],
+      }),
+    );
+    expect(text).toContain('business_page_transitions_24h{from="a\\"b",to="c\\\\d"} 1');
+  });
 });
 
 describe('promMetricsService.getTrackingMetricsText', () => {
@@ -512,9 +920,42 @@ describe('promMetricsService.getTrackingMetricsText', () => {
     expect(text).toContain('business_service_clicks_24h{service="light_vehicle"} 2');
   });
 
+  it('v2: registry-метрики 7д/воронки/WhatsApp присутствуют в выдаче', async () => {
+    stubDb({
+      visits: [
+        visit('1', '1.1.1.1', 60, null, null, { sessionId: 'sid-a', page: 'uslugi/a', fromPage: 'home' }),
+      ],
+      pageViews24h: 1,
+      pageViews7d: 5,
+      leads7d: 2,
+      whatsappClicks12h: 3,
+      whatsappClicks7d: 7,
+      whatsappClicks24hMs: [NOW - HOUR],
+      contactSessions24h: ['sid-a'],
+    });
+
+    const text = await promMetricsService.getTrackingMetricsText(NOW);
+
+    expect(text).toContain('# TYPE business_page_views_7d gauge');
+    expect(text).toContain('business_page_views_7d 5');
+    expect(text).toContain('business_leads_7d 2');
+    expect(text).toContain('business_whatsapp_clicks_12h 3');
+    expect(text).toContain('business_whatsapp_clicks_7d 7');
+    expect(text).toContain(`business_whatsapp_clicks_event 1 ${NOW - HOUR}`);
+    expect(text).toContain('business_funnel_24h{stage="visit"} 1');
+    expect(text).toContain('business_funnel_24h{stage="content_view"} 1');
+    expect(text).toContain('business_funnel_24h{stage="contact_click"} 1');
+    expect(text).toContain('business_funnel_24h{stage="lead"} 0');
+    expect(text).toContain('business_avg_pages_per_session_24h');
+    expect(text).toContain('business_avg_time_on_page_24h');
+    expect(text).toContain('business_visitors_returning_24h 0');
+    expect(text).toContain('business_page_transitions_24h{from="home",to="uslugi/a"} 1');
+    expect(text).toContain('business_landing_pages_24h');
+  });
+
   it('нет данных новых разрезов → их метрики отсутствуют в выдаче (empty case)', async () => {
     stubDb({
-      visits: [visit('1', null, 60)], // без IP: нет ни источника, ни гео
+      visits: [], // ни одной сессии — все срезы пути пусты
       pageViews24h: 1,
     });
 
@@ -526,6 +967,11 @@ describe('promMetricsService.getTrackingMetricsText', () => {
     expect(text).not.toContain('business_referral_sources_24h');
     expect(text).not.toContain('business_geo_visitors_24h');
     expect(text).not.toContain('business_service_clicks_24h');
+    // v2-срезы без данных тоже не рендерятся (ручной рендер).
+    expect(text).not.toContain('business_landing_pages_24h{');
+    expect(text).not.toContain('business_page_transitions_24h{');
+    expect(text).not.toContain('business_entry_flows_24h{');
+    expect(text).not.toContain('business_devices_24h{');
   });
 
   it('кэширует результат на 60 с: БД не дёргается повторно (ЧТЗ §6)', async () => {
