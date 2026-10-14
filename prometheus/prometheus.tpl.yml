@@ -1,0 +1,20 @@
+# Шаблон конфига внутреннего Prometheus (dev-стек, ЧТЗ_Внутренняя_Графана_
+# Prometheus.md). При старте контейнера sed подставляет __MONITORING_KEY__
+# из env MONITORING_KEY (docker-compose.dev.yml). Итоговый файл — /tmp/prometheus.yml.
+#
+# Скрейпит business_*-метрики напрямую из app (как внешний мониторинг,
+# но внутри compose-сети). Bearer-алиас включён в monitoring-auth.ts.
+
+global:
+  scrape_interval: 60s
+  evaluation_interval: 60s
+
+scrape_configs:
+  - job_name: evakuaciya-business
+    metrics_path: /metrics/tracking
+    scheme: http
+    authorization:
+      type: Bearer
+      credentials: __MONITORING_KEY__
+    static_configs:
+      - targets: ['app:3000']

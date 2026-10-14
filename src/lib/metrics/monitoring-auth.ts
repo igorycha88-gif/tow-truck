@@ -2,17 +2,24 @@ import { timingSafeEqual } from 'node:crypto';
 import type { NextRequest } from 'next/server';
 import { logger } from '@/lib/logger';
 
-// Проверка ключа X-Monitoring-Key для эндпоинтов /metrics/*
-// (ЧТЗ «Централизованный мониторинг», §2 US-002).
+// Проверка ключа для эндпоинтов /metrics/* (ЧТЗ «Централизованный
+// мониторинг», §2 US-002; ЧТЗ_Внутренняя_Графана_Prometheus — Bearer-алиас).
 //
 // Основная граница аутентификации — nginx (deploy/nginx/monitoring-key.conf,
 // map $metrics_auth, 403 без ключа). Здесь — защита на уровне приложения
-// (defense in depth): если MONITORING_KEY задан в .env, требуется точное
-// совпадение заголовка (timingSafeEqual — защита от timing-атак).
+// (defense in depth).
+//
+// Два эквивалентных способа (один и тот же ключ, timingSafeEqual):
+// 1. X-Monitoring-Key: <key> — контракт внешнего мониторинга (ADR-007/010);
+// 2. Authorization: Bearer <key> — для внутреннего Prometheus-скрейпа
+//    (prometheus не умеет кастомные заголовки). Извне недоступен: nginx в prod
+//    пускает только X-Monitoring-Key, Bearer работает напрямую в app.
+//
 // Если MONITORING_KEY не задан — запрос разрешён (его уже проверил nginx),
 // логируем предупреждение один раз. Ключ в логи НЕ попадает.
 
 const MONITORING_KEY_HEADER = 'x-monitoring-key';
+const BEARER_PREFIX = 'bearer ';
 
 let warnedUnsetKey = false;
 
@@ -28,6 +35,11 @@ export function isMonitoringAuthorized(req: NextRequest): boolean {
       );
     }
     return true;
+  }
+
+  const bearer = req.headers.get('authorization');
+  if (bearer && bearer.toLowerCase().startsWith(BEARER_PREFIX)) {
+    return keysEqual(bearer.slice(BEARER_PREFIX.length).trim(), expected);
   }
 
   const provided = req.headers.get(MONITORING_KEY_HEADER) ?? '';

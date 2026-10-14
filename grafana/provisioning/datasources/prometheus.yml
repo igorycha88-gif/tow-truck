@@ -1,0 +1,17 @@
+# Provisioning datasource: внутренний Prometheus (ЧТЗ_Внутренняя_Графана_
+# Prometheus.md). Источник business_*-метрик — скрейп /metrics/tracking из app
+# (зеркало внешнего централизованного мониторинга). Внутри compose-сети.
+
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    uid: prometheus-business
+    url: http://prometheus:9090
+    isDefault: false
+    editable: true
+    jsonData:
+      timeInterval: 60s
+      httpMethod: POST

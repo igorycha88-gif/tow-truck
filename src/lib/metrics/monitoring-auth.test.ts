@@ -72,4 +72,33 @@ describe('isMonitoringAuthorized', () => {
     ]);
     expect(calls).not.toContain(VALID_KEY);
   });
+
+  // ── Bearer-алиас (ЧТЗ_Внутренняя_Графана_Prometheus, TASK-BCK-001) ────
+
+  it('Bearer с корректным ключом разрешает (внутренний Prometheus, happy path)', () => {
+    process.env.MONITORING_KEY = VALID_KEY;
+    expect(isMonitoringAuthorized(makeRequest({ authorization: `Bearer ${VALID_KEY}` }))).toBe(true);
+  });
+
+  it('Bearer регистронезависим (bearer/BEARER, edge case)', () => {
+    process.env.MONITORING_KEY = VALID_KEY;
+    expect(isMonitoringAuthorized(makeRequest({ authorization: `bearer ${VALID_KEY}` }))).toBe(true);
+    expect(isMonitoringAuthorized(makeRequest({ authorization: `BEARER ${VALID_KEY}` }))).toBe(true);
+  });
+
+  it('Bearer с неверным ключом запрещает (error case)', () => {
+    process.env.MONITORING_KEY = VALID_KEY;
+    expect(isMonitoringAuthorized(makeRequest({ authorization: `Bearer ${'b'.repeat(64)}` }))).toBe(false);
+  });
+
+  it('Authorization без префикса Bearer игнорируется — проверяется X-Monitoring-Key (edge case)', () => {
+    process.env.MONITORING_KEY = VALID_KEY;
+    expect(isMonitoringAuthorized(makeRequest({ authorization: `Basic ${VALID_KEY}` }))).toBe(false);
+    // Но с X-Monitoring-Key одновременно — работает как раньше.
+    expect(
+      isMonitoringAuthorized(
+        makeRequest({ authorization: `Basic ${VALID_KEY}`, 'x-monitoring-key': VALID_KEY }),
+      ),
+    ).toBe(true);
+  });
 });

@@ -90,6 +90,36 @@ services:
       retries: 10
       start_period: 40s
 
+  # Внутренний Prometheus (ЧТЗ_Внутренняя_Графана_Prometheus.md): скрейпит
+  # /metrics/tracking из app (Bearer-алиас monitoring-auth), Grafana рисует
+  # business_*-метрики датасорсом prometheus-business. Только dev — в prod
+  # метрики забирает внешний централизованный мониторинг. Порт наружу не публикуется.
+  prometheus:
+    image: prom/prometheus:v2.53.0
+    container_name: evakuaciya-prometheus-dev
+    restart: unless-stopped
+    depends_on:
+      app:
+        condition: service_healthy
+    environment:
+      # Подставляется в конфиг sed'ом при старте (ключ 64 hex, спецсимволов нет).
+      MONITORING_KEY: ${MONITORING_KEY:-}
+    volumes:
+      - ./prometheus/prometheus.tpl.yml:/etc/prometheus/prometheus.tpl.yml:ro
+      - prometheus-dev-data:/prometheus
+    # busybox-образ: sh+sed есть. $$ — экранирование compose. Пустой ключ →
+    # placeholder (валидный конфиг), app в dev без ключа пропускает запрос.
+    entrypoint:
+      - /bin/sh
+      - -c
+      - sed "s/__MONITORING_KEY__/$${MONITORING_KEY:-local-dev-placeholder}/" /etc/prometheus/prometheus.tpl.yml > /tmp/prometheus.yml && exec prometheus --config.file=/tmp/prometheus.yml --storage.tsdb.retention.time=15d
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://localhost:9090/-/ready || exit 1']
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+
   # Бизнес-метрики: Grafana за Nginx подпутем /grafana (см. ADR-001).
   # Хост-порт 3031 (dev) — доступ из браузера: http://localhost:3031/grafana.
   # (3030 занят Grafana другого проекта на этой машине.)
@@ -99,6 +129,8 @@ services:
     restart: unless-stopped
     depends_on:
       postgres:
+        condition: service_healthy
+      prometheus:
         condition: service_healthy
     environment:
       GF_SERVER_ROOT_URL: http://localhost:3031/grafana/
@@ -127,3 +159,4 @@ volumes:
   postgres-dev-data:
   redis-dev-data:
   grafana-dev-data:
+  prometheus-dev-data:
