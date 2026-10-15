@@ -41,20 +41,15 @@ export type MetricsCounts = {
   month: number;
 };
 
-export type MetricsByStatus = {
-  status: string;
-  count: number;
-};
-
 export type BusinessMetrics = {
   visitors: MetricsCounts;
-  orders: MetricsCounts & { byStatus: MetricsByStatus[] };
   clicks: MetricsCounts;
 };
 
 export const metricsService = {
-  // Событие трекинга: click_phone (клик по tel:-ссылке, ADR-012),
-  // click_whatsapp (wa.me, ADR-014) или service_click (карточка услуги, ЧТЗ §2.4).
+  // Событие трекинга: click_phone (клик по tel:-ссылке, ADR-012) или
+  // service_click (карточка услуги, ЧТЗ §2.4). click_whatsapp удалён —
+  // мессенджеры не подключены (ЧТЗ_Уборка_метрик_заявок_WhatsApp_время_кликов.md).
   async createClickEvent(params: CreateClickEventParams): Promise<ClickEventSummary> {
     const { eventType, page, service, referrer, sessionId, ip, userAgent, city } = params;
 
@@ -199,7 +194,8 @@ export const metricsService = {
 
   // Агрегация бизнес-метрик за период: сегодня / 7 дней / 30 дней.
   // Посетители (ADR-002) — уникальные IP из Visit (реальные визиты на сайт).
-  // Ранее считались из Order+ClickEvent — метрика не показывала трафик без заявок.
+  // Метрики заявок удалены: форма заявки скрыта, конверсия — звонок
+  // (ЧТЗ_Уборка_метрик_заявок_WhatsApp_время_кликов.md).
   async getMetrics(): Promise<BusinessMetrics> {
     logger.info('Aggregating business metrics', {
       operation: 'metricsService.getMetrics',
@@ -226,9 +222,6 @@ export const metricsService = {
             return unique.size;
           });
 
-      const countOrders = (since: Date): Promise<number> =>
-        prisma.order.count({ where: { createdAt: { gte: since } } });
-
       const countClicks = (since: Date): Promise<number> =>
         prisma.clickEvent.count({ where: { createdAt: { gte: since } } });
 
@@ -238,44 +231,20 @@ export const metricsService = {
         countVisitors(monthStart),
       ]);
 
-      const [ordersToday, ordersWeek, ordersMonth] = await Promise.all([
-        countOrders(todayStart),
-        countOrders(weekStart),
-        countOrders(monthStart),
-      ]);
-
       const [clicksToday, clicksWeek, clicksMonth] = await Promise.all([
         countClicks(todayStart),
         countClicks(weekStart),
         countClicks(monthStart),
       ]);
 
-      const byStatus = await prisma.order.groupBy({
-        by: ['status'],
-        where: { createdAt: { gte: monthStart } },
-        _count: { _all: true },
-      });
-
-      const ordersByStatus: MetricsByStatus[] = byStatus.map((row) => ({
-        status: row.status,
-        count: row._count._all,
-      }));
-
       const metrics: BusinessMetrics = {
         visitors: { today: visitorsToday, week: visitorsWeek, month: visitorsMonth },
-        orders: {
-          today: ordersToday,
-          week: ordersWeek,
-          month: ordersMonth,
-          byStatus: ordersByStatus,
-        },
         clicks: { today: clicksToday, week: clicksWeek, month: clicksMonth },
       };
 
       logger.info('Business metrics aggregated', {
         operation: 'metricsService.getMetrics',
         visitorsToday,
-        ordersToday,
         clicksToday,
       });
 

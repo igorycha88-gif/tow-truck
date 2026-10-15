@@ -174,27 +174,22 @@ describe('GET /api/metrics', () => {
     vi.clearAllMocks();
   });
 
-  it('возвращает агрегированные метрики с 200 (happy path)', async () => {
-    vi.mocked(prisma.order.findMany).mockResolvedValue([]);
+  it('возвращает агрегированные метрики с 200 (happy path, без заявок)', async () => {
     vi.mocked(prisma.clickEvent.findMany).mockResolvedValue([]);
     vi.mocked(prisma.visit.findMany).mockResolvedValue([{ ip: '1.1.1.1' }] as never);
-    vi.mocked(prisma.order.count).mockResolvedValue(3);
     vi.mocked(prisma.clickEvent.count).mockResolvedValue(2);
-    vi.mocked(prisma.order.groupBy).mockResolvedValue([
-      { status: 'NEW', _count: { _all: 3 } },
-    ] as never);
 
     const res = await getMetrics();
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body.orders.today).toBe(3);
     expect(body.clicks.month).toBe(2);
     expect(body.visitors.today).toBe(1);
-    expect(body.orders.byStatus).toEqual([{ status: 'NEW', count: 3 }]);
+    // Метрики заявок удалены из ответа (форма заявки скрыта).
+    expect(body).not.toHaveProperty('orders');
   });
 
   it('возвращает 500 при сбое БД', async () => {
-    vi.mocked(prisma.order.count).mockRejectedValue(new Error('DB down'));
+    vi.mocked(prisma.clickEvent.count).mockRejectedValue(new Error('DB down'));
 
     const res = await getMetrics();
     expect(res.status).toBe(500);

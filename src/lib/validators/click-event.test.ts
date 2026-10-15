@@ -47,6 +47,14 @@ describe('clickEventSchema', () => {
     }
   });
 
+  it('отвергает click_whatsapp — мессенджеры не подключены (регрессия)', () => {
+    const r = clickEventSchema.safeParse({ eventType: 'click_whatsapp', page: 'contacts' });
+    expect(r.success).toBe(false);
+    if (!r.success) {
+      expect(r.error.issues[0].path[0]).toBe('eventType');
+    }
+  });
+
   it('отвергает невалидную страницу — кириллица/спецсимволы (edge case)', () => {
     expect(clickEventSchema.safeParse({ page: 'Главная' }).success).toBe(false);
     expect(clickEventSchema.safeParse({ page: 'page!' }).success).toBe(false);

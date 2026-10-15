@@ -9,9 +9,11 @@ import { lookupCity } from '@/lib/geo';
 import { logger } from '@/lib/logger';
 
 // POST /api/click-event — события трекинга кликов: click_phone (tel:-ссылки,
-// ADR-012 / ЧТЗ §2.1), click_whatsapp (wa.me, ADR-014) и service_click
-// (карточки услуг, ЧТЗ §2.4). Гео по IP (GeoLite2), источник сессии и
-// sessionId (связка с сессией для воронки, ADR-014) сохраняются с событием.
+// ADR-012 / ЧТЗ §2.1) и service_click (карточки услуг, ЧТЗ §2.4).
+// click_whatsapp удалён — мессенджеры не подключены (ЧТЗ_Уборка_метрик_
+// заявок_WhatsApp_время_кликов.md); исторические строки остаются в БД.
+// Гео по IP (GeoLite2), источник сессии и sessionId (связка с сессией
+// для воронки, ADR-014) сохраняются с событием.
 // Валидация (Zod) → rate-limit (Redis) → metricsService (Prisma).
 // Статусы: 201 / 400 (VALIDATION_ERROR) / 429 (RATE_LIMIT_EXCEEDED) / 500 (INTERNAL_ERROR).
 // Не влияет на UX: клиент не ждёт ответа, это fire-and-forget (смотрите ClickEventsTracker).

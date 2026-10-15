@@ -6,17 +6,18 @@ import { normalizeIp } from '@/lib/utils';
 // business_*-метрики для централизованного мониторинга (ЧТЗ §4.1,
 // TASK-BCK-001; ЧТЗ_Сайт_эвакуация_online_Полные_Бизнес_Метрики.md §2;
 // v2 — ЧТЗ_Метрики_пути_клиента_v2.md, ADR-014: полный путь клиента,
-// окна 24ч+7д, воронка, устройства, WhatsApp, время на странице).
-// Гейджи, пересчёт из БД раз в 60 с (кэш в памяти), окна 24ч/7д (+1х/12х где важно).
+// окна 24ч+7д, воронка, устройства, время на странице).
+// Метрики заявок (leads/конверсия/stage lead) и WhatsApp удалены: форма
+// заявки скрыта, мессенджеры не подключены (ЧТЗ_Уборка_метрик_заявок_
+// WhatsApp_время_кликов.md).
+// Гейджи, пересчёт из БД раз в 60 с (кэш в памяти), окна 24ч/7д (+1х/12ч где важно).
 //
 // Источники (все запросы идут по индексу @@index([createdAt])):
 //   Visit      → просмотры/сессии/посетители/источники/гео/landing/переходы/
 //                exit/устройства/UTM-возвраты/время на странице
-//   ClickEvent → события (click_phone / click_whatsapp / service_click),
-//                contact-сессии воронки
-//   Order      → заявки (все статусы)
+//   ClickEvent → события (click_phone / service_click), contact-сессии воронки
 //
-// Метрики телефона/WhatsApp (клики-окна + события с timestamp) и топ-разрезы
+// Метрики телефона (клики-окна + события с timestamp) и топ-разрезы
 // рендерятся вручную (не через prom-client): prom-client всегда пишет HELP/TYPE
 // даже для пустых гейджей и не поддерживает timestamp у семплов, а по ЧТЗ
 // «кликов нет — метрики не рендерятся» и нужен unix-мс на каждый семпл события.
@@ -32,7 +33,7 @@ const MAX_PHONE_CLICK_EVENTS = 10_000; // защита текста метрик
 
 // Воронка (ADR-014): content_view = просмотр страницы вне этого списка.
 const FUNNEL_EXCLUDED_PAGES = new Set(['home', 'politika']);
-export const FUNNEL_STAGES = ['visit', 'content_view', 'contact_click', 'lead'] as const;
+export const FUNNEL_STAGES = ['visit', 'content_view', 'contact_click'] as const;
 
 export const businessRegistry = new client.Registry();
 
@@ -55,11 +56,6 @@ const gauges = {
   ),
   bounceRate24h: gauge('business_bounce_rate_24h', 'Share of single-page-view sessions (24h, 0..1)'),
   bounceRate7d: gauge('business_bounce_rate_7d', 'Share of single-page-view sessions (7d, 0..1)'),
-  leads24h: gauge('business_leads_24h', 'Orders (all statuses) in the last 24 hours'),
-  leads1h: gauge('business_leads_1h', 'Orders (all statuses) in the last hour'),
-  leads7d: gauge('business_leads_7d', 'Orders (all statuses) in the last 7 days'),
-  conversionRate24h: gauge('business_conversion_rate_24h', 'leads_24h / sessions_24h (0..1)'),
-  conversionRate7d: gauge('business_conversion_rate_7d', 'leads_7d / sessions_7d (0..1)'),
   // ADR-014: путь клиента и engagement.
   avgPagesPerSession24h: gauge('business_avg_pages_per_session_24h', 'Average page views per session (24h)'),
   avgPagesPerSession7d: gauge('business_avg_pages_per_session_7d', 'Average page views per session (7d)'),
@@ -68,27 +64,25 @@ const gauges = {
   visitorsReturning24h: gauge('business_visitors_returning_24h', 'Returning visitors (visitorId seen before window) in the last 24 hours'),
   visitorsReturning7d: gauge('business_visitors_returning_7d', 'Returning visitors (visitorId seen before window) in the last 7 days'),
   phoneClicks7d: gauge('business_phone_clicks_7d', 'Phone number (tel:) clicks in the last 7 days'),
-  whatsappClicks12h: gauge('business_whatsapp_clicks_12h', 'WhatsApp (wa.me) clicks in the last 12 hours'),
-  whatsappClicks7d: gauge('business_whatsapp_clicks_7d', 'WhatsApp (wa.me) clicks in the last 7 days'),
 };
 
 const eventsGauge = new client.Gauge({
   name: 'business_events_24h',
-  help: 'Tracked events in the last 24 hours, by event_type (click_phone, click_whatsapp, service_click)',
+  help: 'Tracked events in the last 24 hours, by event_type (click_phone, service_click)',
   labelNames: ['event_type'],
   registers: [businessRegistry],
 });
 
 const funnel24hGauge = new client.Gauge({
   name: 'business_funnel_24h',
-  help: 'Conversion funnel by stage in the last 24 hours: visit → content_view → contact_click → lead',
+  help: 'Conversion funnel by stage in the last 24 hours: visit → content_view → contact_click',
   labelNames: ['stage'],
   registers: [businessRegistry],
 });
 
 const funnel7dGauge = new client.Gauge({
   name: 'business_funnel_7d',
-  help: 'Conversion funnel by stage in the last 7 days: visit → content_view → contact_click → lead',
+  help: 'Conversion funnel by stage in the last 7 days: visit → content_view → contact_click',
   labelNames: ['stage'],
   registers: [businessRegistry],
 });
@@ -141,11 +135,6 @@ export type BusinessSnapshot = {
   avgSessionDurationSeconds7d: number;
   bounceRate24h: number;
   bounceRate7d: number;
-  leads24h: number;
-  leads1h: number;
-  leads7d: number;
-  conversionRate24h: number;
-  conversionRate7d: number;
   events24h: Array<{ eventType: string; count: number }>;
   // ЧТЗ «Полные бизнес-метрики»:
   phoneClicks12h: number;
@@ -166,9 +155,6 @@ export type BusinessSnapshot = {
   devices7d: Array<{ device: string; count: number }>;
   visitorsReturning24h: number;
   visitorsReturning7d: number;
-  whatsappClicks12h: number;
-  whatsappClicks7d: number;
-  whatsappClickTimestamps24h: number[];
   avgPagesPerSession24h: number;
   avgPagesPerSession7d: number;
   avgTimeOnPageSeconds24h: number;
@@ -229,12 +215,6 @@ export function topNWithOther(
     top.push({ label: 'other', count: otherCount });
   }
   return top;
-}
-
-// leads / sessions с защитой от деления на 0 (ЧТЗ §4.1).
-export function computeConversionRate(leads: number, sessions: number): number {
-  if (sessions <= 0) return 0;
-  return leads / sessions;
 }
 
 // Топ-N БЕЗ other: сортировка по count (desc), затем по label (asc) —
@@ -368,7 +348,6 @@ export function computeAvgTimeOnPageSeconds(visits: VisitRow[]): number {
 type WindowInput = {
   visits: VisitRow[]; // визиты окна (без lookback)
   sessions: SessionSummary[]; // сессии окна (last >= граница окна)
-  leads: number;
   contactClickSessionIds: Set<string>;
   returningSeenBefore: Set<string>;
 };
@@ -378,7 +357,6 @@ type WindowMetrics = {
   sessions: number;
   avgSessionDurationSeconds: number;
   bounceRate: number;
-  conversionRate: number;
   landingPages: Array<{ page: string; count: number }>;
   exitPages: Array<{ page: string; count: number }>;
   transitions: TransitionRow[];
@@ -390,7 +368,7 @@ type WindowMetrics = {
 };
 
 function computeWindow(input: WindowInput): WindowMetrics {
-  const { visits, sessions, leads, contactClickSessionIds } = input;
+  const { visits, sessions, contactClickSessionIds } = input;
 
   const bounces = sessions.filter((s) => s.views === 1).length;
   const bounceRate = sessions.length > 0 ? bounces / sessions.length : 0;
@@ -417,7 +395,7 @@ function computeWindow(input: WindowInput): WindowMetrics {
     if (sessionKeySet.has(key)) contentViewKeys.add(key);
   }
 
-  // contact_click: сессии с кликом телефон/WhatsApp (по sessionId, ADR-014).
+  // contact_click: сессии с кликом по телефону (по sessionId, ADR-014).
   let contactClicks = 0;
   for (const sid of contactClickSessionIds) {
     if (sessionKeySet.has(`sid:${sid}`)) contactClicks += 1;
@@ -428,7 +406,6 @@ function computeWindow(input: WindowInput): WindowMetrics {
     sessions: sessions.length,
     avgSessionDurationSeconds,
     bounceRate,
-    conversionRate: computeConversionRate(leads, sessions.length),
     landingPages: topNWithOther([...landingCounts].map(([page, count]) => ({ label: page, count })), TOP_SLICES).map(
       (row) => ({ page: row.label, count: row.count }),
     ),
@@ -447,7 +424,6 @@ function computeWindow(input: WindowInput): WindowMetrics {
       visit: sessions.length,
       content_view: contentViewKeys.size,
       contact_click: contactClicks,
-      lead: leads,
     },
   };
 }
@@ -459,17 +435,11 @@ export function computeBusinessSnapshot(input: {
   pageViews24h: number;
   pageViews1h: number;
   pageViews7d: number;
-  leads24h: number;
-  leads1h: number;
-  leads7d: number;
   phoneClicks12h: number;
   phoneClicks7d: number;
   phoneClickTimestamps24h: number[];
   serviceClicks24h: ServiceRow[];
   // v2 (ADR-014):
-  whatsappClicks12h: number;
-  whatsappClicks7d: number;
-  whatsappClickTimestamps24h: number[];
   contactClickSessionIds24h: string[];
   contactClickSessionIds7d: string[];
   visitorsSeenBefore24h: string[]; // visitorId с визитами до начала окна 24ч
@@ -491,14 +461,12 @@ export function computeBusinessSnapshot(input: {
   const w24 = computeWindow({
     visits: visits24h,
     sessions: sessions24hList,
-    leads: input.leads24h,
     contactClickSessionIds: new Set(input.contactClickSessionIds24h),
     returningSeenBefore: new Set(input.visitorsSeenBefore24h),
   });
   const w7 = computeWindow({
     visits: visits7d,
     sessions: sessions7dList,
-    leads: input.leads7d,
     contactClickSessionIds: new Set(input.contactClickSessionIds7d),
     returningSeenBefore: new Set(input.visitorsSeenBefore7d),
   });
@@ -533,11 +501,6 @@ export function computeBusinessSnapshot(input: {
     avgSessionDurationSeconds7d: w7.avgSessionDurationSeconds,
     bounceRate24h: w24.bounceRate,
     bounceRate7d: w7.bounceRate,
-    leads24h: input.leads24h,
-    leads1h: input.leads1h,
-    leads7d: input.leads7d,
-    conversionRate24h: w24.conversionRate,
-    conversionRate7d: w7.conversionRate,
     events24h: topNWithOther(
       input.events24h.map((row) => ({ label: row.eventType, count: row.count })),
       MAX_EVENT_TYPE_VALUES,
@@ -568,9 +531,6 @@ export function computeBusinessSnapshot(input: {
     devices7d: w7.devices,
     visitorsReturning24h: w24.visitorsReturning,
     visitorsReturning7d: w7.visitorsReturning,
-    whatsappClicks12h: input.whatsappClicks12h,
-    whatsappClicks7d: input.whatsappClicks7d,
-    whatsappClickTimestamps24h: [...input.whatsappClickTimestamps24h].sort((a, b) => a - b),
     avgPagesPerSession24h: w24.avgPagesPerSession,
     avgPagesPerSession7d: w7.avgPagesPerSession,
     avgTimeOnPageSeconds24h: w24.avgTimeOnPageSeconds,
@@ -615,15 +575,9 @@ export async function collectBusinessSnapshot(now = Date.now()): Promise<Busines
     pageViews1h,
     pageViews7d,
     eventGroups,
-    leads24h,
-    leads1h,
-    leads7d,
     phoneClicks12h,
     phoneClicks7d,
     phoneClickRows,
-    whatsappClicks12h,
-    whatsappClicks7d,
-    whatsappClickRows,
     serviceGroups,
     contactSessions24h,
     contactSessions7d,
@@ -640,9 +594,6 @@ export async function collectBusinessSnapshot(now = Date.now()): Promise<Busines
       where: { createdAt: { gte: since24h } },
       _count: { _all: true },
     }),
-    prisma.order.count({ where: { createdAt: { gte: since24h } } }),
-    prisma.order.count({ where: { createdAt: { gte: since1h } } }),
-    prisma.order.count({ where: { createdAt: { gte: since7d } } }),
     prisma.clickEvent.count({
       where: { eventType: 'click_phone', createdAt: { gte: since12h } },
     }),
@@ -655,18 +606,6 @@ export async function collectBusinessSnapshot(now = Date.now()): Promise<Busines
       orderBy: { createdAt: 'asc' },
       take: MAX_PHONE_CLICK_EVENTS,
     }),
-    prisma.clickEvent.count({
-      where: { eventType: 'click_whatsapp', createdAt: { gte: since12h } },
-    }),
-    prisma.clickEvent.count({
-      where: { eventType: 'click_whatsapp', createdAt: { gte: since7d } },
-    }),
-    prisma.clickEvent.findMany({
-      where: { eventType: 'click_whatsapp', createdAt: { gte: since24h } },
-      select: { createdAt: true },
-      orderBy: { createdAt: 'asc' },
-      take: MAX_PHONE_CLICK_EVENTS,
-    }),
     prisma.clickEvent.groupBy({
       by: ['service'],
       where: { eventType: 'service_click', createdAt: { gte: since24h }, service: { not: null } },
@@ -674,7 +613,7 @@ export async function collectBusinessSnapshot(now = Date.now()): Promise<Busines
     }),
     prisma.clickEvent.findMany({
       where: {
-        eventType: { in: ['click_phone', 'click_whatsapp'] },
+        eventType: 'click_phone',
         sessionId: { not: null },
         createdAt: { gte: since24h },
       },
@@ -683,7 +622,7 @@ export async function collectBusinessSnapshot(now = Date.now()): Promise<Busines
     }),
     prisma.clickEvent.findMany({
       where: {
-        eventType: { in: ['click_phone', 'click_whatsapp'] },
+        eventType: 'click_phone',
         sessionId: { not: null },
         createdAt: { gte: since7d },
       },
@@ -714,16 +653,10 @@ export async function collectBusinessSnapshot(now = Date.now()): Promise<Busines
     pageViews24h,
     pageViews1h,
     pageViews7d,
-    leads24h,
-    leads1h,
-    leads7d,
     phoneClicks12h,
     phoneClicks7d,
     phoneClickTimestamps24h: phoneClickRows.map((row) => row.createdAt.getTime()),
     serviceClicks24h,
-    whatsappClicks12h,
-    whatsappClicks7d,
-    whatsappClickTimestamps24h: whatsappClickRows.map((row) => row.createdAt.getTime()),
     contactClickSessionIds24h: contactSessions24h
       .map((row) => row.sessionId)
       .filter((sid): sid is string => sid !== null),
@@ -737,10 +670,8 @@ export async function collectBusinessSnapshot(now = Date.now()): Promise<Busines
   logger.info('Business metrics collected', {
     operation: 'promMetricsService.collect',
     pageViews24h,
-    leads24h,
     sessions24h: snapshot.sessions24h,
     phoneClicks12h: snapshot.phoneClicks12h,
-    whatsappClicks12h: snapshot.whatsappClicks12h,
   });
 
   return snapshot;
@@ -776,11 +707,6 @@ export function renderBusinessMetrics(snapshot: BusinessSnapshot): void {
   gauges.avgSessionDuration7d.set(snapshot.avgSessionDurationSeconds7d);
   gauges.bounceRate24h.set(snapshot.bounceRate24h);
   gauges.bounceRate7d.set(snapshot.bounceRate7d);
-  gauges.leads24h.set(snapshot.leads24h);
-  gauges.leads1h.set(snapshot.leads1h);
-  gauges.leads7d.set(snapshot.leads7d);
-  gauges.conversionRate24h.set(snapshot.conversionRate24h);
-  gauges.conversionRate7d.set(snapshot.conversionRate7d);
   gauges.avgPagesPerSession24h.set(snapshot.avgPagesPerSession24h);
   gauges.avgPagesPerSession7d.set(snapshot.avgPagesPerSession7d);
   gauges.avgTimeOnPage24h.set(snapshot.avgTimeOnPageSeconds24h);
@@ -788,8 +714,6 @@ export function renderBusinessMetrics(snapshot: BusinessSnapshot): void {
   gauges.visitorsReturning24h.set(snapshot.visitorsReturning24h);
   gauges.visitorsReturning7d.set(snapshot.visitorsReturning7d);
   gauges.phoneClicks7d.set(snapshot.phoneClicks7d);
-  gauges.whatsappClicks12h.set(snapshot.whatsappClicks12h);
-  gauges.whatsappClicks7d.set(snapshot.whatsappClicks7d);
 
   // Сбрасываем лейбл-комбинации прошлой отдачи (кэш 60 с мог устареть).
   eventsGauge.reset();
@@ -813,7 +737,7 @@ export function escapeLabelValue(value: string): string {
 }
 
 // Ручной рендер метрик, которых нет в реестре (ЧТЗ §2.1–2.4; ADR-014):
-// - клики по телефону/WhatsApp: gauge-окна + один семпл «1 <unix-мс>» на клик за 24ч;
+// - клики по телефону: gauge-окна + один семпл «1 <unix-мс>» на клик за 24ч;
 // - топ-10 referral/geo/service/landing/переходов/exit/устройств, входные потоки.
 // Нет данных → блок целиком не рендерится. Чистая функция (unit-тестируемая).
 export function renderExtraBusinessMetricsText(snapshot: BusinessSnapshot): string {
@@ -830,16 +754,6 @@ export function renderExtraBusinessMetricsText(snapshot: BusinessSnapshot): stri
         '# HELP business_phone_clicks_event Phone click events (last 24h), one sample per click with exact click timestamp',
         '# TYPE business_phone_clicks_event gauge',
         ...snapshot.phoneClickTimestamps24h.map((ts) => `business_phone_clicks_event 1 ${ts}`),
-      ].join('\n'),
-    );
-  }
-
-  if (snapshot.whatsappClickTimestamps24h.length > 0) {
-    blocks.push(
-      [
-        '# HELP business_whatsapp_clicks_event WhatsApp click events (last 24h), one sample per click with exact click timestamp',
-        '# TYPE business_whatsapp_clicks_event gauge',
-        ...snapshot.whatsappClickTimestamps24h.map((ts) => `business_whatsapp_clicks_event 1 ${ts}`),
       ].join('\n'),
     );
   }

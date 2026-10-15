@@ -1,14 +1,16 @@
 import { z } from 'zod';
 
 // Zod-схема события трекинга (ADR-001; ЧТЗ_Сайт_эвакуация_online_Полные_
-// Бизнес_Метрики.md §2.1/§2.4; ADR-014): click_phone — клик по tel:-ссылке;
-// click_whatsapp — клик по wa.me; service_click — клик по карточке/пункту услуги.
+// Бизнес_Метрики.md §2.1/§2.4): click_phone — клик по tel:-ссылке;
+// service_click — клик по карточке/пункту услуги.
+// click_whatsapp удалён — мессенджеры не подключены
+// (ЧТЗ_Уборка_метрик_заявок_WhatsApp_время_кликов.md).
 // page — где произошёл клик (slug, как в visitSchema);
 // service — slug услуги (обязателен для service_click);
 // referrer — источник сессии (host | (direct)), вычислен клиентом;
 // sessionId — сессия вкладки (ADR-014), связывает клик с сессией для воронки.
 
-export const EVENT_TYPES = ['click_phone', 'click_whatsapp', 'service_click'] as const;
+export const EVENT_TYPES = ['click_phone', 'service_click'] as const;
 
 const SLUG_RE = /^[a-z0-9/_-]+$/;
 const ID_RE = /^[a-zA-Z0-9_-]{8,64}$/;

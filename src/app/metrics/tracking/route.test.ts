@@ -17,7 +17,7 @@ const SAMPLE_METRICS = [
   '# HELP business_page_views_24h Page views in the last 24 hours',
   '# TYPE business_page_views_24h gauge',
   'business_page_views_24h 42',
-  'business_leads_24h 3',
+  'business_phone_clicks_7d 7',
 ].join('\n');
 
 function makeRequest(headers: Record<string, string> = {}): NextRequest {
@@ -39,7 +39,10 @@ describe('GET /metrics/tracking (контракт ЧТЗ §2, TASK-TST-002)', ()
     expect(res.headers.get('content-type')).toMatch(/^text\/plain; version=0\.0\.4/);
     const body = await res.text();
     expect(body).toContain('business_page_views_24h');
-    expect(body).toContain('business_leads_24h');
+    expect(body).toContain('business_phone_clicks_7d');
+    // Метрики заявок/WhatsApp удалены из контракта мониторинга.
+    expect(body).not.toContain('business_leads_');
+    expect(body).not.toContain('business_whatsapp');
     expect(getTrackingMetricsText).toHaveBeenCalledTimes(1);
   });
 

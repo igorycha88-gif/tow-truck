@@ -2,21 +2,15 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 const {
   clickEventCreate,
-  orderCount,
   clickCount,
-  orderFindMany,
   clickFindMany,
-  orderGroupBy,
   visitFindMany,
   visitCreate,
   visitUpdateMany,
 } = vi.hoisted(() => ({
   clickEventCreate: vi.fn(),
-  orderCount: vi.fn(),
   clickCount: vi.fn(),
-  orderFindMany: vi.fn(),
   clickFindMany: vi.fn(),
-  orderGroupBy: vi.fn(),
   visitFindMany: vi.fn(),
   visitCreate: vi.fn(),
   visitUpdateMany: vi.fn(),
@@ -28,11 +22,6 @@ vi.mock('@/lib/prisma', () => ({
       create: clickEventCreate,
       count: clickCount,
       findMany: clickFindMany,
-    },
-    order: {
-      count: orderCount,
-      findMany: orderFindMany,
-      groupBy: orderGroupBy,
     },
     visit: {
       create: visitCreate,
@@ -60,11 +49,11 @@ describe('metricsService.createClickEvent', () => {
     vi.clearAllMocks();
   });
 
-  it('v2: WhatsApp-клик с sessionId сохраняет связку с сессией и device (ADR-014)', async () => {
-    clickEventCreate.mockResolvedValue({ id: 'wa1', createdAt: new Date() });
+  it('v2: клик по телефону с sessionId сохраняет связку с сессией и device (ADR-014)', async () => {
+    clickEventCreate.mockResolvedValue({ id: 'clk-sid', createdAt: new Date() });
 
     await metricsService.createClickEvent({
-      eventType: 'click_whatsapp',
+      eventType: 'click_phone',
       page: 'contacts',
       sessionId: 'sid-12345678',
       userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0) Mobile Safari',
@@ -73,7 +62,7 @@ describe('metricsService.createClickEvent', () => {
     expect(clickEventCreate).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
-          eventType: 'click_whatsapp',
+          eventType: 'click_phone',
           page: 'contacts',
           sessionId: 'sid-12345678',
           device: 'mobile',
@@ -346,28 +335,19 @@ describe('metricsService.getMetrics', () => {
     vi.clearAllMocks();
   });
 
-  it('агрегирует метрики сегодня/неделя/месяц (happy path)', async () => {
+  it('агрегирует метрики сегодня/неделя/месяц без заявок (happy path)', async () => {
     visitFindMany.mockResolvedValue([{ ip: '1.1.1.1' }, { ip: '2.2.2.2' }]);
-    orderCount.mockResolvedValue(3);
     clickCount.mockResolvedValue(5);
-    orderGroupBy.mockResolvedValue([
-      { status: 'NEW', _count: { _all: 2 } },
-      { status: 'DONE', _count: { _all: 1 } },
-    ]);
 
     const result = await metricsService.getMetrics();
 
     expect(result.visitors).toEqual({ today: 2, week: 2, month: 2 });
-    expect(result.orders.today).toBe(3);
     expect(result.clicks.today).toBe(5);
-    expect(result.orders.byStatus).toEqual([
-      { status: 'NEW', count: 2 },
-      { status: 'DONE', count: 1 },
-    ]);
-    expect(orderCount).toHaveBeenCalledTimes(3);
+    // Метрики заявок удалены из ответа (форма заявки скрыта).
+    expect(result).not.toHaveProperty('orders');
+    expect(clickCount).toHaveBeenCalledTimes(3);
     expect(clickCount).toHaveBeenCalledTimes(3);
     expect(visitFindMany).toHaveBeenCalledTimes(3);
-    expect(orderFindMany).not.toHaveBeenCalled();
     expect(clickFindMany).not.toHaveBeenCalled();
     expect(loggerMock.info).toHaveBeenCalledWith(
       'Business metrics aggregated',
@@ -377,9 +357,7 @@ describe('metricsService.getMetrics', () => {
 
   it('исключает ip "unknown" из посетителей (edge case)', async () => {
     visitFindMany.mockResolvedValue([{ ip: 'unknown' }, { ip: '9.9.9.9' }]);
-    orderCount.mockResolvedValue(0);
     clickCount.mockResolvedValue(0);
-    orderGroupBy.mockResolvedValue([]);
 
     const result = await metricsService.getMetrics();
     expect(result.visitors.today).toBe(1);
@@ -387,18 +365,15 @@ describe('metricsService.getMetrics', () => {
 
   it('посетители считаются из Visit даже при 0 заявок и 0 кликов (регрессия ADR-002)', async () => {
     visitFindMany.mockResolvedValue([{ ip: '3.3.3.3' }]);
-    orderCount.mockResolvedValue(0);
     clickCount.mockResolvedValue(0);
-    orderGroupBy.mockResolvedValue([]);
 
     const result = await metricsService.getMetrics();
     expect(result.visitors.today).toBe(1);
-    expect(result.orders.today).toBe(0);
     expect(result.clicks.today).toBe(0);
   });
 
   it('бросает и логирует ошибку при сбое БД (error case)', async () => {
-    orderCount.mockRejectedValue(new Error('DB down'));
+    clickCount.mockRejectedValue(new Error('DB down'));
     await expect(metricsService.getMetrics()).rejects.toThrow('DB down');
     expect(loggerMock.error).toHaveBeenCalledWith(
       'Failed to aggregate business metrics',

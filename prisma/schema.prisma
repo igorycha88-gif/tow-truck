@@ -39,14 +39,17 @@ model Order {
 }
 
 // События трекинга (бизнес-метрики, см. ADR-001, ЧТЗ_Сайт_эвакуация_online_
-// Полные_Бизнес_Метрики.md, ADR-012 мониторинга): клики по телефону, WhatsApp
-// и по услугам. Уникальные IP из Order + ClickEvent дают метрику «посетители».
+// Полные_Бизнес_Метрики.md, ADR-012 мониторинга): клики по телефону и по
+// услугам. Уникальные IP из Order + ClickEvent дают метрику «посетители».
+// click_whatsapp больше не собирается (мессенджеры не подключены,
+// ЧТЗ_Уборка_метрик_заявок_WhatsApp_время_кликов.md); исторические
+// строки остаются.
 model ClickEvent {
   id        String   @id @default(cuid())
   ip        String?
   userAgent String?
   page      String   @default("home") // home, contacts, floating_call, header, service_page
-  eventType String   @default("click_phone") // click_phone | click_whatsapp | service_click (ADR-012/014)
+  eventType String   @default("click_phone") // click_phone | service_click (исторически также click_whatsapp)
   service   String? // slug услуги (для service_click)
   referer   String? // источник сессии: host | (direct)
   city      String? // город по GeoLite2 (geoip-lite)

@@ -53,7 +53,7 @@
         "x": 0,
         "y": 0
       },
-      "id": 1,
+      "id": 2,
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -79,10 +79,10 @@
           },
           "refId": "A",
           "format": "table",
-          "rawSql": "SELECT COUNT(*)::int AS \"Заявки\" FROM \"Order\" WHERE \"createdAt\" >= now() - interval '1 day';"
+          "rawSql": "SELECT COUNT(*)::int AS \"Клики\" FROM \"ClickEvent\" WHERE \"eventType\" = 'click_phone' AND \"createdAt\" >= now() - interval '1 day';"
         }
       ],
-      "title": "Заявки (сегодня)",
+      "title": "Клики по телефону (сегодня)",
       "type": "stat"
     },
     {
@@ -116,71 +116,6 @@
         "h": 4,
         "w": 4,
         "x": 4,
-        "y": 0
-      },
-      "id": 2,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showThresholdLabels": false,
-        "showThresholdMarkers": true,
-        "textMode": "auto"
-      },
-      "pluginVersion": "11.2.0",
-      "targets": [
-        {
-          "datasource": {
-            "type": "grafana-postgresql-datasource",
-            "uid": "postgres-metrics"
-          },
-          "refId": "A",
-          "format": "table",
-          "rawSql": "SELECT COUNT(*)::int AS \"Клики\" FROM \"ClickEvent\" WHERE \"createdAt\" >= now() - interval '1 day';"
-        }
-      ],
-      "title": "Клики по номеру (сегодня)",
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "grafana-postgresql-datasource",
-        "uid": "postgres-metrics"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          },
-          "unit": "short"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 4,
-        "x": 8,
         "y": 0
       },
       "id": 3,
@@ -245,7 +180,7 @@
       "gridPos": {
         "h": 4,
         "w": 4,
-        "x": 12,
+        "x": 8,
         "y": 0
       },
       "id": 7,
@@ -298,193 +233,6 @@
             "axisPlacement": "auto",
             "barAlignment": 0,
             "drawStyle": "line",
-            "fillOpacity": 20,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "lineInterpolation": "smooth",
-            "lineWidth": 2,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          },
-          "unit": "short"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 4
-      },
-      "id": 4,
-      "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "none"
-        }
-      },
-      "pluginVersion": "11.2.0",
-      "targets": [
-        {
-          "datasource": {
-            "type": "grafana-postgresql-datasource",
-            "uid": "postgres-metrics"
-          },
-          "refId": "A",
-          "format": "time_series",
-          "rawSql": "SELECT date_trunc('day', \"createdAt\") AS time, COUNT(*)::int AS \"Заявки\" FROM \"Order\" WHERE $__timeFilter(\"createdAt\") GROUP BY 1 ORDER BY 1;"
-        }
-      ],
-      "title": "Заявки по дням",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "grafana-postgresql-datasource",
-        "uid": "postgres-metrics"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "barMaxWidth": 0,
-            "drawStyle": "line",
-            "fillOpacity": 30,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "normal"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          },
-          "unit": "short"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 4
-      },
-      "id": 5,
-      "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "none"
-        }
-      },
-      "pluginVersion": "11.2.0",
-      "targets": [
-        {
-          "datasource": {
-            "type": "grafana-postgresql-datasource",
-            "uid": "postgres-metrics"
-          },
-          "refId": "A",
-          "format": "time_series",
-          "rawSql": "SELECT date_trunc('day', \"createdAt\") AS time, \"status\" AS metric, COUNT(*)::int AS value FROM \"Order\" WHERE $__timeFilter(\"createdAt\") GROUP BY 1, \"status\" ORDER BY 1, \"status\";"
-        }
-      ],
-      "title": "Заявки по статусам (стек)",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "grafana-postgresql-datasource",
-        "uid": "postgres-metrics"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "line",
             "fillOpacity": 30,
             "gradientMode": "none",
             "hideFrom": {
@@ -530,7 +278,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 12
+        "y": 4
       },
       "id": 6,
       "options": {
@@ -554,10 +302,10 @@
           },
           "refId": "A",
           "format": "time_series",
-          "rawSql": "SELECT date_trunc('day', \"createdAt\") AS time, COUNT(*)::int AS \"Клики\" FROM \"ClickEvent\" WHERE $__timeFilter(\"createdAt\") GROUP BY 1 ORDER BY 1;"
+          "rawSql": "SELECT date_trunc('day', \"createdAt\") AS time, COUNT(*)::int AS \"Клики\" FROM \"ClickEvent\" WHERE \"eventType\" = 'click_phone' AND $__timeFilter(\"createdAt\") GROUP BY 1 ORDER BY 1;"
         }
       ],
-      "title": "Клики по номеру по дням",
+      "title": "Клики по телефону по дням",
       "type": "timeseries"
     },
     {
@@ -622,7 +370,7 @@
       "gridPos": {
         "h": 8,
         "w": 12,
-        "x": 12,
+        "x": 0,
         "y": 12
       },
       "id": 8,
@@ -754,8 +502,8 @@
       "gridPos": {
         "h": 8,
         "w": 12,
-        "x": 12,
-        "y": 22
+        "x": 0,
+        "y": 30
       },
       "id": 22,
       "targets": [
@@ -798,7 +546,7 @@
       "gridPos": {
         "h": 8,
         "w": 8,
-        "x": 0,
+        "x": 12,
         "y": 30
       },
       "id": 23,
@@ -858,61 +606,7 @@
       "gridPos": {
         "h": 8,
         "w": 4,
-        "x": 8,
-        "y": 30
-      },
-      "id": 24,
-      "targets": [
-        {
-          "datasource": {
-            "type": "grafana-postgresql-datasource",
-            "uid": "postgres-metrics"
-          },
-          "refId": "A",
-          "format": "table",
-          "rawSql": "SELECT COUNT(*)::int AS \"value\" FROM \"ClickEvent\" WHERE \"eventType\" = 'click_whatsapp' AND $__timeFilter(\"createdAt\");"
-        }
-      ],
-      "title": "WhatsApp-клики (7д)",
-      "type": "stat",
-      "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "value",
-          "values": false
-        },
-        "textMode": "value"
-      }
-    },
-    {
-      "datasource": {
-        "type": "grafana-postgresql-datasource",
-        "uid": "postgres-metrics"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 4,
-        "x": 12,
+        "x": 20,
         "y": 30
       },
       "id": 26,
@@ -964,10 +658,10 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 8,
+        "h": 9,
         "w": 8,
         "x": 16,
-        "y": 30
+        "y": 38
       },
       "id": 27,
       "targets": [
@@ -1018,7 +712,7 @@
       },
       "gridPos": {
         "h": 9,
-        "w": 24,
+        "w": 16,
         "x": 0,
         "y": 38
       },
@@ -1040,19 +734,10 @@
           },
           "refId": "B",
           "format": "time_series",
-          "rawSql": "SELECT date_trunc('day', \"createdAt\") AS time, COUNT(DISTINCT \"sessionId\")::int AS \"Контакт-клики (тел/WA)\" FROM \"ClickEvent\" WHERE $__timeFilter(\"createdAt\") AND \"sessionId\" IS NOT NULL AND \"eventType\" IN ('click_phone', 'click_whatsapp') GROUP BY 1 ORDER BY 1;"
-        },
-        {
-          "datasource": {
-            "type": "grafana-postgresql-datasource",
-            "uid": "postgres-metrics"
-          },
-          "refId": "C",
-          "format": "time_series",
-          "rawSql": "SELECT date_trunc('day', \"createdAt\") AS time, COUNT(*)::int AS \"Заявки\" FROM \"Order\" WHERE $__timeFilter(\"createdAt\") GROUP BY 1 ORDER BY 1;"
+          "rawSql": "SELECT date_trunc('day', \"createdAt\") AS time, COUNT(DISTINCT \"sessionId\")::int AS \"Контакт-клики (тел)\" FROM \"ClickEvent\" WHERE $__timeFilter(\"createdAt\") AND \"sessionId\" IS NOT NULL AND \"eventType\" = 'click_phone' GROUP BY 1 ORDER BY 1;"
         }
       ],
-      "title": "Воронка по дням: визиты → контент → контакт-клик → заявка",
+      "title": "Воронка по дням: визиты → контент → контакт-клик",
       "type": "timeseries",
       "options": {
         "legend": {
@@ -1065,6 +750,187 @@
           "sort": "desc"
         }
       }
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "postgres-metrics"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "points",
+            "fillOpacity": 20,
+            "lineWidth": 0,
+            "pointSize": 8,
+            "showPoints": "always",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "lineInterpolation": "linear",
+            "axisLabel": ""
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short",
+          "min": 0,
+          "max": 2
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 4
+      },
+      "id": 30,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "pluginVersion": "11.2.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "postgres-metrics"
+          },
+          "refId": "A",
+          "format": "time_series",
+          "rawSql": "SELECT \"createdAt\" AS time, 1 AS \"Клик\" FROM \"ClickEvent\" WHERE \"eventType\" = 'click_phone' AND $__timeFilter(\"createdAt\") ORDER BY 1;"
+        }
+      ],
+      "timeFrom": "now-72h",
+      "title": "Клики по телефону — точное время каждого клика (72ч)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "postgres-metrics"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 12
+      },
+      "id": 31,
+      "options": {
+        "cellHeight": "sm",
+        "showHeader": true
+      },
+      "pluginVersion": "11.2.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "postgres-metrics"
+          },
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT to_char((\"createdAt\" AT TIME ZONE 'UTC') AT TIME ZONE 'Europe/Moscow', 'DD.MM.YYYY HH24:MI') AS \"Дата и время клика (МСК)\", \"page\" AS \"Страница\", COALESCE(\"city\", '—') AS \"Город\" FROM \"ClickEvent\" WHERE \"eventType\" = 'click_phone' AND $__timeFilter(\"createdAt\") ORDER BY \"createdAt\" DESC LIMIT 20;"
+        }
+      ],
+      "title": "Последние клики по телефону",
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "postgres-metrics"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 22
+      },
+      "id": 32,
+      "options": {
+        "cellHeight": "sm",
+        "showHeader": true
+      },
+      "pluginVersion": "11.2.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "postgres-metrics"
+          },
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT to_char((\"createdAt\" AT TIME ZONE 'UTC') AT TIME ZONE 'Europe/Moscow', 'DD.MM.YYYY HH24:MI') AS \"Дата и время перехода (МСК)\", \"page\" AS \"Страница входа\", COALESCE(\"referer\", '—') AS \"Источник\", COALESCE(\"city\", '—') AS \"Город\" FROM \"Visit\" WHERE \"sessionId\" IS NOT NULL AND \"fromPage\" IS NULL AND $__timeFilter(\"createdAt\") ORDER BY \"createdAt\" DESC LIMIT 20;"
+        }
+      ],
+      "title": "Последние переходы (входы на сайт)",
+      "type": "table"
     }
   ],
   "refresh": "1m",
@@ -1084,6 +950,6 @@
   "timezone": "browser",
   "title": "Бизнес-метрики «Эвакуация»",
   "uid": "evakuaciya-business-metrics",
-  "version": 4,
+  "version": 6,
   "weekStart": ""
 }

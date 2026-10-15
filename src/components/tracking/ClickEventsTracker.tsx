@@ -4,10 +4,11 @@ import * as React from 'react';
 import { toPageSlug } from '@/lib/client-tracking';
 import { sendClickBeacon } from '@/lib/click-beacon';
 
-// Делегированный трекер кликов (ЧТЗ §2.1/§2.4, ADR-012; ADR-014 — wa.me):
+// Делегированный трекер кликов (ЧТЗ §2.1/§2.4, ADR-012):
 // один обработчик click на document ловит клики по tel:-ссылкам
-// (eventType=click_phone), wa.me-ссылкам (eventType=click_whatsapp) и
-// элементам с data-service (service_click). Новые номера/услуги ловятся
+// (eventType=click_phone) и элементам с data-service (service_click).
+// WhatsApp-клики (wa.me) убраны — мессенджеры не подключены
+// (ЧТЗ_Уборка_метрик_заявок_WhatsApp_время_кликов.md). Новые номера/услуги ловятся
 // автоматически. Debounce: не чаще 1 события на цель в 5 секунд.
 // Отправка — sendBeacon (переживает хендофф tel: в диалер, см. lib/click-beacon).
 // Fire-and-forget: не блокирует переход по ссылке, ошибки молчаливые.
@@ -41,15 +42,6 @@ export function ClickEventsTracker() {
       if (phoneLink) {
         if (shouldFire(`phone:${phoneLink.href}`, now)) {
           sendClickBeacon({ eventType: 'click_phone', page: pageContext(phoneLink) });
-        }
-        return;
-      }
-
-      // WhatsApp-кнопки (ADR-014): клик по wa.me — лид-намерение наравне с tel:.
-      const whatsappLink = target.closest<HTMLAnchorElement>('a[href*="wa.me"]');
-      if (whatsappLink) {
-        if (shouldFire(`whatsapp:${whatsappLink.href}`, now)) {
-          sendClickBeacon({ eventType: 'click_whatsapp', page: pageContext(whatsappLink) });
         }
         return;
       }

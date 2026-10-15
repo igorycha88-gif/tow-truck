@@ -36,7 +36,7 @@
   "timezone": "browser",
   "title": "Бизнес-метрики — Prometheus (зеркало внешнего мониторинга)",
   "uid": "evakuaciya-business-prometheus",
-  "version": 1,
+  "version": 2,
   "weekStart": "",
   "panels": [
     {
@@ -439,19 +439,9 @@
           "expr": "business_page_views_24h",
           "legendFormat": "Просмотры",
           "format": "time_series"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus-business"
-          },
-          "refId": "C",
-          "expr": "business_leads_24h",
-          "legendFormat": "Заявки",
-          "format": "time_series"
         }
       ],
-      "title": "Трафик и лиды (24ч)",
+      "title": "Трафик (24ч)",
       "type": "timeseries",
       "options": {
         "legend": {
@@ -509,26 +499,6 @@
             "type": "prometheus",
             "uid": "prometheus-business"
           },
-          "refId": "A",
-          "expr": "business_conversion_rate_24h",
-          "legendFormat": "Конверсия 24ч",
-          "format": "time_series"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus-business"
-          },
-          "refId": "B",
-          "expr": "business_conversion_rate_7d",
-          "legendFormat": "Конверсия 7д",
-          "format": "time_series"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus-business"
-          },
           "refId": "C",
           "expr": "business_bounce_rate_24h",
           "legendFormat": "Отказы 24ч",
@@ -545,7 +515,7 @@
           "format": "time_series"
         }
       ],
-      "title": "Конверсия и отказы (24ч / 7д)",
+      "title": "Отказы (24ч / 7д)",
       "type": "timeseries",
       "options": {
         "legend": {
@@ -613,33 +583,13 @@
             "type": "prometheus",
             "uid": "prometheus-business"
           },
-          "refId": "B",
-          "expr": "business_whatsapp_clicks_12h",
-          "legendFormat": "WhatsApp (12ч)",
-          "format": "time_series"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus-business"
-          },
           "refId": "C",
           "expr": "business_phone_clicks_7d",
           "legendFormat": "Телефон (7д)",
           "format": "time_series"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus-business"
-          },
-          "refId": "D",
-          "expr": "business_whatsapp_clicks_7d",
-          "legendFormat": "WhatsApp (7д)",
-          "format": "time_series"
         }
       ],
-      "title": "Клики: телефон vs WhatsApp",
+      "title": "Клики по телефону",
       "type": "timeseries",
       "options": {
         "legend": {

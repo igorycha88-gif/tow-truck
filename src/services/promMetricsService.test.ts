@@ -6,7 +6,6 @@ const prismaMocks = vi.hoisted(() => ({
   clickGroupBy: vi.fn(),
   clickCount: vi.fn(),
   clickFindMany: vi.fn(),
-  orderCount: vi.fn(),
 }));
 
 vi.mock('@/lib/prisma', () => ({
@@ -17,7 +16,6 @@ vi.mock('@/lib/prisma', () => ({
       count: prismaMocks.clickCount,
       findMany: prismaMocks.clickFindMany,
     },
-    order: { count: prismaMocks.orderCount },
   },
   pingDb: vi.fn(),
 }));
@@ -31,7 +29,6 @@ import {
   sessionizeVisits,
   topNWithOther,
   topSlices,
-  computeConversionRate,
   computeBusinessSnapshot,
   computeTransitions,
   computeEntryFlows,
@@ -73,15 +70,9 @@ interface StubDbInput {
   pageViews1h: number;
   pageViews7d: number;
   events: Array<{ eventType: string; count: number }>;
-  leads24h: number;
-  leads1h: number;
-  leads7d: number;
   phoneClicks12h: number;
   phoneClicks7d: number;
   phoneClicks24hMs: number[];
-  whatsappClicks12h: number;
-  whatsappClicks7d: number;
-  whatsappClicks24hMs: number[];
   serviceClicks: Array<{ service: string; count: number }>;
   contactSessions24h: string[];
   contactSessions7d: string[];
@@ -95,15 +86,9 @@ function stubDb(input: Partial<StubDbInput>) {
     pageViews1h = 0,
     pageViews7d = 0,
     events = [],
-    leads24h = 0,
-    leads1h = 0,
-    leads7d = 0,
     phoneClicks12h = 0,
     phoneClicks7d = 0,
     phoneClicks24hMs = [],
-    whatsappClicks12h = 0,
-    whatsappClicks7d = 0,
-    whatsappClicks24hMs = [],
     serviceClicks = [],
     contactSessions24h = [],
     contactSessions7d = [],
@@ -144,8 +129,7 @@ function stubDb(input: Partial<StubDbInput>) {
         if (gte === NOW - 12 * HOUR) return phoneClicks12h;
         return phoneClicks7d;
       }
-      if (gte === NOW - 12 * HOUR) return whatsappClicks12h;
-      return whatsappClicks7d;
+      return 0;
     },
   );
   prismaMocks.clickFindMany.mockImplementation(
@@ -156,19 +140,7 @@ function stubDb(input: Partial<StubDbInput>) {
         const ids = gte === NOW - 24 * HOUR ? contactSessions24h : contactSessions7d;
         return ids.map((sid) => ({ sessionId: sid }));
       }
-      if (where.eventType === 'click_whatsapp') {
-        return whatsappClicks24hMs.map((ms) => ({ createdAt: new Date(ms) }));
-      }
       return phoneClicks24hMs.map((ms) => ({ createdAt: new Date(ms) }));
-    },
-  );
-  prismaMocks.orderCount.mockImplementation(
-    ({ where }: { where: { createdAt: { gte: Date } } }) => {
-      const gte = where.createdAt.gte.getTime();
-      if (gte === NOW - 24 * HOUR) return leads24h;
-      if (gte === NOW - HOUR) return leads1h;
-      if (gte === NOW - 7 * DAY) return leads7d;
-      return 0;
     },
   );
 }
@@ -324,16 +296,6 @@ describe('topSlices (топ-N без other, ЧТЗ §2.2–2.4)', () => {
   });
 });
 
-describe('computeConversionRate', () => {
-  it('считает конверсию leads/sessions', () => {
-    expect(computeConversionRate(3, 12)).toBeCloseTo(0.25);
-  });
-
-  it('деление на 0 → 0 (ЧТЗ §4.1)', () => {
-    expect(computeConversionRate(5, 0)).toBe(0);
-  });
-});
-
 describe('escapeLabelValue', () => {
   it('экранирует спецсимволы лейблов (спецификация Prometheus)', () => {
     expect(escapeLabelValue('a"b')).toBe('a\\"b');
@@ -455,15 +417,9 @@ describe('computeBusinessSnapshot', () => {
     pageViews24h: 0,
     pageViews1h: 0,
     pageViews7d: 0,
-    leads24h: 0,
-    leads1h: 0,
-    leads7d: 0,
     phoneClicks12h: 0,
     phoneClicks7d: 0,
     phoneClickTimestamps24h: [] as number[],
-    whatsappClicks12h: 0,
-    whatsappClicks7d: 0,
-    whatsappClickTimestamps24h: [] as number[],
     contactClickSessionIds24h: [] as string[],
     contactClickSessionIds7d: [] as string[],
     visitorsSeenBefore24h: [] as string[],
@@ -480,7 +436,6 @@ describe('computeBusinessSnapshot', () => {
     expect(snap.pageViews24h).toBe(0);
     expect(snap.sessions24h).toBe(0);
     expect(snap.bounceRate24h).toBe(0);
-    expect(snap.conversionRate24h).toBe(0);
     expect(snap.events24h).toEqual([]);
     expect(snap.phoneClickTimestamps24h).toEqual([]);
     expect(snap.referralSources24h).toEqual([]);
@@ -493,11 +448,10 @@ describe('computeBusinessSnapshot', () => {
     expect(snap.exitPages24h).toEqual([]);
     expect(snap.devices24h).toEqual([]);
     expect(snap.topDwellPages24h).toEqual([]);
-    expect(snap.whatsappClickTimestamps24h).toEqual([]);
-    expect(snap.funnel24h).toEqual({ visit: 0, content_view: 0, contact_click: 0, lead: 0 });
+    expect(snap.funnel24h).toEqual({ visit: 0, content_view: 0, contact_click: 0 });
   });
 
-  it('считает окна, сессии, bounce, длительность, конверсию (happy path)', () => {
+  it('считает окна, сессии, bounce, длительность (happy path)', () => {
     // ip A: сессия 3 просмотра (13ч20м→13ч назад), ip B: 1 просмотр час назад.
     const visits = [
       visit('a1', '9.9.9.9', 760), // 13ч20м назад
@@ -519,7 +473,6 @@ describe('computeBusinessSnapshot', () => {
     expect(snap.uniqueVisitors24h).toBe(2);
     expect(snap.bounceRate24h).toBeCloseTo(0.5); // 1 из 2 сессий однократная
     expect(snap.avgSessionDurationSeconds24h).toBeCloseTo(10 * 60); // (20мин + 0) / 2 сессии
-    expect(snap.conversionRate24h).toBeCloseTo(0); // 0 лидов / 2 сессии
     expect(snap.events24h).toContainEqual({ eventType: 'click_phone', count: 5 });
     expect(snap.events24h).toContainEqual({ eventType: 'service_click', count: 2 });
     expect(snap.serviceClicks24h).toEqual([{ service: 'light_vehicle', count: 2 }]);
@@ -606,19 +559,6 @@ describe('computeBusinessSnapshot', () => {
     expect(snap.uniqueVisitors24h).toBe(1); // только визиты внутри окна
   });
 
-  it('лиды без сессий → конверсия 0 (деление на 0)', () => {
-    const snap = computeBusinessSnapshot({
-      ...base,
-      visits: [],
-      events24h: [],
-      serviceClicks24h: [],
-      leads24h: 7,
-      leads1h: 2,
-    });
-    expect(snap.leads24h).toBe(7);
-    expect(snap.conversionRate24h).toBe(0);
-  });
-
   // ── v2 (ADR-014): путь, воронка, устройства, dwell ───────────────────
 
   it('v2: landing/exit/переходы/глубина по sessionId-сессии (happy path)', () => {
@@ -644,7 +584,7 @@ describe('computeBusinessSnapshot', () => {
     expect(snap.avgPagesPerSession24h).toBe(3);
   });
 
-  it('v2: воронка visit → content_view → contact_click → lead (happy path)', () => {
+  it('v2: воронка visit → content_view → contact_click (happy path)', () => {
     const snap = computeBusinessSnapshot({
       ...base,
       visits: [
@@ -656,11 +596,10 @@ describe('computeBusinessSnapshot', () => {
       ],
       events24h: [],
       serviceClicks24h: [],
-      leads24h: 1,
       contactClickSessionIds24h: ['sid-a', 'sid-unknown'], // sid-unknown не входит в сессии окна
     });
 
-    expect(snap.funnel24h).toEqual({ visit: 2, content_view: 1, contact_click: 1, lead: 1 });
+    expect(snap.funnel24h).toEqual({ visit: 2, content_view: 1, contact_click: 1 });
   });
 
   it('v2: время на странице и топ-dwell (happy path)', () => {
@@ -712,11 +651,9 @@ describe('computeBusinessSnapshot', () => {
       ],
       events24h: [],
       serviceClicks24h: [],
-      leads7d: 1,
     });
     expect(snap.sessions24h).toBe(0);
     expect(snap.sessions7d).toBe(1);
-    expect(snap.conversionRate7d).toBe(1);
     expect(snap.landingPages7d).toEqual([{ page: 'uslugi/a', count: 1 }]);
   });
 });
@@ -736,11 +673,6 @@ describe('renderExtraBusinessMetricsText (ручной рендер, ЧТЗ §2.
       avgSessionDurationSeconds7d: 0,
       bounceRate24h: 0,
       bounceRate7d: 0,
-      leads24h: 0,
-      leads1h: 0,
-      leads7d: 0,
-      conversionRate24h: 0,
-      conversionRate7d: 0,
       events24h: [],
       phoneClicks12h: 0,
       phoneClicks7d: 0,
@@ -759,16 +691,13 @@ describe('renderExtraBusinessMetricsText (ручной рендер, ЧТЗ §2.
       devices7d: [],
       visitorsReturning24h: 0,
       visitorsReturning7d: 0,
-      whatsappClicks12h: 0,
-      whatsappClicks7d: 0,
-      whatsappClickTimestamps24h: [],
       avgPagesPerSession24h: 0,
       avgPagesPerSession7d: 0,
       avgTimeOnPageSeconds24h: 0,
       avgTimeOnPageSeconds7d: 0,
       topDwellPages24h: [],
-      funnel24h: { visit: 0, content_view: 0, contact_click: 0, lead: 0 },
-      funnel7d: { visit: 0, content_view: 0, contact_click: 0, lead: 0 },
+      funnel24h: { visit: 0, content_view: 0, contact_click: 0 },
+      funnel7d: { visit: 0, content_view: 0, contact_click: 0 },
       ...overrides,
     } as Parameters<typeof renderExtraBusinessMetricsText>[0];
   }
@@ -843,13 +772,11 @@ describe('renderExtraBusinessMetricsText (ручной рендер, ЧТЗ §2.
 
   // ── v2 (ADR-014) ─────────────────────────────────────────────────────
 
-  it('v2: WhatsApp-события рендерятся с timestamp', () => {
+  it('метрики WhatsApp больше не рендерятся (убраны из контракта)', () => {
     const text = renderExtraBusinessMetricsText(
-      snapshotWith({ whatsappClickTimestamps24h: [NOW - HOUR, NOW - 2 * HOUR] }),
+      snapshotWith({ phoneClickTimestamps24h: [NOW - HOUR] }),
     );
-    expect(text).toContain('# TYPE business_whatsapp_clicks_event gauge');
-    expect(text).toContain(`business_whatsapp_clicks_event 1 ${NOW - HOUR}`);
-    expect(text).toContain(`business_whatsapp_clicks_event 1 ${NOW - 2 * HOUR}`);
+    expect(text).not.toContain('business_whatsapp');
   });
 
   it('v2: landing/переходы/entry_flows/exit/устройства/топ-dwell с лейблами', () => {
@@ -895,7 +822,6 @@ describe('promMetricsService.getTrackingMetricsText', () => {
       ],
       pageViews24h: 2,
       events: [{ eventType: 'click_phone', count: 3 }],
-      leads24h: 1,
       phoneClicks12h: 2,
       phoneClicks24hMs: [NOW - 3 * HOUR, NOW - 30 * MIN],
       serviceClicks: [{ service: 'light_vehicle', count: 2 }],
@@ -905,10 +831,12 @@ describe('promMetricsService.getTrackingMetricsText', () => {
 
     expect(text).toContain('# TYPE business_page_views_24h gauge');
     expect(text).toContain('business_page_views_24h 2');
-    expect(text).toContain('business_leads_24h 1');
     expect(text).toContain('business_events_24h{event_type="click_phone"} 3');
     expect(text).toContain('business_sessions_24h 2');
-    expect(text).toContain('business_conversion_rate_24h 0.5');
+    // Метрики заявок/конверсии/WhatsApp удалены из контракта.
+    expect(text).not.toContain('business_leads_');
+    expect(text).not.toContain('business_conversion_rate_');
+    expect(text).not.toContain('business_whatsapp');
     // Новые метрики (ЧТЗ «Полные бизнес-метрики»).
     expect(text).toContain('business_phone_clicks_12h 2');
     expect(text).toContain(`business_phone_clicks_event 1 ${NOW - 3 * HOUR}`);
@@ -920,17 +848,13 @@ describe('promMetricsService.getTrackingMetricsText', () => {
     expect(text).toContain('business_service_clicks_24h{service="light_vehicle"} 2');
   });
 
-  it('v2: registry-метрики 7д/воронки/WhatsApp присутствуют в выдаче', async () => {
+  it('v2: registry-метрики 7д/воронки присутствуют в выдаче', async () => {
     stubDb({
       visits: [
         visit('1', '1.1.1.1', 60, null, null, { sessionId: 'sid-a', page: 'uslugi/a', fromPage: 'home' }),
       ],
       pageViews24h: 1,
       pageViews7d: 5,
-      leads7d: 2,
-      whatsappClicks12h: 3,
-      whatsappClicks7d: 7,
-      whatsappClicks24hMs: [NOW - HOUR],
       contactSessions24h: ['sid-a'],
     });
 
@@ -938,14 +862,12 @@ describe('promMetricsService.getTrackingMetricsText', () => {
 
     expect(text).toContain('# TYPE business_page_views_7d gauge');
     expect(text).toContain('business_page_views_7d 5');
-    expect(text).toContain('business_leads_7d 2');
-    expect(text).toContain('business_whatsapp_clicks_12h 3');
-    expect(text).toContain('business_whatsapp_clicks_7d 7');
-    expect(text).toContain(`business_whatsapp_clicks_event 1 ${NOW - HOUR}`);
+    expect(text).toContain('business_phone_clicks_7d 0');
     expect(text).toContain('business_funnel_24h{stage="visit"} 1');
     expect(text).toContain('business_funnel_24h{stage="content_view"} 1');
     expect(text).toContain('business_funnel_24h{stage="contact_click"} 1');
-    expect(text).toContain('business_funnel_24h{stage="lead"} 0');
+    // Стадия lead удалена из воронки.
+    expect(text).not.toContain('stage="lead"');
     expect(text).toContain('business_avg_pages_per_session_24h');
     expect(text).toContain('business_avg_time_on_page_24h');
     expect(text).toContain('business_visitors_returning_24h 0');
