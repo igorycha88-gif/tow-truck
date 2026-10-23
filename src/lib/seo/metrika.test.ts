@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { isValidMetrikaId, metrikaInitScript, metrikaNoscriptSrc } from '@/lib/seo/metrika';
+import { isValidMetrikaId, metrikaInitScript, metrikaNoscriptSrc, metrikaRouteHit } from '@/lib/seo/metrika';
 import { logger } from '@/lib/logger';
 
 describe('seo.metrika.isValidMetrikaId', () => {
@@ -40,6 +40,7 @@ describe('seo.metrika.metrikaInitScript', () => {
   it('вызывает ym(<ID>, "init", ...) со всеми расширенными опциями', () => {
     const s = metrikaInitScript('111456265');
     expect(s).toContain('ym(111456265, "init"');
+    expect(s).toMatch(/defer:true/);
     expect(s).toMatch(/ssr:true/);
     expect(s).toMatch(/webvisor:true/);
     expect(s).toMatch(/clickmap:true/);
@@ -82,5 +83,58 @@ describe('seo.metrika.metrikaNoscriptSrc', () => {
   it('возвращает пустую строку для невалидного ID (edge case)', () => {
     expect(metrikaNoscriptSrc('')).toBe('');
     expect(metrikaNoscriptSrc('abc')).toBe('');
+  });
+});
+
+describe('seo.metrika.metrikaRouteHit (TASK-Я-01)', () => {
+  type YmCall = [number, string, string, Record<string, unknown>];
+
+  const hitCalls = (ymMock: ReturnType<typeof vi.fn>): YmCall[] =>
+    ymMock.mock.calls.filter((c: unknown[]) => (c as YmCall)[1] === 'hit') as YmCall[];
+
+  it('отправляет hit с referer и title, когда они заданы (happy path)', () => {
+    const ym = vi.fn();
+    (globalThis as { window?: unknown }).window = { ym };
+    metrikaRouteHit('111456265', 'https://example.test/ceny', {
+      referer: 'https://example.test/',
+      title: 'Цены',
+    });
+    const calls = hitCalls(ym);
+    expect(calls).toHaveLength(1);
+    expect(calls[0]).toEqual([
+      111456265,
+      'hit',
+      'https://example.test/ceny',
+      { referer: 'https://example.test/', title: 'Цены' },
+    ]);
+    delete (globalThis as { window?: unknown }).window;
+  });
+
+  it('без опций hit уходит с пустым объектом опций (edge case)', () => {
+    const ym = vi.fn();
+    (globalThis as { window?: unknown }).window = { ym };
+    metrikaRouteHit('111456265', 'https://example.test/');
+    expect(hitCalls(ym)[0]?.[3]).toEqual({});
+    delete (globalThis as { window?: unknown }).window;
+  });
+
+  it('пустые referer/title не попадают в опции hit (edge case)', () => {
+    const ym = vi.fn();
+    (globalThis as { window?: unknown }).window = { ym };
+    metrikaRouteHit('111456265', 'https://example.test/', { referer: '', title: '' });
+    expect(hitCalls(ym)[0]?.[3]).toEqual({});
+    delete (globalThis as { window?: unknown }).window;
+  });
+
+  it('не отправляет hit при невалидном ID и без window.ym (error case)', () => {
+    const ym = vi.fn();
+    (globalThis as { window?: unknown }).window = { ym };
+    metrikaRouteHit('bad-id', 'https://example.test/');
+    expect(ym).not.toHaveBeenCalled();
+    delete (globalThis as { window?: unknown }).window;
+    (globalThis as { window?: unknown }).window = {};
+    metrikaRouteHit('111456265', 'https://example.test/');
+    expect(hitCalls(ym)).toHaveLength(0);
+    delete (globalThis as { window?: unknown }).window;
   });
 });

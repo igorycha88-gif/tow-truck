@@ -65,6 +65,9 @@ export type GeoDirection = {
   hubTitle: string;
   hubDescription: string;
   hubH1: string;
+  /** Короткое имя хаба для навигационной цепочки (TASK-Я-02): «ВАО Москвы» —
+   *  вместо полного H1 «Эвакуатор в Восточном округе Москвы (ВАО)». */
+  hubBreadcrumbName: string;
   hubLead: string[];
   hubIncluded: ServicePageInclude[];
   hubPriceNote: string;

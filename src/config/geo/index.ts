@@ -63,6 +63,7 @@ const composeGeoPage = (dir: GeoDirection, loc: GeoLocality): ServicePageConfig 
   title: loc.title,
   description: loc.description,
   h1: `Эвакуатор ${loc.h1Name ?? loc.nameIn}`,
+  breadcrumbName: loc.name,
   lead: loc.lead,
   included: [...loc.localIncluded, ...dir.baseIncluded],
   price: { kind: 'fromMin' },
@@ -78,7 +79,8 @@ const composeGeoPage = (dir: GeoDirection, loc: GeoLocality): ServicePageConfig 
   related: [dir.hubSlug, ...neighborSlugs(dir, loc), 'ceny'],
   relatedTitle: localityRelatedTitle(dir),
   orderServiceType: 'light_vehicle',
-  parent: { name: dir.hubH1, slug: dir.hubSlug },
+  // Крошки (TASK-Я-02): хаб — короткое имя направления, не полный H1
+  parent: { name: dir.hubBreadcrumbName, slug: dir.hubSlug },
   areaName: loc.areaNameOverride ?? localityAreaName(dir, loc),
   ...(loc.sections ? { sections: loc.sections } : {}),
 });
@@ -89,6 +91,7 @@ const composeHubPage = (dir: GeoDirection): ServicePageConfig => ({
   title: dir.hubTitle,
   description: dir.hubDescription,
   h1: dir.hubH1,
+  breadcrumbName: dir.hubBreadcrumbName,
   lead: dir.hubLead,
   included: dir.hubIncluded,
   price: { kind: 'fromMin' },

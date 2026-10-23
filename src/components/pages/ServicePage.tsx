@@ -5,7 +5,7 @@ import { buttonVariants } from '@/components/ui/button';
 import { Breadcrumbs } from '@/components/seo/Breadcrumbs';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { servicePageGraphLd } from '@/lib/seo/json-ld';
-import { absoluteUrl } from '@/lib/seo/url';
+import { breadcrumbItemsFor, breadcrumbGraphItemsFor } from '@/lib/seo/breadcrumbs';
 import { getLandingPage } from '@/config/geo';
 import { servicePagePriceLabel } from '@/config/service-pages';
 import { company, trustStats } from '@/config/company';
@@ -26,15 +26,10 @@ export function ServicePage({ page }: { page: ServicePageConfig }) {
     .filter((p): p is ServicePageConfig => Boolean(p));
   const priceLabel = servicePagePriceLabel(page.price);
 
-  // Хлебные крошки: Главная → [родитель-хаб] → текущая (ADR-003).
-  const breadcrumbItems: BreadcrumbItem[] = [
-    ...(page.parent ? [{ name: page.parent.name, url: `/${page.parent.slug}` }] : []),
-    { name: page.h1, url: `/${page.slug}` },
-  ];
-  const breadcrumbGraphItems: BreadcrumbItem[] = [
-    { name: 'Главная', url: '/' },
-    ...breadcrumbItems,
-  ].map((i) => ({ name: i.name, url: absoluteUrl(i.url) }));
+  // Хлебные крошки по требованиям Яндекса (TASK-Я-02): короткие имена
+  // (breadcrumbName ≤40 симв.), единый построитель для видимых и JSON-LD.
+  const breadcrumbItems: BreadcrumbItem[] = breadcrumbItemsFor(page);
+  const breadcrumbGraphItems: BreadcrumbItem[] = breadcrumbGraphItemsFor(page);
 
   return (
     <article>

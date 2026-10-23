@@ -454,8 +454,8 @@ describe('geo: запрет грузовой тематики, лимит 15 т�
     files.forEach((file) => {
       const content = readFileSync(file, 'utf8');
       const rest = content
-        .replace(/до 15 тонн/g, '')
-        .replace(/до 5 тонн/g, '')
+        .replace(/до 15 тонн/gi, '')
+        .replace(/до 5 тонн/gi, '')
         .replace(/тоннел\w*/gi, '');
       expect(rest, `${file}: «тонн» вне контекста «до 15 тонн»`).not.toMatch(/тонн/i);
     });

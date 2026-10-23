@@ -31,7 +31,7 @@ test('трасса Горьковка: H1, телефонный CTA, крошк�
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Эвакуатор Горьковка');
   await expect(page.locator('#order-service a[href^="tel:"]')).toBeVisible();
   const crumbs = page.getByRole('navigation', { name: 'Хлебные крошки' });
-  await expect(crumbs.getByText(/востоке Подмосковья/i)).toBeVisible();
+  await expect(crumbs.getByText('Восток Подмосковья')).toBeVisible();
 });
 
 test('трасса шоссе Энтузиастов: H1 и JSON-LD areaServed', async ({ page }) => {

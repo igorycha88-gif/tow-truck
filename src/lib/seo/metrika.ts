@@ -29,21 +29,40 @@ export function metrikaInitScript(id: string): string {
     for (var j = 0; j < document.scripts.length; j++) {if (document.scripts[j].src === r) { return; }}
     k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)
 })(window, document, "script", "${tagSrc}", "ym");
-ym(${clean}, "init", {ssr:true, webvisor:true, clickmap:true, ecommerce:"dataLayer", referrer: document.referrer, url: location.href, accurateTrackBounce:true, trackLinks:true});`;
+ym(${clean}, "init", {defer:true, ssr:true, webvisor:true, clickmap:true, ecommerce:"dataLayer", referrer: document.referrer, url: location.href, accurateTrackBounce:true, trackLinks:true});`;
 }
 
-// Отправка искусственного просмотра при клиентской смене маршрута (EV-T13):
-// tag.js не знает о Next App Router — без hit ночные переходы между страницами
-// не попадают в отчёты. Вызывается из MetrikaRouteTracker при изменении пути.
-export function metrikaRouteHit(id: string, url: string): void {
+// Опции искусственного просмотра (справка Метрики для SPA):
+// referer — предыдущий URL (внутренний переход) или document.referrer на входе,
+// title — заголовок страницы на момент hit.
+export type MetrikaHitOptions = {
+  referer?: string;
+  title?: string;
+};
+
+// Отправка просмотра в Яндекс.Метрику (EV-T13 + ЧТЗ_Яндекс_SEO_доработка
+// 2026-10, TASK-Я-01). init с defer:true НЕ отправляет просмотр сам —
+// все просмотры (включая первый) идут через hit отсюда, ровно один на URL.
+export function metrikaRouteHit(
+  id: string,
+  url: string,
+  options: MetrikaHitOptions = {},
+): void {
   const clean = (id ?? '').trim();
   if (!isValidMetrikaId(clean)) return;
-  const w = window as unknown as {
-    ym?: (...args: unknown[]) => void;
-  };
-  if (typeof w.ym === 'function') {
-    w.ym(Number(clean), 'hit', url);
-  }
+  const w = (globalThis as unknown as {
+    window?: { ym?: (...args: unknown[]) => void };
+  }).window;
+  if (!w || typeof w.ym !== 'function') return;
+  const hitOptions: MetrikaHitOptions = {};
+  if (options.referer) hitOptions.referer = options.referer;
+  if (options.title) hitOptions.title = options.title;
+  w.ym(Number(clean), 'hit', url, hitOptions);
+  logger.debug('Метрика: отправлен hit просмотра', {
+    operation: 'metrika.hit',
+    url,
+    hasReferer: Boolean(hitOptions.referer),
+  });
 }
 
 export function metrikaNoscriptSrc(id: string): string {

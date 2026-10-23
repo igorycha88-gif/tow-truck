@@ -3,7 +3,6 @@ import { BadgeRussianRuble } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { services } from '@/config/services';
 import { catalogServiceToLanding } from '@/config/service-pages';
-import { nightTariffLabel } from '@/config/pricing';
 import { formatPricing } from '@/lib/utils';
 
 // Секция «Цены» на главной (ЧТЗ_SEO_Рост_позиций, ЭПИК-5). Якорь #prices —
@@ -20,7 +19,8 @@ export function Prices() {
           </h2>
           <p className="mt-4 text-lg text-muted-foreground">
             Фиксированная стоимость: называем цену до выезда, без доплат «на месте».
-            Ночью действует тариф {nightTariffLabel()}.
+            Ночью и в праздники работаем — стоимость ночного вызова диспетчер
+            называет при заказе и фиксирует до выезда.
           </p>
         </div>
 

@@ -17,6 +17,7 @@ export const sravnenieEvakuatorovPage: ServicePageConfig = {
     `до выезда. Наши тарифы — от ${formatPrice(tariffs.lightVehicle.baseFee)} + ${formatPrice(tariffs.lightVehicle.perKm)}/км. ` +
     'Эвакуатор рядом с вами — звоните!',
   h1: 'Эвакуатор рядом: сравнение служб и цен в Москве',
+  breadcrumbName: 'Сравнение служб',
   lead: [
     'Запрос «эвакуатор рядом» почти всегда означает одно: машина стоит прямо сейчас, ' +
       'выбирать некогда, и нужен тот, кто приедет быстрее и не назовёт цену постфактум. ' +
@@ -86,7 +87,7 @@ export const sravnenieEvakuatorovPage: ServicePageConfig = {
       bullets: [
         `Легковой автомобиль — от ${formatPrice(tariffs.lightVehicle.baseFee)} подача + ${formatPrice(tariffs.lightVehicle.perKm)} за километр`,
         `Кроссовер и джип — от ${formatPrice(tariffs.offroad.baseFee)} подача + ${formatPrice(tariffs.offroad.perKm)} за километр`,
-        'Ночью тариф +30% к дневному — надбавка известна заранее',
+        'Ночью стоимость вызова диспетчер называет при заказе и фиксирует до выезда',
       ],
     },
     {
@@ -131,7 +132,7 @@ export const sravnenieEvakuatorovPage: ServicePageConfig = {
     },
     {
       title: '24/7, честный тариф',
-      text: 'Ночью тариф +30% к дневному — известен заранее; праздники на цену не влияют.',
+      text: 'Ночью стоимость вызова диспетчер называет при заказе; праздники на цену не влияют.',
     },
     {
       title: 'Оплата картой и наличными',
