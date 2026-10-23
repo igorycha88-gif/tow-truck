@@ -119,7 +119,7 @@ test('EV-07 /ceny: «нанять», тарифы, примеры, МО-табл
     page.getByRole('heading', { name: /Сколько стоит нанять эвакуатор/i }),
   ).toBeVisible();
   await expect(
-    page.getByRole('heading', { name: /Стоимость эвакуатора в Московской области/i }),
+    page.getByRole('heading', { name: /Стоимость по городам МО/i }),
   ).toBeVisible();
   await expect(
     page.getByRole('heading', { name: /Дешёвый эвакуатор рядом/i }),

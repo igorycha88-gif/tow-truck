@@ -1,42 +1,34 @@
 import type { MetadataRoute } from 'next';
-import { siteConfig } from '@/config/site';
 import { servicePages } from '@/config/service-pages';
 import { landingPages, geoHubs } from '@/config/geo';
+import { contentLastModified } from '@/config/seo-dates';
+import { absoluteUrl } from '@/lib/seo/url';
 
-// sitemap.xml — генерируется через App Router (см. TECH_STACK.md §2.2, ЧТЗ SEO §3.6).
-// Посадочные SEO-страницы добавляются динамически из ОБЪЕДИНЁННОГО реестра
-// landingPages (ЧТЗ_SEO_Рост_позиций, ЭПИК-2; ADR-003 — гео-страницы).
-const now = new Date();
+// sitemap.xml (ЧТЗ_SEO_Техническая_корректировка 2026-10, TASK-EV-T3):
+// - только индексируемые канонические URL (главная + 123 посадочные из
+//   ОБЪЕДИНЁННОГО реестра landingPages); /politika (noindex) НЕ включается;
+// - hreflang НЕ выводится: сайт одноязычный (ru), hreflang не нужен;
+// - lastmod — дата контента (updatedAt конфига или CONTENT_UPDATED_AT релиза),
+//   НЕ время сборки: Google игнорирует неточный lastmod;
+// - priority оставлен (Яндекс учитывает при порядке обхода), changefreq удалён
+//   (Google игнорирует, Яндекс не использует).
+
 const hubSlugs = new Set(geoHubs.map((h) => h.slug));
 
 export default function sitemap(): MetadataRoute.Sitemap {
   return [
     {
-      url: `${siteConfig.url}/`,
-      lastModified: now,
-      changeFrequency: 'weekly',
+      url: absoluteUrl('/'),
+      lastModified: contentLastModified(),
       priority: 1,
-      alternates: {
-        languages: {
-          'ru-RU': `${siteConfig.url}/`,
-          'x-default': `${siteConfig.url}/`,
-        },
-      },
     },
     ...landingPages.map((page): MetadataRoute.Sitemap[number] => {
       const isService = servicePages.some((p) => p.slug === page.slug);
       return {
-        url: `${siteConfig.url}/${page.slug}`,
-        lastModified: now,
-        changeFrequency: 'monthly',
+        url: absoluteUrl(`/${page.slug}`),
+        lastModified: contentLastModified(page.updatedAt),
         priority: isService || hubSlugs.has(page.slug) ? 0.8 : 0.7,
       };
     }),
-    {
-      url: `${siteConfig.url}/politika`,
-      lastModified: now,
-      changeFrequency: 'yearly',
-      priority: 0.3,
-    },
   ];
 }

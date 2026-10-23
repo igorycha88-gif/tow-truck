@@ -47,7 +47,7 @@ export const zablokirovannyeKolesaPage: ServicePageConfig = {
     },
     {
       title: 'Круглосуточно по Москве и МО',
-      text: 'Подача 15–30 минут; ночью и в праздники — без наценок.',
+      text: 'Подача 15–30 минут; ночью тариф +30%, праздники на цену не влияют.',
     },
   ],
   price: { kind: 'fromMin' },

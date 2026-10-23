@@ -24,12 +24,26 @@ export function metrikaInitScript(id: string): string {
   }
   const tagSrc = `${METRIKA_TAG_URL}?id=${clean}`;
   return `(function(m,e,t,r,i,k,a){
-    m[i]=m[i]||function(){(m[i].a=m[i].a=[]).push(arguments)};
+    m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
     m[i].l=1*new Date();
     for (var j = 0; j < document.scripts.length; j++) {if (document.scripts[j].src === r) { return; }}
     k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)
 })(window, document, "script", "${tagSrc}", "ym");
 ym(${clean}, "init", {ssr:true, webvisor:true, clickmap:true, ecommerce:"dataLayer", referrer: document.referrer, url: location.href, accurateTrackBounce:true, trackLinks:true});`;
+}
+
+// Отправка искусственного просмотра при клиентской смене маршрута (EV-T13):
+// tag.js не знает о Next App Router — без hit ночные переходы между страницами
+// не попадают в отчёты. Вызывается из MetrikaRouteTracker при изменении пути.
+export function metrikaRouteHit(id: string, url: string): void {
+  const clean = (id ?? '').trim();
+  if (!isValidMetrikaId(clean)) return;
+  const w = window as unknown as {
+    ym?: (...args: unknown[]) => void;
+  };
+  if (typeof w.ym === 'function') {
+    w.ym(Number(clean), 'hit', url);
+  }
 }
 
 export function metrikaNoscriptSrc(id: string): string {

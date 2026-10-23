@@ -123,14 +123,26 @@ model Order {
 
 - **SSR/SSG** для всех публичных страниц (App Router)
 - `generateMetadata` на каждой странице (title, description, OG)
-- **schema.org:** LocalBusiness (главная), Service (услуги), FAQ, BreadcrumbList, AggregateRating
-- `app/sitemap.ts` + `app/robots.ts`
+- **schema.org (ADR-015):** сквозной граф в layout — Organization + WebSite +
+  LocalBusiness/AutoWrecker (честный адрес, geo только из ENV, без aggregateRating);
+  на главной — каталог Service; на посадочной — один @graph: WebPage + Service +
+  FAQPage + BreadcrumbList (URL — только канонические, без параметров)
+- `app/sitemap.ts` (только индексируемые; `lastmod` из `src/config/seo-dates.ts`) +
+  `app/robots.txt/route.ts` (ASCII/Punycode, `Clean-param`, без `Host`)
+- **Канонический URL (ADR-015):** `src/lib/seo/url.ts` — `siteOrigin()`/
+  `absoluteUrl()` (Punycode), единственный способ строить абсолютные URL
+- **Перелинковка (ADR-015):** `src/config/seo-links.ts` — единый источник ссылок
+  главной (блок `Coverage`) и подвала; глубина ≤ 3 кликов — BFS-тест
+  `src/lib/seo/link-graph.test.ts`
 - Семантический HTML, `alt` у всех изображений
-- Yandex.Метрика через `<Script strategy="afterInteractive">`
+- Yandex.Метрика: инлайн-сниппет в layout + hit при SPA-переходах
+  (`MetrikaRouteTracker`)
 - **Гео-посадочные (ADR-003):** `src/config/geo/` — данные локаций (районы
   Москвы ВАО/ЮАО/ЮВАО + города МО ≤30 км по направлениям В/ЮВ/Ю) → композер →
   `ServicePageConfig` → объединённый реестр `landingPages` (роут, sitemap,
   перелинковка через хабы направлений; анти-дорвей тесты уникальности)
+- **IndexNow (ADR-015):** ключ `INDEXNOW_KEY` (ENV), файл
+  `public/<ключ>.txt`, отправка изменённых URL в финале прод-деплоя
 
 ---
 

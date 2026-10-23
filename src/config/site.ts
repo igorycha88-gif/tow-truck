@@ -8,7 +8,7 @@ export const siteConfig = {
     'Круглосуточная эвакуация 24/7 в Москве и МО: подача 15–30 минут, фиксированная ' +
     'цена, своя техника. Эвакуатор после ДТП и для мото. Звоните сейчас!',
   locale: 'ru_RU',
-  ogImage: '/og.png',
+  ogImage: '/opengraph-image',
 } as const;
 
 export const navigation = [

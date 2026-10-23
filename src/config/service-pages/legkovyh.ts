@@ -49,7 +49,7 @@ export const legkovyhPage: ServicePageConfig = {
     },
     {
       title: 'Круглосуточная подача',
-      text: '15–30 минут по Москве, работаем 24/7 без наценок за ночь и праздники.',
+      text: '15–30 минут по Москве, работаем 24/7; ночью тариф +30% — известен заранее.',
     },
   ],
   price: { kind: 'tariff', serviceSlug: 'light_vehicle' },

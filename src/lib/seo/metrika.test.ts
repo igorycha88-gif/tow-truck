@@ -31,6 +31,12 @@ describe('seo.metrika.metrikaInitScript', () => {
     expect(s).toContain('https://mc.yandex.ru/metrika/tag.js?id=111456265');
   });
 
+  it('сниппет по официальному образцу: очередь (m[i].a=m[i].a||[]) (EV-T13)', () => {
+    const s = metrikaInitScript('111456265');
+    expect(s).toContain('m[i].a=m[i].a||[]');
+    expect(s).not.toContain('m[i].a=m[i].a=[]');
+  });
+
   it('вызывает ym(<ID>, "init", ...) со всеми расширенными опциями', () => {
     const s = metrikaInitScript('111456265');
     expect(s).toContain('ym(111456265, "init"');

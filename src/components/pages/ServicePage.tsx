@@ -4,7 +4,8 @@ import { Card } from '@/components/ui/card';
 import { buttonVariants } from '@/components/ui/button';
 import { Breadcrumbs } from '@/components/seo/Breadcrumbs';
 import { JsonLd } from '@/components/seo/JsonLd';
-import { servicePageLd, faqPageLd } from '@/lib/seo/json-ld';
+import { servicePageGraphLd } from '@/lib/seo/json-ld';
+import { absoluteUrl } from '@/lib/seo/url';
 import { getLandingPage } from '@/config/geo';
 import { servicePagePriceLabel } from '@/config/service-pages';
 import { company, trustStats } from '@/config/company';
@@ -16,6 +17,8 @@ import type { ServicePageConfig } from '@/types/service-page';
 // Server Component (SSG). Разметка одна, контент — из конфига страницы.
 // Структура: H1 → лид → «Что входит» → цена → шаги → FAQ → CTA → перелинковка.
 // Клики по телефону/услугам трекаются делегированно (ClickEventsTracker).
+// EV-T8: один @graph (WebPage + Service + FAQPage + BreadcrumbList) вместо
+// отдельных скриптов; сквозные Organization/WebSite/LocalBusiness — в layout.
 
 export function ServicePage({ page }: { page: ServicePageConfig }) {
   const relatedPages = page.related
@@ -28,12 +31,15 @@ export function ServicePage({ page }: { page: ServicePageConfig }) {
     ...(page.parent ? [{ name: page.parent.name, url: `/${page.parent.slug}` }] : []),
     { name: page.h1, url: `/${page.slug}` },
   ];
+  const breadcrumbGraphItems: BreadcrumbItem[] = [
+    { name: 'Главная', url: '/' },
+    ...breadcrumbItems,
+  ].map((i) => ({ name: i.name, url: absoluteUrl(i.url) }));
 
   return (
     <article>
-      {/* JSON-LD: Service + Offer (цена из единого источника) и FAQPage */}
-      <JsonLd data={servicePageLd(page)} />
-      <JsonLd data={faqPageLd(page.faq)} />
+      {/* JSON-LD (EV-T8): WebPage + Service (Offer из единого источника) + FAQPage + BreadcrumbList */}
+      <JsonLd data={servicePageGraphLd(page, breadcrumbGraphItems)} />
 
       <Breadcrumbs items={breadcrumbItems} />
 

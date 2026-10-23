@@ -777,6 +777,29 @@ const FINALIZE_STAGE = {
     },
     {
       id: "FN3",
+      name: "IndexNow: уведомление Яндекса об изменённых URL (EV-T12)",
+      action: `После успешного blue-green переключения отправить в IndexNow список
+        НОВЫХ/ИЗМЕНЁННЫХ URL (не весь сайт!) из требования/Переобход_v\${NEW_VERSION}_urls.txt
+        (файл создаёт Разработчик при контентных изменениях; если файла нет — шаг пропустить).
+
+        Ключ: ENV INDEXNOW_KEY (на VPS в ${PROJECT_DIR}/.env);
+        публичная проверка ключа: https://<DOMAIN>/\${INDEXNOW_KEY}.txt
+        (файл public/\${INDEXNOW_KEY}.txt в репозитории — содержимое = ключ).
+
+        Команда (на VPS):
+          KEY=\${INDEXNOW_KEY}
+          HOST=xn--80aae0ai8cwa4cza.online
+          URLS=$(cat ${PROJECT_DIR}/требования/Переобход_v\${NEW_VERSION}_urls.txt | jq -Rsc 'split("\\n") - [""]')
+          curl -s -o /dev/null -w "%{http_code}" https://yandex.com/indexnow \\
+            -H "Content-Type: application/json" \\
+            -d "{\\"host\\":\\"$HOST\\",\\"key\\":\\"$KEY\\",\\"keyLocation\\":\\"https://$HOST/$KEY.txt\\",\\"urlList\\":$URLS}"
+
+        Критерий: ответ 200/202 → записать в лог деплоя «IndexNow: OK, N URL».
+        Любая ошибка IndexNow НЕ валит деплой — записать warning в лог.`,
+      critical: false,
+    },
+    {
+      id: "FN3b",
       name: "Telegram уведомление — УСПЕХ",
       action: `Отправить:
         ✅ Деплой успешен — Эвакуация

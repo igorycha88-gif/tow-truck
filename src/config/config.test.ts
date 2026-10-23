@@ -127,9 +127,15 @@ describe('config.company email (env-driven)', () => {
 });
 
 describe('config.trustStats', () => {
-  it('содержит числовые метрики доверия', () => {
-    expect(trustStats.experienceYears).toBeGreaterThan(0);
-    expect(trustStats.rating).toBeGreaterThan(0);
+  it('содержит подтверждённый показатель подачи (EV-T10)', () => {
+    expect(trustStats.responseMinutes).toBeTruthy();
+    expect(trustStats.responseMinutes).toContain('15');
+  });
+
+  it('недостоверные заглушки удалены: нет rating/лет/заказов (EV-T10)', () => {
+    expect(trustStats).not.toHaveProperty('rating');
+    expect(trustStats).not.toHaveProperty('experienceYears');
+    expect(trustStats).not.toHaveProperty('ordersDone');
   });
 });
 

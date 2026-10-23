@@ -10,6 +10,13 @@ export const tariffs = {
   offroad: { baseFee: 6000, perKm: 100 },
 } as const;
 
+// Ночная эвакуация: надбавка к дневному тарифу (решение владельца 23.10.2026:
+// ночь = тариф +30%). ЕДИНЫЙ источник — тексты посадочных берут значение отсюда.
+export const nightSurchargePercent = 30;
+
+/** «+30%» — формулировка ночного тарифа для текстов посадочных. */
+export const nightTariffLabel = (): string => `+${nightSurchargePercent}%`;
+
 // Минимальная подача среди тарифов — для формулировки «от N ₽» в мета-тегах.
 export const minBaseFee = (): number =>
   Math.min(...Object.values(tariffs).map((t) => t.baseFee));

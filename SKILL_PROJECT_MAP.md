@@ -73,6 +73,7 @@
 | `SKILL_TESTER.md` | Скилл роли 🧪 Тестировщик |
 | `SKILL_DEVOPS.md` | Скилл роли 🚀 DevOps (dev-деплой) |
 | `SKILL_DEVOPS_PROD.md` | Скилл роли 🚀 DevOps (prod, Blue-Green) |
+| `SKILL_SEO.md` | Скилл 🔍 SEO: посадочные, Wordstat-волны, мета-инварианты, перелинковка |
 | `SKILL_PROJECT_MAP.md` | **Этот файл** — карта проекта |
 
 ---
@@ -141,9 +142,13 @@
 | Подключение к БД / Redis | `src/lib/prisma.ts`, `src/lib/redis.ts` |
 | Логирование | `src/lib/logger.ts` |
 | SEO: метаданные / schema.org | `src/lib/seo/metadata.ts`, `src/lib/seo/json-ld.ts` |
+| SEO: канонические URL (Punycode) | `src/lib/seo/url.ts` (`absoluteUrl()`, ADR-015) |
+| SEO: ссылки главной/подвала | `src/config/seo-links.ts` (ADR-015) |
+| SEO: даты lastmod | `src/config/seo-dates.ts` (`CONTENT_UPDATED_AT`) |
+| SEO: граф перелинковки (≤3 кликов) | `src/lib/seo/link-graph.test.ts` (BFS) |
 | SEO: компоненты (Breadcrumbs, JsonLd) | `src/components/seo/` |
-| `sitemap.xml` / `robots.txt` | `src/app/sitemap.ts`, `src/app/robots.ts` |
-| Иконки/OG/manifest | `src/app/icon.tsx`, `apple-icon.tsx`, `opengraph-image.tsx`, `manifest.ts` |
+| `sitemap.xml` / `robots.txt` | `src/app/sitemap.ts`, `src/app/robots.txt/route.ts` (+ `src/lib/seo/robots.ts`) |
+| Иконки/OG/manifest | `src/app/icon.tsx`, `apple-icon.tsx`, `opengraph-image.tsx`, `icon-192/`, `icon-512/`, `manifest.ts` |
 | Шапка/подвал/плавающая кнопка звонка | `src/components/layout/` |
 | Базовые UI-компоненты (кнопка, инпут) | `src/components/ui/` |
 | Схема БД | `prisma/schema.prisma` |
@@ -169,8 +174,8 @@ src/
 │   ├── globals.css              # Глобальные стили + Tailwind directives
 │   ├── not-found.tsx            # 404
 │   ├── sitemap.ts               # Генерация sitemap.xml
-│   ├── sitemap.test.ts          # Тест sitemap
-│   ├── robots.ts                # Генерация robots.txt
+│   ├── sitemap.test.ts          # Тест sitemap + robots
+│   ├── robots.txt/route.ts      # robots.txt (Clean-param, без Host; builder — lib/seo/robots.ts)
 │   ├── manifest.ts              # PWA-манифест
 │   ├── icon.tsx                 # Favicon (генерируется)
 │   ├── apple-icon.tsx           # Apple touch icon

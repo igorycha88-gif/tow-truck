@@ -21,14 +21,19 @@ describe('seo.buildMetadata', () => {
     expect(m.alternates?.canonical).toMatch(/\/politika$/);
   });
 
-  it('выключает индексацию при noIndex', () => {
+  it('выключает индексацию при noIndex (follow сохраняется — EV-T9)', () => {
     const m = buildMetadata({ noIndex: true });
-    expect(m.robots).toEqual({ index: false, follow: false });
+    expect(m.robots).toEqual({ index: false, follow: true });
   });
 
   it('включает индексацию по умолчанию', () => {
     const m = buildMetadata();
     expect(m.robots).toEqual({ index: true, follow: true });
+  });
+
+  it('noCanonical: true → canonical не выводится (404, EV-T9)', () => {
+    const m = buildMetadata({ noIndex: true, noCanonical: true });
+    expect(m.alternates).toBeUndefined();
   });
 
   it('содержит openGraph и twitter', () => {
@@ -37,16 +42,20 @@ describe('seo.buildMetadata', () => {
     expect(m.twitter).toBeDefined();
   });
 
-  it('содержит og:phone_number в other', () => {
+  it('нестандартный og:phone_number отсутствует в other (EV-T9)', () => {
     const m = buildMetadata();
-    const other = m.other as Record<string, string>;
-    expect(other['og:phone_number']).toBe('+7 (901) 705-45-40');
+    const other = (m.other ?? {}) as Record<string, string>;
+    expect(other['og:phone_number']).toBeUndefined();
   });
 
-  it('не добавляет og:email, когда email не задан (edge case)', () => {
-    const m = buildMetadata();
-    const other = m.other as Record<string, string>;
-    expect(other['og:email']).toBeUndefined();
+  it('og/twitter-картинка — /opengraph-image 1200×630 (EV-T4)', () => {
+    const m = buildMetadata({ path: '/ceny' });
+    const og = m.openGraph?.images as Array<{ url: string; width: number; height: number }>;
+    expect(og[0].url).toMatch(/\/opengraph-image$/);
+    expect(og[0].width).toBe(1200);
+    expect(og[0].height).toBe(630);
+    const tw = m.twitter?.images as unknown as string[];
+    expect(tw[0]).toMatch(/\/opengraph-image$/);
   });
 
   it('exactTitle: true → title без суффикса имени сайта', () => {

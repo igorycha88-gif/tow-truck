@@ -20,7 +20,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const page = getLandingPage(slug);
   if (!page) {
-    return buildMetadata({ title: 'Страница не найдена', noIndex: true, path: '/404' });
+    // EV-T9: 404-мету отдаёт not-found.tsx (один meta robots); здесь ничего
+    // не добавляем, чтобы не задвоить robots.
+    return {};
   }
   return buildMetadata({
     title: page.title,

@@ -1,5 +1,5 @@
 import type { ServicePageConfig } from '@/types/service-page';
-import { priceFromLabel, perKmLabel } from '@/config/pricing';
+import { priceFromLabel, perKmLabel, nightTariffLabel } from '@/config/pricing';
 import { moYug } from '@/config/geo/mo-yug';
 
 // Посадочная «Эвакуатор в Видном» (ЧТЗ, табл. 4.1, стр. 6) — гео-пилот.
@@ -48,7 +48,7 @@ export const vidnoePage: ServicePageConfig = {
     },
     {
       title: 'Круглосуточно',
-      text: 'Ночь, выходной, праздник — работаем без наценок за время суток.',
+      text: 'Ночь, выходной, праздник — работаем; ночью тариф +30%, известен заранее.',
     },
   ],
   price: { kind: 'fromMin' },
@@ -93,8 +93,9 @@ export const vidnoePage: ServicePageConfig = {
     {
       question: 'Работаете ли ночью и в праздники?',
       answer:
-        'Да, круглосуточно и без наценки за ночное время или праздничные дни. ' +
-        'Стоимость, названная при заказе, фиксируется и не меняется.',
+        `Да, круглосуточно, включая праздничные дни. Ночью тариф ${nightTariffLabel()} к дневному — ` +
+        'эту надбавку оператор называет сразу. Стоимость, названная при заказе, ' +
+        'фиксируется и не меняется.',
     },
     {
       question: 'Приедете на трассу, если машина встала на М-4?',

@@ -29,9 +29,10 @@ async function installBeaconRecorder(page: Page): Promise<void> {
 
 function beaconPayloads(page: Page): Promise<Record<string, unknown>[]> {
   return page.evaluate(() =>
-    ((window as unknown as { __beacons: { body: unknown }[] }).__beacons ?? []).map(
-      (b) => b.body as Record<string, unknown>,
-    ),
+    ((window as unknown as { __beacons: { url: string; body: unknown }[] }).__beacons ?? [])
+      // только клик-метрики: visit-enter в /api/visit — не предмет этих тестов
+      .filter((b) => b.url.includes('/api/click-event'))
+      .map((b) => b.body as Record<string, unknown>),
   );
 }
 
@@ -58,7 +59,7 @@ test('клик по номеру в Hero отправляет click_phone с pag
   await heroPhone.click({ noWaitAfter: true });
 
   await expect
-    .poll(() => hasBeacon(await beaconPayloads(page), { eventType: 'click_phone', page: 'home', referrer: '(direct)' }), {
+    .poll(async () => hasBeacon(await beaconPayloads(page), { eventType: 'click_phone', page: 'home', referrer: '(direct)' }), {
       timeout: 5000,
     })
     .toBe(true);
@@ -75,7 +76,7 @@ test('мобильная вьюпорт: клик по floating-call отпра�
 
   await expect
     .poll(
-      () => hasBeacon(await beaconPayloads(page), { eventType: 'click_phone', page: 'floating_call', referrer: '(direct)' }),
+      async () => hasBeacon(await beaconPayloads(page), { eventType: 'click_phone', page: 'floating_call', referrer: '(direct)' }),
       { timeout: 5000 },
     )
     .toBe(true);
@@ -83,13 +84,19 @@ test('мобильная вьюпорт: клик по floating-call отпра�
 
 test('клик по WhatsApp в футере отправляет click_whatsapp (ADR-014)', async ({ page }) => {
   await page.goto('/');
+  // Skip если NEXT_PUBLIC_WHATSAPP не задан при сборке — ссылки в футере нет
+  // (окружение, не регресс: проверяется только при настроенном ENV).
+  const whatsappLinks = page.locator('footer a[href*="wa.me"]');
+  if ((await whatsappLinks.count()) === 0) {
+    test.skip(true, 'NEXT_PUBLIC_WHATSAPP не задан — WhatsApp-ссылки нет на странице');
+  }
 
   const whatsapp = page.locator('footer a[href*="wa.me"]').first();
   await expect(whatsapp).toBeVisible();
   await whatsapp.click({ noWaitAfter: true });
 
   await expect
-    .poll(() => hasBeacon(await beaconPayloads(page), { eventType: 'click_whatsapp', page: 'home', referrer: '(direct)' }), {
+    .poll(async () => hasBeacon(await beaconPayloads(page), { eventType: 'click_whatsapp', page: 'home', referrer: '(direct)' }), {
       timeout: 5000,
     })
     .toBe(true);
@@ -105,7 +112,7 @@ test('клик по карточке услуги отправляет service_c
   await card.click({ noWaitAfter: true });
 
   await expect
-    .poll(() => hasBeacon(await beaconPayloads(page), { eventType: 'service_click', page: 'home', service: slug, referrer: '(direct)' }), {
+    .poll(async () => hasBeacon(await beaconPayloads(page), { eventType: 'service_click', page: 'home', service: slug, referrer: '(direct)' }), {
       timeout: 5000,
     })
     .toBe(true);

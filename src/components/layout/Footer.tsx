@@ -3,19 +3,20 @@ import { Phone, Mail, MessageCircle, Send, Truck, Clock, MapPin } from 'lucide-r
 import { company } from '@/config/company';
 import { navigation } from '@/config/site';
 import { getServicePage } from '@/config/service-pages';
+import { getLandingPage } from '@/config/geo';
+import { footerLandingLinks, coverageHubLinks } from '@/config/seo-links';
 
 // Ссылки на главные услуги в подвале (ЭПИК-4 + ЧТЗ SEO v2: /ceny — сквозная
-// перелинковка на страницу цен со всех страниц сайта; ЧТЗ v3 EV-R3 —
-// /sravnenie-evakuatorov-moskva сквозной ссылкой со всех страниц).
-const footerServiceLinks = [
-  'ceny',
-  'sravnenie-evakuatorov-moskva',
-  'evakuator-24-7',
-  'evakuator-posle-dtp',
-  'evakuator-legkovyh',
-  'evakuator-vidnoe',
-]
+// перелинковка; ЧТЗ v3 EV-R3 — /sravnenie-evakuatorov-moskva сквозной ссылкой).
+// EV-T5: список услуг — из seo-links.ts (единственный источник для теста графа);
+// evakuator-vidnoe убран из сквозного блока (остался на главной в Contacts).
+// EV-T5: колонка «География» — все 10 гео-хабов (все посадочные в ≤3 кликах).
+const footerServiceLinks = footerLandingLinks
   .map((slug) => getServicePage(slug))
+  .filter((p): p is NonNullable<typeof p> => Boolean(p));
+
+const footerHubLinks = coverageHubLinks
+  .map((slug) => getLandingPage(slug))
   .filter((p): p is NonNullable<typeof p> => Boolean(p));
 
 // Footer — Server Component (SEO, минимум JS). Ссылки услуг и телефон несут
@@ -26,7 +27,7 @@ export function Footer() {
   return (
     <footer className="border-t border-border bg-secondary/30">
       <div className="container py-12">
-        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-5">
           <div className="space-y-3">
             <div className="flex items-center gap-2 font-bold">
               <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent text-accent-foreground">
@@ -42,12 +43,25 @@ export function Footer() {
             </p>
           </div>
 
-          <nav className="space-y-2" aria-label="Услуги">
+          <nav className="space-y-2" aria-label="Услуги в подвале">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-foreground">Услуги</h2>
             <ul className="space-y-1">
               {footerServiceLinks.map((page) => (
                 <li key={page.slug}>
                   <Link href={`/${page.slug}`} data-service={page.slug} className="text-sm text-muted-foreground hover:text-foreground">
+                    {page.h1}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </nav>
+
+          <nav className="space-y-2" aria-label="География работы">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-foreground">География</h2>
+            <ul className="space-y-1">
+              {footerHubLinks.map((page) => (
+                <li key={page.slug}>
+                  <Link href={`/${page.slug}`} className="text-sm text-muted-foreground hover:text-foreground">
                     {page.h1}
                   </Link>
                 </li>

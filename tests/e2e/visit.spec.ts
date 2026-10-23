@@ -9,13 +9,23 @@ import { test, expect, type Page } from '@playwright/test';
 async function installBeaconRecorder(page: Page): Promise<void> {
   await page.addInitScript(() => {
     const w = window as unknown as { __visits: Record<string, unknown>[] };
-    w.__visits = [];
+    // sessionStorage переживает reload — иначе дедуп-тест после F5 видит пустой
+    // массив (первый enter стёрт, второй задедуплен) и проверка бессмысленна.
+    try {
+      w.__visits = JSON.parse(sessionStorage.getItem('__visits') || '[]');
+    } catch {
+      w.__visits = [];
+    }
+    const persist = () => sessionStorage.setItem('__visits', JSON.stringify(w.__visits));
     const orig = navigator.sendBeacon.bind(navigator);
     navigator.sendBeacon = (url: string | URL, data?: BodyInit | null): boolean => {
       if (String(url).includes('/api/visit')) {
         try {
           if (data instanceof Blob) {
-            void data.text().then((t) => w.__visits.push(JSON.parse(t)));
+            void data.text().then((t) => {
+              w.__visits.push(JSON.parse(t));
+              persist();
+            });
           }
         } catch {
           // ignore

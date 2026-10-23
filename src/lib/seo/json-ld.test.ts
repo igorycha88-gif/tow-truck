@@ -6,13 +6,17 @@ import {
   serviceLd,
   servicesLd,
   servicePageLd,
+  servicePageGraphLd,
+  webPageLd,
   faqPageLd,
   breadcrumbLd,
   siteGraphLd,
 } from '@/lib/seo/json-ld';
 import { servicePages, getServicePage } from '@/config/service-pages';
+import { getLandingPage } from '@/config/geo';
 import { priceFromLabel } from '@/config/pricing';
 import { formatPrice } from '@/lib/utils';
+import { ICON_SIZES } from '@/lib/seo/og-icon';
 
 describe('json-ld.organizationLd', () => {
   it('тип Organization и @id', () => {
@@ -36,9 +40,14 @@ describe('json-ld.websiteLd', () => {
     expect(w.inLanguage).toBe('ru-RU');
     expect(w.publisher).toEqual({ '@id': expect.stringMatching(/#organization$/) });
   });
+
+  it('alternateName для сниппета имени сайта (EV-T8)', () => {
+    const w = websiteLd() as { alternateName: string[] };
+    expect(w.alternateName).toEqual(['Эвакуация 24/7', 'эвакуация.online']);
+  });
 });
 
-describe('json-ld.localBusinessLd', () => {
+describe('json-ld.localBusinessLd (EV-T7: честная карточка)', () => {
   it('тип AutoWrecker (legacy-совместимость)', () => {
     const lb = localBusinessLd();
     expect(lb['@type']).toBe('AutoWrecker');
@@ -65,15 +74,40 @@ describe('json-ld.localBusinessLd', () => {
     expect(lb.priceRange).toContain(formatPrice(5000));
   });
 
-  it('содержит geo-координаты Москвы по умолчанию', () => {
-    const lb = localBusinessLd() as { geo: { latitude: number; longitude: number } };
-    expect(lb.geo.latitude).toBeCloseTo(55.7558, 3);
-    expect(lb.geo.longitude).toBeCloseTo(37.6173, 3);
+  it('адрес без фиктивного streetAddress; только город/регион (EV-T7)', () => {
+    const lb = localBusinessLd() as { address: Record<string, unknown> };
+    expect(lb.address.addressCountry).toBe('RU');
+    expect(lb.address.addressLocality).toBe('Москва');
+    expect(lb.address.streetAddress).toBeUndefined();
   });
 
-  it('содержит PostalAddress с addressCountry RU', () => {
-    const lb = localBusinessLd() as { address: { addressCountry: string } };
-    expect(lb.address.addressCountry).toBe('RU');
+  it('geo отсутствует без ENV-координат; выводится при ENV с ≥5 знаками (EV-T7)', () => {
+    const lbDefault = localBusinessLd() as { geo?: { latitude: number } };
+    expect(lbDefault.geo).toBeUndefined();
+
+    process.env.NEXT_PUBLIC_LATITUDE = '55.720832';
+    process.env.NEXT_PUBLIC_LONGITUDE = '37.640298';
+    const lb = localBusinessLd() as { geo: { latitude: number; longitude: number } };
+    expect(lb.geo).toBeDefined();
+    expect(String(lb.geo.latitude).split('.')[1].length).toBeGreaterThanOrEqual(5);
+    delete process.env.NEXT_PUBLIC_LATITUDE;
+    delete process.env.NEXT_PUBLIC_LONGITUDE;
+  });
+
+  it('areaServed: City Москва + AdministrativeArea МО (EV-T7)', () => {
+    const lb = localBusinessLd() as { areaServed: Array<{ '@type': string; name: string }> };
+    expect(lb.areaServed).toContainEqual({ '@type': 'City', name: 'Москва' });
+    expect(lb.areaServed).toContainEqual({
+      '@type': 'AdministrativeArea',
+      name: 'Московская область',
+    });
+  });
+
+  it('logo — ресурс ≥112px (icon-512, EV-T7)', () => {
+    const lb = localBusinessLd() as { logo: string };
+    expect(lb.logo).toMatch(/\/icon-512$/);
+    expect(ICON_SIZES['icon-512'].width).toBeGreaterThanOrEqual(112);
+    expect(ICON_SIZES['icon-512'].height).toBeGreaterThanOrEqual(112);
   });
 
   it('aggregateRating отсутствует (Google self-serving review policy)', () => {
@@ -82,7 +116,7 @@ describe('json-ld.localBusinessLd', () => {
   });
 });
 
-describe('json-ld.serviceLd', () => {
+describe('json-ld.serviceLd (каталог, только главная — EV-T8)', () => {
   it('тип Service и provider ссылается на LocalBusiness', () => {
     const s = serviceLd({
       slug: 'light_vehicle',
@@ -93,6 +127,15 @@ describe('json-ld.serviceLd', () => {
     });
     expect(s['@type']).toBe('Service');
     expect(s.provider).toEqual({ '@id': expect.stringMatching(/#localbusiness$/) });
+  });
+
+  it('url — каноническая посадочная, БЕЗ параметров ?service= (EV-T8)', () => {
+    const arr = servicesLd();
+    for (const s of arr) {
+      expect(String(s.url)).not.toContain('?service=');
+    }
+    const light = arr.find((s) => s.name === 'Эвакуация легковых авто') as { url: string };
+    expect(light.url).toMatch(/\/evakuator-legkovyh$/);
   });
 
   it('для тарифа — Offer с price и ценой за км', () => {
@@ -118,9 +161,7 @@ describe('json-ld.serviceLd', () => {
     expect(s.offers.price).toBeUndefined();
     expect(s.offers.description).toMatch(/по запросу/i);
   });
-});
 
-describe('json-ld.servicesLd', () => {
   it('возвращает массив Service по числу услуг в каталоге', () => {
     const arr = servicesLd();
     expect(Array.isArray(arr)).toBe(true);
@@ -132,10 +173,9 @@ describe('json-ld.servicesLd', () => {
 describe('json-ld.servicePageLd (посадочные страницы)', () => {
   it('для tariff-цены — Offer с price из каталога (единый источник)', () => {
     const page = getServicePage('evakuator-legkovyh')!;
-    const ld = servicePageLd(page) as Record<
-      string,
-      unknown & { price: number; priceSpecification: { price: number } }
-    >;
+    const ld = servicePageLd(page) as Record<string, unknown> & {
+      offers: { price: number; priceSpecification: { price: number } };
+    };
     expect(ld['@type']).toBe('Service');
     expect(ld.offers.price).toBe(5000);
     expect(ld.offers.priceSpecification.price).toBe(100);
@@ -147,13 +187,21 @@ describe('json-ld.servicePageLd (посадочные страницы)', () => 
     expect(ld.offers.price).toBe(5000);
   });
 
-  it('url канонический: siteConfig.url + слаг страницы', () => {
+  it('url канонический (Punycode-absolute), @id с якорем #service (EV-T8)', () => {
     const page = getServicePage('evakuator-vidnoe')!;
-    const ld = servicePageLd(page) as { url: string };
+    const ld = servicePageLd(page) as { url: string; '@id': string };
     expect(ld.url).toMatch(/\/evakuator-vidnoe$/);
+    expect(ld['@id']).toMatch(/\/evakuator-vidnoe#service$/);
   });
 
-  it('все 7 страниц дают валидный Service с Offer', () => {
+  it('serviceType — короткое название, не H1 целиком (EV-T8)', () => {
+    const page = getServicePage('evakuator-vidnoe')!;
+    const ld = servicePageLd(page) as { serviceType: string; name: string };
+    expect(ld.serviceType).toBe('Эвакуация автомобилей');
+    expect(ld.serviceType).not.toBe(ld.name);
+  });
+
+  it('все 16 услуг дают валидный Service с Offer', () => {
     servicePages.forEach((page) => {
       const ld = servicePageLd(page) as Record<string, unknown>;
       expect(ld['@type']).toBe('Service');
@@ -164,6 +212,39 @@ describe('json-ld.servicePageLd (посадочные страницы)', () => 
       expect(offers.priceCurrency).toBe('RUB');
       expect(offers.availability).toBe('https://schema.org/InStock');
     });
+  });
+});
+
+describe('json-ld.webPageLd + servicePageGraphLd (EV-T8)', () => {
+  const page = getLandingPage('evakuator-marino')!;
+  const crumbs = [
+    { name: 'Главная', url: 'https://example.com/' },
+    { name: 'Эвакуатор в Марьино', url: 'https://example.com/evakuator-marino' },
+  ];
+
+  it('WebPage.url = canonical, @id = #webpage, isPartOf → #website', () => {
+    const wp = webPageLd(page) as Record<string, { '@id': string; url: string }>;
+    expect(wp['@type']).toBe('WebPage');
+    expect(wp.url).toMatch(/\/evakuator-marino$/);
+    expect(String(wp['@id'])).toMatch(/#webpage$/);
+    expect(wp.isPartOf['@id']).toMatch(/#website$/);
+  });
+
+  it('граф посадочной: ровно один Service, FAQPage, BreadcrumbList и WebPage', () => {
+    const graph = servicePageGraphLd(page, crumbs) as { '@graph': Array<{ '@type': string }> };
+    const types = graph['@graph'].map((n) => n['@type']);
+    expect(types.filter((t) => t === 'WebPage')).toHaveLength(1);
+    expect(types.filter((t) => t === 'Service')).toHaveLength(1);
+    expect(types.filter((t) => t === 'FAQPage')).toHaveLength(1);
+    expect(types.filter((t) => t === 'BreadcrumbList')).toHaveLength(1);
+    expect(graph['@graph']).toHaveLength(4);
+  });
+
+  it('в графе НЕТ ссылок с параметрами ?service= (EV-T8)', () => {
+    for (const p of [getLandingPage('evakuator-marino')!, getServicePage('ceny')!]) {
+      const graph = servicePageGraphLd(p, crumbs);
+      expect(JSON.stringify(graph)).not.toContain('?service=');
+    }
   });
 });
 
@@ -189,19 +270,25 @@ describe('json-ld.faqPageLd', () => {
 });
 
 describe('json-ld.breadcrumbLd', () => {
-  it('формирует BreadcrumbList с позициями', () => {
-    const b = breadcrumbLd([
-      { name: 'Главная', url: 'https://example.com/' },
-      { name: 'Услуги', url: 'https://example.com/uslugi' },
-    ]);
+  it('формирует BreadcrumbList с позициями; опциональный @id (EV-T8)', () => {
+    const b = breadcrumbLd(
+      [
+        { name: 'Главная', url: 'https://example.com/' },
+        { name: 'Услуги', url: 'https://example.com/uslugi' },
+      ],
+      'https://example.com/uslugi#breadcrumb',
+    ) as Record<string, unknown> & {
+      itemListElement: Array<{ position: number }>;
+    };
     expect(b['@type']).toBe('BreadcrumbList');
     expect(b.itemListElement[0].position).toBe(1);
     expect(b.itemListElement[1].position).toBe(2);
+    expect(b['@id']).toBe('https://example.com/uslugi#breadcrumb');
   });
 });
 
-describe('json-ld.siteGraphLd', () => {
-  it('собирает @graph с Organization, WebSite, LocalBusiness и услугами', () => {
+describe('json-ld.siteGraphLd (сквозной граф layout — EV-T8)', () => {
+  it('Organization + WebSite + LocalBusiness, БЕЗ каталога Service', () => {
     const g = siteGraphLd();
     expect(g['@context']).toBe('https://schema.org');
     expect(Array.isArray(g['@graph'])).toBe(true);
@@ -210,6 +297,12 @@ describe('json-ld.siteGraphLd', () => {
     expect(types).toContain('Organization');
     expect(types).toContain('WebSite');
     expect(types).toContain('AutoWrecker');
-    expect(types.filter((t) => t === 'Service').length).toBeGreaterThanOrEqual(1);
+    expect(types).not.toContain('Service');
+  });
+
+  it('во всём графе нет URL с кириллическим хостом', () => {
+    const g = siteGraphLd();
+    expect(JSON.stringify(g)).not.toContain('эвакуация.online/');
+    expect(JSON.stringify(g)).not.toContain('?service=');
   });
 });

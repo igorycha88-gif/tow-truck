@@ -1,16 +1,16 @@
 import Link from 'next/link';
 import { Phone } from 'lucide-react';
-import { buildMetadata } from '@/lib/seo/metadata';
 import { company } from '@/config/company';
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import type { Metadata } from 'next';
 
-// Кастомная 404. noindex — не индексируется. Ссылка на главную + телефон (конверсия).
-export const metadata = buildMetadata({
+// Кастомная 404. EV-T9: Next сам добавляет единственный <meta robots noindex>
+// для notFound()-страниц — здесь НЕ задаём robots (иначе дубль) и canonical
+// (у ошибки нет канонического URL). Ссылки продолжают передавать вес.
+export const metadata: Metadata = {
   title: 'Страница не найдена',
-  path: '/404',
-  noIndex: true,
-});
+};
 
 export default function NotFound() {
   return (

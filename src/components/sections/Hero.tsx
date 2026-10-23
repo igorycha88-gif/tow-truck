@@ -1,10 +1,12 @@
-import { Phone, Mail, Timer, ShieldCheck, Star } from 'lucide-react';
+import { Phone, Mail, Timer } from 'lucide-react';
 import { company, trustStats } from '@/config/company';
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
-// Hero — Server Component. H1 + УТП + CTA + бейджи доверия.
+// Hero — Server Component. H1 + УТП + CTA.
 // Клик по телефону трекается делегированно (ClickEventsTracker, data-page="home").
+// EV-T10: недостоверные счётчики (рейтинг, лет, заказов) скрыты до подтверждения
+// владельцем — остаётся только подтверждённый показатель подачи.
 export function Hero() {
   return (
     <section
@@ -70,24 +72,12 @@ export function Hero() {
             </a>
           )}
 
-          <dl className="mx-auto mt-12 grid max-w-2xl grid-cols-3 gap-4 text-center">
+          <dl className="mx-auto mt-12 grid max-w-xs grid-cols-1 gap-4 text-center">
             <div className="space-y-1">
               <dt className="flex items-center justify-center gap-1.5 text-xs uppercase tracking-wide text-primary-foreground/70">
                 <Timer className="h-4 w-4" /> Подача
               </dt>
               <dd className="text-2xl font-bold text-accent">{trustStats.responseMinutes} мин</dd>
-            </div>
-            <div className="space-y-1">
-              <dt className="flex items-center justify-center gap-1.5 text-xs uppercase tracking-wide text-primary-foreground/70">
-                <ShieldCheck className="h-4 w-4" /> Опыт
-              </dt>
-              <dd className="text-2xl font-bold">{trustStats.experienceYears} лет</dd>
-            </div>
-            <div className="space-y-1">
-              <dt className="flex items-center justify-center gap-1.5 text-xs uppercase tracking-wide text-primary-foreground/70">
-                <Star className="h-4 w-4" /> Рейтинг
-              </dt>
-              <dd className="text-2xl font-bold">{trustStats.rating.toFixed(1)}</dd>
             </div>
           </dl>
         </div>

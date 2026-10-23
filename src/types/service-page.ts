@@ -81,6 +81,8 @@ export type ServicePageConfig = {
   parent?: ServicePageParent;
   /** Конкретная гео-зона (район/город) для schema.org areaServed */
   areaName?: string;
+  /** ISO-дата последнего контентного изменения (честный lastmod в sitemap, EV-T3) */
+  updatedAt?: string;
 };
 
 /** Родительская страница в хлебных крошках (ADR-003). */

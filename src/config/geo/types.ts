@@ -47,6 +47,8 @@ export type GeoLocality = {
   related: string[];
   /** Доп. H2-секции локации (напр., таблица цен района — ЧТЗ SEO v2, EV-01) */
   sections?: ServicePageSection[];
+  /** ISO-дата последнего контентного изменения (честный lastmod, EV-T3) */
+  updatedAt?: string;
 };
 
 /** Базовый FAQ направления: вопрос/ответ генерируются с именем локации. */
