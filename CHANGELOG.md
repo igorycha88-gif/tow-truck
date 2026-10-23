@@ -5,6 +5,36 @@
 Формат основан на [Keep a Changelog](https://keepachangelog.com/ru/1.1.0/),
 версионирование — [Semantic Versioning](https://semver.org/lang/ru/).
 
+## [0.19.0] — 2026-10-23
+
+### Добавлено
+- **Техническая корректировка SEO-слоя** (ЧТЗ_SEO_Техническая_корректировка_2026-10,
+  ADR-015, 9e3b7c1): Punycode во всех абсолютных URL (`src/lib/seo/url.ts`); robots.txt
+  через route.ts (Clean-param utm/yclid/service, без Host); sitemap 124 индексируемых
+  URL с честным lastmod из seo-dates.ts; OG/Twitter-картинка /opengraph-image 1200×630;
+  перелинковка: блок Coverage на главной + колонка «География» в подвале (seo-links.ts),
+  все 123 посадочные ≤3 кликов (BFS-тест); JSON-LD по типам страниц; честный
+  LocalBusiness (без фиктивного streetAddress, geo из ENV); PWA-иконки 192/512;
+  IndexNow (ключ ENV + шаг FN3 конвейера); бюджет First Load JS ≤120КБ (check:budget)
+  + e2e CLS/LCP mobile; nginx-редиректы в Punycode.
+- **Доработка SEO под Яндекс** (ЧТЗ_Яндекс_SEO_доработка_2026-10, 3412c37): Я-01 —
+  Метрика без двойных просмотров (init defer:true, все просмотры через hit из
+  MetrikaRouteTracker); Я-02 — навигационные цепочки по требованиям Яндекса
+  (breadcrumbName/hubBreadcrumbName, единый построитель breadcrumbs.ts, JSON-LD
+  BreadcrumbList на 123 страницах); Я-03 — аудит-скрипт scripts/seo-geo-audit.ts +
+  geo-audit.csv по 107 гео-страницам.
+
+### Изменено
+- Я-05 — ночная цена, вариант «б» (решение владельца): «стоимость ночного вызова
+  диспетчер называет при заказе», nightTariffLabel/+30% удалены из pricing.ts и ~20
+  файлов текстов; обещания «наценок за ночь нет» вычищены (правило 7 SKILL_SEO).
+- Я-04 — честный комментарий FAQPage в json-ld.ts и SKILL_SEO.
+- /politika — noindex,follow со своим description; 404 — один meta robots без
+  canonical; og:phone_number убран; счётчики доверия-заглушки скрыты (EV-T10).
+- Баг-фиксы: тавтология vidnoe, «по единому тарифу» mo-vostok, синтаксис
+  metrics.spec, flaky debounce/дедуп-тесты, дубль meta-robots на 404, дубль
+  BreadcrumbList.
+
 ## [0.18.0] — 2026-10-15
 
 ### Изменено
