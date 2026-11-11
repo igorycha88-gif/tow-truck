@@ -5,6 +5,24 @@
 Формат основан на [Keep a Changelog](https://keepachangelog.com/ru/1.1.0/),
 версионирование — [Semantic Versioning](https://semver.org/lang/ru/).
 
+## [0.20.0] — 2026-11-11
+
+### Добавлено
+- **Мониторинг ботов в Grafana** (ЧТЗ_Мониторинг_ботов_Grafana, ADR-016, 3d6227d):
+  таблица `BotVisit` (миграция 20261111090000, id=md5 полей строки → идемпотентные
+  импорты, IP маскирован 152-ФЗ /24 и /64);   python-шиппер `deploy/bots-shipper`
+  (stdlib-only, инкрементальное чтение nginx access-лога по state inode+offset,
+  классификация UA по реестру 60+ ботов, режим `--retro`, идемпотентный cron */5);
+  дашборд «Боты и люди — мониторинг обхода» (9 панелей); юнит-тесты python 22;
+  код приложения не меняется.
+- **«Кто пытался войти» — отвергнутые боты и сканеры** (ADR-016 v1.1, ЧТЗ v1.1,
+  9610b27): реестр шиппера дополнен 22 scripted-клиентами и сканерами
+  (axios, python-requests/-httpx, Go-http-client, curl, wget, zgrab, ExchangeScanner,
+  masscan, nuclei, censys, okhttp и др. → vendor=scanner) + DeepSeekBot/Bytespider;
+  дашборд v2 (12 панелей): stat-ряд 6×w4, таблица «Кто пытался войти», колонка «Тип»
+  (CASE SQL), фильтр vendor +scanner; тесты python 23 + smoke на реальных строках
+  прода 15/15.
+
 ## [0.19.0] — 2026-10-23
 
 ### Добавлено
