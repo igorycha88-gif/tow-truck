@@ -183,6 +183,7 @@ CI: GitHub Actions → lint, test, build → push образа в GHCR.
 | Посетители | `Visit` (ADR-002, уникальные IP) | Реальные визиты на сайт (не только заявки) |
 | Заявки | `Order.status` | Количество по статусам (NEW, CALLED, DONE, CANCELLED) |
 | Клики по номеру | `ClickEvent` (ADR-001) | Логирование кликов на CTA |
+| Боты (люди vs боты) | `BotVisit` (ADR-016, nginx-логи) | Посещения поисковыми ботами: имя, вендор, страницы |
 
 ### 10.3 Архитектура мониторинга
 ```
@@ -212,6 +213,9 @@ CI: GitHub Actions → lint, test, build → push образа в GHCR.
 - **promMetricsService** — /metrics/tracking: + business_phone_clicks_12h,
   business_phone_clicks_event (семпл на клик с unix-мс), business_referral_sources_24h,
   business_geo_visitors_24h, business_service_clicks_24h
+- **BotVisit** (ADR-016) — посещения ботами: nginx access-лог → python-шиппер
+  (cron 5 мин, VPS) → PostgreSQL; дашборд `bots-monitoring.json` (люди vs боты,
+  вендоры yandex/google/bing, журнал страниц обхода); IP маскируется (152-ФЗ)
 
 > Подробности: ADR-001, ADR-002, ЧТЗ_Графана_Бизнес_метрики.md,
 > ЧТЗ_Трекинг_посетителей_и_часовой_график.md,
@@ -225,6 +229,8 @@ CI: GitHub Actions → lint, test, build → push образа в GHCR.
 
 - **ADR-001:** Интеграция Grafana для бизнес-метрик (2026-08-10)
 - **ADR-002:** Трекинг посетителей сайта — модель Visit + POST /api/visit + часовой график (2026-08-14)
+- **ADR-016:** Мониторинг посещений поисковыми ботами — nginx-логи → BotVisit →
+  дашборд Grafana «Боты и люди» (2026-11-11)
 - **ADR-003:** Гео-посадочные SEO-страницы — data-driven модуль `src/config/geo/`:
   районы Москвы (ВАО/ЮАО/ЮВАО) + города МО ≤30 км, хабы направлений,
   объединённый реестр `landingPages` (2026-08-25)

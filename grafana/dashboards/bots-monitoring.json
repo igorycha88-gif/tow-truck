@@ -1,0 +1,678 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "postgres-metrics"
+      },
+      "type": "stat",
+      "title": "Люди — визиты (24ч)",
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 0,
+        "y": 0
+      },
+      "id": 100,
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "green"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": false,
+        "textMode": "auto"
+      },
+      "pluginVersion": "11.2.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "postgres-metrics"
+          },
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT COUNT(DISTINCT \"ip\")::int FROM \"Visit\" WHERE \"createdAt\" >= now() - interval '24 hours';"
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "postgres-metrics"
+      },
+      "type": "stat",
+      "title": "Боты — запросы (24ч)",
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 6,
+        "y": 0
+      },
+      "id": 106,
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "orange"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "orange",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": false,
+        "textMode": "auto"
+      },
+      "pluginVersion": "11.2.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "postgres-metrics"
+          },
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT COUNT(*)::int FROM \"BotVisit\" WHERE \"ts\" >= now() - interval '24 hours';"
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "postgres-metrics"
+      },
+      "type": "stat",
+      "title": "Яндекс-боты (24ч)",
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 12,
+        "y": 0
+      },
+      "id": 112,
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "red"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": false,
+        "textMode": "auto"
+      },
+      "pluginVersion": "11.2.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "postgres-metrics"
+          },
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT COUNT(*)::int FROM \"BotVisit\" WHERE \"ts\" >= now() - interval '24 hours' AND vendor = 'yandex';"
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "postgres-metrics"
+      },
+      "type": "stat",
+      "title": "Google-боты (24ч)",
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 18,
+        "y": 0
+      },
+      "id": 118,
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": false,
+        "textMode": "auto"
+      },
+      "pluginVersion": "11.2.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "postgres-metrics"
+          },
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT COUNT(*)::int FROM \"BotVisit\" WHERE \"ts\" >= now() - interval '24 hours' AND vendor = 'google';"
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "postgres-metrics"
+      },
+      "type": "timeseries",
+      "id": 200,
+      "title": "Люди vs Боты — посещения по времени",
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 4
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "fillOpacity": 15,
+            "showPoints": "auto",
+            "spanNulls": true
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "sum",
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "pluginVersion": "11.2.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "postgres-metrics"
+          },
+          "refId": "A",
+          "format": "time_series",
+          "rawSql": "SELECT $__timeGroupAlias(\"createdAt\", $__interval), COUNT(DISTINCT \"ip\")::int AS \"Люди (уник. IP)\" FROM \"Visit\" WHERE $__timeFilter(\"createdAt\") GROUP BY 1 ORDER BY 1;"
+        },
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "postgres-metrics"
+          },
+          "refId": "B",
+          "format": "time_series",
+          "rawSql": "SELECT $__timeGroupAlias(\"ts\", $__interval), COUNT(*)::int AS \"Боты (запросы)\" FROM \"BotVisit\" WHERE $__timeFilter(\"ts\") AND ($vendor = 'all' OR vendor = '$vendor') GROUP BY 1 ORDER BY 1;"
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "postgres-metrics"
+      },
+      "type": "timeseries",
+      "id": 201,
+      "title": "Боты по поисковым системам (вендорам)",
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 13
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 60,
+            "lineWidth": 1,
+            "showPoints": "never"
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "sum"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "pluginVersion": "11.2.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "postgres-metrics"
+          },
+          "refId": "A",
+          "format": "time_series",
+          "rawSql": "SELECT $__timeGroupAlias(\"ts\", $__interval), COUNT(*) FILTER (WHERE vendor = 'yandex') AS \"Яндекс\", COUNT(*) FILTER (WHERE vendor = 'google') AS \"Google\", COUNT(*) FILTER (WHERE vendor = 'bing') AS \"Bing\", COUNT(*) FILTER (WHERE vendor = 'openai') AS \"OpenAI\", COUNT(*) FILTER (WHERE vendor = 'other') AS \"Прочие\" FROM \"BotVisit\" WHERE $__timeFilter(\"ts\") AND ($vendor = 'all' OR vendor = '$vendor') GROUP BY 1 ORDER BY 1;"
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "postgres-metrics"
+      },
+      "type": "barchart",
+      "id": 300,
+      "title": "Топ-10 ботов по имени",
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 22
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "orange"
+          },
+          "unit": "short",
+          "custom": {
+            "orientation": "horizontal",
+            "showValue": "always",
+            "textWidth": 120
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "barRadius": 0,
+        "barWidth": 0.8,
+        "groupWidth": 0.7,
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 0,
+        "stacking": "off"
+      },
+      "pluginVersion": "11.2.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "postgres-metrics"
+          },
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT \"botName\" AS \"Бот\", COUNT(*)::int AS \"Запросов\" FROM \"BotVisit\" WHERE $__timeFilter(\"ts\") AND ($vendor = 'all' OR vendor = '$vendor') GROUP BY 1 ORDER BY 2 DESC LIMIT 10;"
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "postgres-metrics"
+      },
+      "type": "table",
+      "id": 301,
+      "title": "Какие страницы посещали боты (бот × страница)",
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 22
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Визиты"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "gauge"
+                }
+              },
+              {
+                "id": "unit",
+                "value": "short"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": true
+        },
+        "showHeader": true
+      },
+      "pluginVersion": "11.2.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "postgres-metrics"
+          },
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT \"botName\" AS \"Бот\", \"path\" AS \"Страница\", COUNT(*)::int AS \"Визиты\", MAX(\"ts\") AS \"Последний раз\" FROM \"BotVisit\" WHERE $__timeFilter(\"ts\") AND ($vendor = 'all' OR vendor = '$vendor') GROUP BY 1, 2 ORDER BY 3 DESC LIMIT 100;"
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "postgres-metrics"
+      },
+      "type": "table",
+      "id": 400,
+      "title": "Журнал: последние визиты ботов (чей бот и какую страницу смотрел)",
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 31
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Код"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 70
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "red",
+                      "value": null
+                    },
+                    {
+                      "color": "green",
+                      "value": 200
+                    },
+                    {
+                      "color": "orange",
+                      "value": 300
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "User-Agent"
+            },
+            "properties": [
+              {
+                "id": "custom.hidden",
+                "value": true
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [],
+          "show": false
+        },
+        "showHeader": true
+      },
+      "pluginVersion": "11.2.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "postgres-metrics"
+          },
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT \"ts\" AS \"time\", \"botName\" AS \"Бот\", \"vendor\" AS \"Вендор\", \"path\" || COALESCE('?' || \"query\", '') AS \"Страница\", \"status\" AS \"Код\", \"ip\" AS \"IP (маск.)\", \"userAgent\" AS \"User-Agent\" FROM \"BotVisit\" WHERE $__timeFilter(\"ts\") AND ($vendor = 'all' OR vendor = '$vendor') ORDER BY \"ts\" DESC LIMIT 100;"
+        }
+      ]
+    }
+  ],
+  "refresh": "5m",
+  "schemaVersion": 39,
+  "tags": [
+    "bots",
+    "seo",
+    "evakuaciya"
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "vendor",
+        "type": "custom",
+        "hide": 0,
+        "label": "Поисковая система",
+        "description": "Фильтр по вендору бота",
+        "options": [
+          {
+            "selected": true,
+            "text": "Все",
+            "value": "all"
+          },
+          {
+            "selected": false,
+            "text": "Яндекс",
+            "value": "yandex"
+          },
+          {
+            "selected": false,
+            "text": "Google",
+            "value": "google"
+          },
+          {
+            "selected": false,
+            "text": "Bing",
+            "value": "bing"
+          },
+          {
+            "selected": false,
+            "text": "OpenAI",
+            "value": "openai"
+          },
+          {
+            "selected": false,
+            "text": "Прочие",
+            "value": "other"
+          }
+        ],
+        "query": "all,yandex,google,bing,openai,other",
+        "current": {
+          "selected": true,
+          "text": "Все",
+          "value": "all"
+        }
+      }
+    ]
+  },
+  "time": {
+    "from": "now-15d",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Боты и люди — мониторинг обхода (ADR-016)",
+  "uid": "evakuaciya-bots",
+  "version": 1,
+  "weekStart": ""
+}

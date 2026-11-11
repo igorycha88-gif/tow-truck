@@ -92,3 +92,29 @@ model Visit {
   @@index([sessionId])
   @@index([visitorId, createdAt])
 }
+
+// Мониторинг посещений поисковыми ботами (ADR-016, ЧТЗ_Мониторинг_ботов_Grafana).
+// Источник — nginx access-лог VPS: python-шиппер deploy/bots-shipper/ (cron 5 мин)
+// пишет сюда только бот-запросы (люди — в Visit, дублей и лишних ПДн нет).
+// id детерминированный (md5 ts|ip|method|path|ua) → повторные импорты идемпотентны.
+// ts — время HTTP-запроса из лога (не момент импорта); ip маскирован (152-ФЗ).
+// Приложение таблицу НЕ использует: читает только Grafana (datasource postgres-metrics).
+model BotVisit {
+  id        String   @id
+  ts        DateTime @db.Timestamptz
+  botName   String
+  vendor    String // yandex | google | bing | openai | other
+  ip        String?
+  method    String?
+  path      String
+  query     String?
+  status    Int?
+  referer   String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([ts])
+  @@index([botName, ts])
+  @@index([vendor, ts])
+  @@index([path, ts])
+}
