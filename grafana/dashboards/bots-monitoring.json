@@ -83,7 +83,7 @@
           },
           "refId": "B",
           "format": "time_series",
-          "rawSql": "SELECT $__timeGroupAlias(\"ts\", $__interval), COUNT(*)::int AS \"Боты (запросы)\" FROM \"BotVisit\" WHERE $__timeFilter(\"ts\") AND ($vendor = 'all' OR vendor = '$vendor') GROUP BY 1 ORDER BY 1;"
+          "rawSql": "SELECT $__timeGroupAlias(\"ts\", $__interval), COUNT(*)::int AS \"Боты (запросы)\" FROM \"BotVisit\" WHERE $__timeFilter(\"ts\") AND ('$vendor' = 'all' OR vendor = '$vendor') GROUP BY 1 ORDER BY 1;"
         }
       ]
     },
@@ -138,7 +138,7 @@
           },
           "refId": "A",
           "format": "time_series",
-          "rawSql": "SELECT $__timeGroupAlias(\"ts\", $__interval), COUNT(*) FILTER (WHERE vendor = 'yandex') AS \"Яндекс\", COUNT(*) FILTER (WHERE vendor = 'google') AS \"Google\", COUNT(*) FILTER (WHERE vendor = 'bing') AS \"Bing\", COUNT(*) FILTER (WHERE vendor = 'openai') AS \"OpenAI\", COUNT(*) FILTER (WHERE vendor = 'scanner') AS \"Сканеры\", COUNT(*) FILTER (WHERE vendor = 'other') AS \"Прочие\" FROM \"BotVisit\" WHERE $__timeFilter(\"ts\") AND ($vendor = 'all' OR vendor = '$vendor') GROUP BY 1 ORDER BY 1;"
+          "rawSql": "SELECT $__timeGroupAlias(\"ts\", $__interval), COUNT(*) FILTER (WHERE vendor = 'yandex') AS \"Яндекс\", COUNT(*) FILTER (WHERE vendor = 'google') AS \"Google\", COUNT(*) FILTER (WHERE vendor = 'bing') AS \"Bing\", COUNT(*) FILTER (WHERE vendor = 'openai') AS \"OpenAI\", COUNT(*) FILTER (WHERE vendor = 'scanner') AS \"Сканеры\", COUNT(*) FILTER (WHERE vendor = 'other') AS \"Прочие\" FROM \"BotVisit\" WHERE $__timeFilter(\"ts\") AND ('$vendor' = 'all' OR vendor = '$vendor') GROUP BY 1 ORDER BY 1;"
         }
       ]
     },
@@ -192,7 +192,7 @@
           },
           "refId": "A",
           "format": "table",
-          "rawSql": "SELECT \"botName\" AS \"Бот\", COUNT(*)::int AS \"Запросов\" FROM \"BotVisit\" WHERE $__timeFilter(\"ts\") AND ($vendor = 'all' OR vendor = '$vendor') GROUP BY 1 ORDER BY 2 DESC LIMIT 10;"
+          "rawSql": "SELECT \"botName\" AS \"Бот\", COUNT(*)::int AS \"Запросов\" FROM \"BotVisit\" WHERE $__timeFilter(\"ts\") AND ('$vendor' = 'all' OR vendor = '$vendor') GROUP BY 1 ORDER BY 2 DESC LIMIT 10;"
         }
       ]
     },
@@ -262,7 +262,7 @@
           },
           "refId": "A",
           "format": "table",
-          "rawSql": "SELECT \"botName\" AS \"Бот\", \"path\" AS \"Страница\", COUNT(*)::int AS \"Визиты\", MAX(\"ts\") AS \"Последний раз\" FROM \"BotVisit\" WHERE $__timeFilter(\"ts\") AND ($vendor = 'all' OR vendor = '$vendor') GROUP BY 1, 2 ORDER BY 3 DESC LIMIT 100;"
+          "rawSql": "SELECT \"botName\" AS \"Бот\", \"path\" AS \"Страница\", COUNT(*)::int AS \"Визиты\", MAX(\"ts\") AS \"Последний раз\" FROM \"BotVisit\" WHERE $__timeFilter(\"ts\") AND ('$vendor' = 'all' OR vendor = '$vendor') GROUP BY 1, 2 ORDER BY 3 DESC LIMIT 100;"
         }
       ]
     },
@@ -356,7 +356,7 @@
           },
           "refId": "A",
           "format": "table",
-          "rawSql": "SELECT \"ts\" AS \"time\", \"botName\" AS \"Бот\", CASE vendor WHEN 'yandex' THEN 'Яндекс' WHEN 'google' THEN 'Google' WHEN 'bing' THEN 'Bing' WHEN 'openai' THEN 'OpenAI' WHEN 'scanner' THEN 'Сканер/скрипт' ELSE 'Прочий' END AS \"Тип\", \"path\" || COALESCE('?' || \"query\", '') AS \"Страница\", \"status\" AS \"Код\", \"ip\" AS \"IP (маск.)\", \"userAgent\" AS \"User-Agent\" FROM \"BotVisit\" WHERE $__timeFilter(\"ts\") AND ($vendor = 'all' OR vendor = '$vendor') ORDER BY \"ts\" DESC LIMIT 100;"
+          "rawSql": "SELECT \"ts\" AS \"time\", \"botName\" AS \"Бот\", CASE vendor WHEN 'yandex' THEN 'Яндекс' WHEN 'google' THEN 'Google' WHEN 'bing' THEN 'Bing' WHEN 'openai' THEN 'OpenAI' WHEN 'scanner' THEN 'Сканер/скрипт' ELSE 'Прочий' END AS \"Тип\", \"path\" || COALESCE('?' || \"query\", '') AS \"Страница\", \"status\" AS \"Код\", \"ip\" AS \"IP (маск.)\", \"userAgent\" AS \"User-Agent\" FROM \"BotVisit\" WHERE $__timeFilter(\"ts\") AND ('$vendor' = 'all' OR vendor = '$vendor') ORDER BY \"ts\" DESC LIMIT 100;"
         }
       ],
       "overrides_ref": true
@@ -836,7 +836,7 @@
           },
           "refId": "A",
           "format": "table",
-          "rawSql": "SELECT \"ts\" AS \"time\", \"botName\" AS \"Бот\", CASE vendor WHEN 'yandex' THEN 'Яндекс' WHEN 'google' THEN 'Google' WHEN 'bing' THEN 'Bing' WHEN 'openai' THEN 'OpenAI' WHEN 'scanner' THEN 'Сканер/скрипт' ELSE 'Прочий' END AS \"Тип\", \"path\" || COALESCE('?' || \"query\", '') AS \"Страница\", \"status\" AS \"Код\", \"ip\" AS \"IP (маск.)\", \"userAgent\" AS \"User-Agent\" FROM \"BotVisit\" WHERE $__timeFilter(\"ts\") AND status IN (400, 403, 429) AND ($vendor = 'all' OR vendor = '$vendor') ORDER BY \"ts\" DESC LIMIT 100;"
+          "rawSql": "SELECT \"ts\" AS \"time\", \"botName\" AS \"Бот\", CASE vendor WHEN 'yandex' THEN 'Яндекс' WHEN 'google' THEN 'Google' WHEN 'bing' THEN 'Bing' WHEN 'openai' THEN 'OpenAI' WHEN 'scanner' THEN 'Сканер/скрипт' ELSE 'Прочий' END AS \"Тип\", \"path\" || COALESCE('?' || \"query\", '') AS \"Страница\", \"status\" AS \"Код\", \"ip\" AS \"IP (маск.)\", \"userAgent\" AS \"User-Agent\" FROM \"BotVisit\" WHERE $__timeFilter(\"ts\") AND status IN (400, 403, 429) AND ('$vendor' = 'all' OR vendor = '$vendor') ORDER BY \"ts\" DESC LIMIT 100;"
         }
       ]
     }

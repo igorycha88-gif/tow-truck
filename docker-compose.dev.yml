@@ -141,6 +141,10 @@ services:
       GRAFANA_PG_DB: tow_truck
       GRAFANA_PG_USER: postgres
       GRAFANA_PG_PASSWORD: postgres
+      # Datasource prometheus-business (grafana/provisioning/datasources/
+      # prometheus.yml): в dev — compose-сеть. На проде подставляется
+      # deploy/monitoring/setup-prometheus-prod.sh (gateway host-сети).
+      PROMETHEUS_URL: http://prometheus:9090
     ports:
       - '3031:3000'
     volumes:

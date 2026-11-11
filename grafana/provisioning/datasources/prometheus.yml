@@ -1,6 +1,12 @@
 # Provisioning datasource: внутренний Prometheus (ЧТЗ_Внутренняя_Графана_
 # Prometheus.md). Источник business_*-метрик — скрейп /metrics/tracking из app
-# (зеркало внешнего централизованного мониторинга). Внутри compose-сети.
+# (зеркало внешнего централизованного мониторинга).
+#
+# URL подставляется из env PROMETHEUS_URL контейнера grafana (как GRAFANA_PG_*
+# в postgres.yml):
+#   - dev (docker-compose.dev.yml): http://prometheus:9090 — compose-сеть;
+#   - прод VPS (deploy/monitoring/setup-prometheus-prod.sh): http://<gateway>:9090
+#     — prometheus на host-сети, grafana в bridge-сети tow-truck-net.
 
 apiVersion: 1
 
@@ -9,7 +15,7 @@ datasources:
     type: prometheus
     access: proxy
     uid: prometheus-business
-    url: http://prometheus:9090
+    url: ${PROMETHEUS_URL}
     isDefault: false
     editable: true
     jsonData:

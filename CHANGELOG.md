@@ -7,6 +7,21 @@
 
 ## [0.20.0] — 2026-11-11
 
+### Исправлено (ход деплоя v0.20.0)
+- **Grafana «Боты и люди» — SQL-ошибка `pq: syntax error at or near "all"`**:
+  панели с фильтром vendor использовали `($vendor = 'all' OR ...)` — Grafana
+  интерполирует `$vendor` без кавычек → в PostgreSQL уходил bare-идентификатор.
+  Исправлено на `('$vendor' = 'all' OR vendor = '$vendor')` во всех 6 панелях
+  (`grafana/dashboards/bots-monitoring.json`).
+- **Grafana «Бизнес-метрики — Prometheus» — 502 (`lookup prometheus: no such
+  host`)**: датасорс prometheus-business существовал только в dev-стеке, но
+  provisioning утекал в прод-Grafana из git-клона. По решению владельца
+  (2026-11-11, дополняет ЧТЗ v1.1) Prometheus поднят и на проде: URL датасорса
+  теперь через env `PROMETHEUS_URL` (dev — `http://prometheus:9090`, прод —
+  gateway host-сети), шаблон `prometheus/prometheus.prod.tpl.yml` + идемпотентный
+  `deploy/monitoring/setup-prometheus-prod.sh` (host-сеть, скрейп 127.0.0.1:3001
+  Bearer, retention 15d, ufw-проверка 9090, пересоздание grafana с env).
+
 ### Добавлено
 - **Мониторинг ботов в Grafana** (ЧТЗ_Мониторинг_ботов_Grafana, ADR-016, 3d6227d):
   таблица `BotVisit` (миграция 20261111090000, id=md5 полей строки → идемпотентные

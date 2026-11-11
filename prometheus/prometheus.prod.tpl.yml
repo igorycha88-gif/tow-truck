@@ -1,0 +1,26 @@
+# Шаблон конфига Prometheus для ПРОДА (VPS, решение владельца 2026-11-11 —
+# дополняет ЧТЗ_Внутренняя_Графана_Prometheus.md v1.1, где prometheus был
+# только dev). Генерируется в /etc/prometheus/prometheus.yml скриптом
+# deploy/monitoring/setup-prometheus-prod.sh (sed подставляет MONITORING_KEY
+# из /root/tow-truck/.env; итоговый файл содержит секрет и в git НЕ попадает).
+#
+# Отличия от dev-шаблона (prometheus.tpl.yml):
+#   - контейнер запускается с --network host, поэтому target = 127.0.0.1:3001
+#     (prod-контейнер app слушает 3001 на host-сети);
+#   - скрейп идёт напрямую в app (monitoring-auth.ts принимает Bearer-алиас),
+#     минуя nginx — nginx на /metrics/* требует X-Monitoring-Key, который
+#     Prometheus передать не может (только Authorization).
+
+global:
+  scrape_interval: 60s
+  evaluation_interval: 60s
+
+scrape_configs:
+  - job_name: evakuaciya-business
+    metrics_path: /metrics/tracking
+    scheme: http
+    authorization:
+      type: Bearer
+      credentials: __MONITORING_KEY__
+    static_configs:
+      - targets: ['127.0.0.1:3001']
