@@ -39,14 +39,23 @@ curl -sf --max-time 5 http://127.0.0.1:3001/api/health >/dev/null \
 if command -v ufw >/dev/null 2>&1 && ufw status 2>/dev/null | grep -q 'Status: active'; then
   ufw status | grep -qE '^9090/tcp' \
     && fail "ufw разрешает 9090 снаружи — Prometheus будет открыт в интернет. Закройте: ufw deny 9090/tcp"
+  # Grafana (bridge tow-truck-net) скрейпит prometheus (host-сеть) через gateway:
+  # разрешаем 9090 ТОЛЬКО из подсети tow-truck-net, наружу остаётся закрыто.
+  NET_SUBNET="$(docker network inspect "$NET" --format '{{(index .IPAM.Config 0).Subnet}}')"
+  ufw status | grep -qF "$NET_SUBNET" \
+    || ufw allow from "$NET_SUBNET" to any port 9090 proto tcp comment "grafana->prometheus ($NET)" >/dev/null
+  log "ufw: 9090 закрыт снаружи, разрешён из $NET_SUBNET"
 fi
 log "окружение OK (ключ, app:3001, ufw)"
 
 # ── 2. Конфиг из шаблона ─────────────────────────────────────────────────────
 mkdir -p "$CONF_DIR"
 sed "s/__MONITORING_KEY__/$KEY/" "$TPL" > "$CONF"
-chmod 600 "$CONF"
-log "конфиг сгенерирован: $CONF ($(wc -c <"$CONF") байт, права 600)"
+# Образ prom/prometheus работает под uid 65534 (nobody): даём ему читать конфиг,
+# не открывая секрет остальным (root:65534, 640 — никто кроме root и контейнера).
+chown root:65534 "$CONF"
+chmod 640 "$CONF"
+log "конфиг сгенерирован: $CONF ($(wc -c <"$CONF") байт, root:65534, права 640)"
 
 # ── 3. Контейнер Prometheus ──────────────────────────────────────────────────
 docker volume create prometheus-data >/dev/null
