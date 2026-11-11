@@ -121,6 +121,19 @@ class TestClassifyUa(unittest.TestCase):
         ('Mozilla/5.0 (compatible; YandexImages/3.0)', 'YandexImages', 'yandex'),
         ('Mozilla/5.0 (compatible; AdsBot-Google; +http://google.com)', 'AdsBot-Google', 'google'),
         ('Mozilla/5.0 (compatible; YandexWebmaster/2.0)', 'YandexWebmaster', 'yandex'),
+        # v1.1: скрипты и сканеры → vendor='scanner' (панель «Кто пытался войти»)
+        ('axios/1.7.9', 'axios-script', 'scanner'),
+        ('Mozilla/5.0 (compatible; ExchangeScanner/2.1)', 'ExchangeScanner', 'scanner'),
+        ('Mozilla/5.0 zgrab/0.x', 'zgrab', 'scanner'),
+        ('python-requests/2.32.5', 'python-requests', 'scanner'),
+        ('python-httpx/0.28.1', 'python-httpx', 'scanner'),
+        ('Go-http-client/2.0', 'Go-http-client', 'scanner'),
+        ('curl/8.5.0', 'curl', 'scanner'),
+        ('Wget/1.21.4 (linux-gnu)', 'wget', 'scanner'),
+        ('okhttp/4.12.0', 'okhttp', 'scanner'),
+        # v1.1: новые известные боты
+        ('Mozilla/5.0 (compatible; DeepSeekBot/1.0; +https://www.deepseek.com/)', 'DeepSeekBot', 'other'),
+        ('Mozilla/5.0 (compatible; Bytespider; spider-feedback@bytedance.com)', 'Bytespider', 'other'),
     ]
 
     def test_known_bots(self):
@@ -220,6 +233,17 @@ class TestCollectBots(unittest.TestCase):
             LINE_GOOGLEBOT_MOBILE, LINE_GPTBOT,
         ], 'test')
         self.assertEqual(len(rows), 5)
+
+    def test_blocked_scanner_is_bot_with_403(self):
+        """v1.1: WAF-заблокированный скрипт (403) — это бот-сканер, не человек."""
+        line = ('194.58.116.3 - - [04/Nov/2026:12:00:00 +0300] "GET / HTTP/1.1" '
+                '403 0 "-" "axios/1.7.9"')
+        rows = collect_bots([line], 'test-waf')
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]['botName'], 'axios-script')
+        self.assertEqual(rows[0]['vendor'], 'scanner')
+        self.assertEqual(rows[0]['status'], 403)
+        self.assertEqual(rows[0]['ip'], '194.58.116.0')
 
 
 class TestDbCredentials(unittest.TestCase):

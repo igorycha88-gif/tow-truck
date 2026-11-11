@@ -103,7 +103,7 @@ model BotVisit {
   id        String   @id
   ts        DateTime @db.Timestamptz
   botName   String
-  vendor    String // yandex | google | bing | openai | other
+  vendor    String // yandex | google | bing | openai | scanner (скрипты/сканеры, ЧТЗ v1.1) | other
   ip        String?
   method    String?
   path      String

@@ -1,10 +1,18 @@
 # ЧТЗ: Мониторинг ботов в Grafana — люди и боты раздельно
 
-## Версия: 1.0
+## Версия: 1.1
 ## Дата: 2026-11-11
 ## Автор: AI-Аналитик (конвейер), ADR-016
 ## Приоритет: High
 ## Статус: Согласовано
+
+> **Изменения v1.1:** классификатор шиппера дополнен scripted-клиентами и
+> сканерами (axios, python-requests, Go-http-client, curl/wget, zgrab,
+> ExchangeScanner и др. → `vendor='scanner'`); в дашборд добавлены панель и
+> стат «Кто пытался войти» (статусы 400/403/429) и колонка «Тип» с человеко-
+> читаемым описанием вендора. Мотивация: на проде за 15 дней WAF отрезал
+> 1470 запросов таких клиентов, DeepSeekBot придушен rate-limit (429) —
+> ранее они не попадали в BotVisit (в UA нет bot/crawler).
 
 ---
 
@@ -28,8 +36,11 @@
 - Python-скрипт `deploy/bots-shipper/nginx_bots_shipper.py` на VPS:
   - инкрементально читает `/var/log/nginx/evakuaciya-online.access.log`
     (state-файл: inode+offset; survives logrotate);
-  - классифицирует User-Agent: реестр известных ботов + generic-фолбэк
-    (`bot|crawler|spider|slurp`); не-боты НЕ импортируются;
+  - классифицирует User-Agent: реестр известных ботов (v1.1: + scripted-клиенты
+    и сканеры — axios, python-requests/-httpx, Go-http-client, curl, wget,
+    zgrab, ExchangeScanner, masscan, nuclei, censys, shodan и др. →
+    `vendor='scanner'`) + generic-фолбэк (`bot|crawler|spider|slurp`);
+    не-боты НЕ импортируются;
   - каждому боту присваивает `botName` (каноническое) и `vendor`
     (`yandex|google|bing|openai|other`);
   - пишет строки в таблицу `BotVisit` через
@@ -53,13 +64,17 @@
 
 ### ФР-3. Дашборд Grafana `bots-monitoring.json`
 Datasource `postgres-metrics`. Панели:
-1. Stat-ряд: Боты 24ч · Yandex 24ч · Google 24ч · **Люди 24ч** (из `Visit`).
+1. Stat-ряд (6): Люди 24ч (из `Visit`) · Боты 24ч · Яндекс 24ч · Google 24ч ·
+   Сканеры 24ч · **Заблокированные попытки 24ч** (status IN 400,403,429).
 2. Time series: **Люди (Visit) vs Боты (BotVisit)** — раздельные линии за период.
-3. Time series: боты по вендорам (yandex/google/bing/other).
+3. Time series: боты по вендорам (yandex/google/bing/openai/scanner/other).
 4. Bar chart: топ-10 ботов по имени за период.
 5. Таблица: топ страниц у ботов (бот × страница × количество).
-6. Таблица-журнал: последние 100 визитов ботов — время, бот, страница(+query),
-   статус, IP.
+6. Таблица-журнал: последние 100 визитов ботов — время, бот, **Тип
+   (человеко-читаемое описание вендора)**, страница(+query), статус, IP.
+7. **«Кто пытался войти»** — таблица отвергнутых запросов ботов
+   (status IN 400,403,429): время, имя бота, тип, страница, код, IP.
+- Фильтр `vendor` дополнен значением `scanner` («Сканеры»).
 - Интервалы: стандартные Grafana (с привязкой к `ts`, timezone Europe/Moscow
   как в остальных дашбордах).
 
@@ -158,12 +173,16 @@ Grafana (bots-monitoring.json, datasource postgres) ───┘
 
 1. `BotVisit` в schema.prisma + миграция накатывается без ошибок.
 2. Скрипт на тестовом лог-фрагменте: боты классифицированы (YandexBot→yandex,
-   Googlebot→google, GPTBot→openai, bingbot→bing, неизвестный краулер→other),
+   Googlebot→google, GPTBot→openai, bingbot→bing, неизвестный краулер→other;
+   v1.1: axios→scanner, python-requests→scanner, curl→scanner,
+   zgrab→scanner, ExchangeScanner→scanner, DeepSeekBot→other),
    люди пропущены, пути /grafana//metrics исключены, IP замаскированы.
 3. Повторный прогон скрипта на том же логе не добавляет строки (дедуп).
 4. python unittest проходит; `npm run test && npm run lint && npx tsc --noEmit` проходят.
 5. Дашборд валиден: люди (Visit) и боты (BotVisit) — раздельные панели; фильтр
-   vendor работает; есть таблица «бот × страницы × время».
+   vendor работает (вкл. scanner); есть таблица «бот × страницы × время»;
+   v1.1: панель «Кто пытался войти» (400/403/429) + колонка «Тип» в журнале.
 6. Установка на VPS (`setup-vps.sh`): cron зарегистрирован, retro-импорт выполнен,
    в Grafana видны реальные боты за 15 дней (YandexMetrika, YandexBot, Googlebot,
-   bingbot, GPTBot — подтверждено выше при диагностике).
+   bingbot, GPTBot — подтверждено выше при диагностике; v1.1: заблокированные
+   axios/ExchangeScanner/zgrab видны в панели «Кто пытался войти»).

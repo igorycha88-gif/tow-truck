@@ -29,6 +29,10 @@ Grafana «Боты и люди» (datasource postgres-metrics)
   дубли невозможны (id = md5 полей строки, `ON CONFLICT DO NOTHING`).
 - Люди в `BotVisit` НЕ пишутся (нет дублей и лишних ПДн); пути `/grafana`, `/metrics` исключены.
 - IP маскируется как в приложении: IPv4 → /24, IPv6 → /64.
+- v1.1: скрипты и сканеры (axios, python-requests, Go-http-client, curl/wget,
+  zgrab, ExchangeScanner, masscan и др.) классифицируются как боты с
+  `vendor='scanner'` — их заблокированные запросы (403/429) видны в Grafana
+  на панели «Кто пытался войти».
 
 ## Установка на VPS (после деплоя с миграцией)
 

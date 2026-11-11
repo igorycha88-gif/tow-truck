@@ -48,10 +48,16 @@ IP, путь, статус). Формат не меняем — парсим с�
   Googlebot-Video, Google-InspectionTool, AdsBot-Google, bingbot, GPTBot,
   OAI-SearchBot, ChatGPT-User, ClaudeBot, Applebot, DuckDuckBot, AhrefsBot,
   SemrushBot, MJ12bot, DotBot, PetalBot, SeznamBot, Mail.RU_Bot, SputnikBot,
-  FacebookBot, XingBot/LinkedInBot…) + generic-фолбэк (`bot|crawler|spider|slurp`).
+  FacebookBot, XingBot/LinkedInBot…) + **scripted-клиенты и сканеры →
+  `vendor='scanner'`** (v1.1: axios, python-requests/-httpx, Go-http-client,
+  curl, wget, zgrab, ExchangeScanner, masscan, nuclei, censys, okhttp и др.
+  — их UA не содержит bot/crawler, но WAF отдаёт им 403, rate-limit 429)
+  + generic-фолбэк (`bot|crawler|spider|slurp`).
   Не-боты — не импортируются (люди уже в `Visit`, ADR-014; нет дублей и лишних ПДн).
 - Каждый бот получает `botName` (каноническое имя) и `vendor`
-  (`yandex | google | bing | openai | other`).
+  (`yandex | google | bing | openai | scanner | other`); дашборд показывает
+  человеко-читаемый «Тип» (CASE в SQL) и панель «Кто пытался войти»
+  (status IN 400/403/429 — отвергнутые WAF/rate-limit запросы).
 - **IP маскируется** теми же правилами, что в приложении (152-ФЗ, см.
   ЧТЗ_152ФЗ_маскирование_IP_и_политика.md): IPv4 → последний октет `0`,
   IPv6 → /64. Для статистики по ботам этого достаточно.

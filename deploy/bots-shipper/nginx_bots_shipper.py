@@ -133,6 +133,31 @@ BOT_REGISTRY: List[Tuple[str, str, str]] = [
     ('amazonbot', 'Amazonbot', 'other'),
     ('perplexitybot', 'PerplexityBot', 'other'),
     ('serpstatbot', 'SerpstatBot', 'other'),
+    ('deepseekbot', 'DeepSeekBot', 'other'),
+    ('bytespider', 'Bytespider', 'other'),
+    # Скрипты и сканеры (ЧТЗ v1.1): их UA не содержит bot/crawler, но это НЕ
+    # люди — WAF отдаёт им 403, rate-limit 429. Попадают в BotVisit с
+    # vendor='scanner' → панель «Кто пытался войти».
+    ('exchangescanner', 'ExchangeScanner', 'scanner'),
+    ('zgrab', 'zgrab', 'scanner'),
+    ('masscan', 'masscan', 'scanner'),
+    ('nuclei', 'nuclei', 'scanner'),
+    ('zmap', 'zmap', 'scanner'),
+    ('censys', 'CensysInspect', 'scanner'),
+    ('shodan', 'Shodan', 'scanner'),
+    ('axios', 'axios-script', 'scanner'),
+    ('python-requests', 'python-requests', 'scanner'),
+    ('python-httpx', 'python-httpx', 'scanner'),
+    ('go-http-client', 'Go-http-client', 'scanner'),
+    ('curl/', 'curl', 'scanner'),
+    ('wget', 'wget', 'scanner'),
+    ('okhttp', 'okhttp', 'scanner'),
+    ('java/', 'Java-client', 'scanner'),
+    ('apache-httpclient', 'Apache-HttpClient', 'scanner'),
+    ('scrapy', 'Scrapy', 'scanner'),
+    ('node-fetch', 'node-fetch', 'scanner'),
+    ('guzzle', 'Guzzle', 'scanner'),
+    ('httpclient', 'HttpClient', 'scanner'),
 ]
 
 # Generic-фолбэк: неизвестные краулеры (bot/crawler/spider/slurp в любом месте UA).
